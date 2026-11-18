@@ -248,7 +248,7 @@ window.FICHES_EN = {
     sert: 'Writes a number or a text in the **console**, on a new line each time. Handy to follow measurements without using the LED matrix.',
     util: [
       'Attach in the box a text, a number, or a block that returns a value.',
-      'Open the console with the ‘Show the console’ button of the toolbar, at the top: it opens at the bottom of the screen.',
+      'Open the console with the ‘Console’ button of the toolbar, at the top: it opens at the bottom of the screen.',
     ],
     savoir: [
       'On the real board, the text goes through the **USB cable**: it shows in the console after ‘Connect’ (Chrome or Edge browser).',

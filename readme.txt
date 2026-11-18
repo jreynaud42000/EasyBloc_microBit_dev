@@ -1093,7 +1093,7 @@ memes menus, meme ordre, memes couleurs. Seul l'habillage change (index.html + b
 fonctions de ce logiciel sont conserves. Ordre, de gauche a droite :
  logo | Affichage (icone ronde : Theme Clair/Sombre, Contraste Normal/Eleve, avec ✓) | Fichier (Nouveau projet,
  Charger .hex, Charger .py, Telecharger .xml [grise], Telecharger .hex, Telecharger .py) | nom du fichier (encadre
- blanc, champ de saisie) | Defaire | Refaire | Capture | Afficher/Masquer la console | Masquer/Afficher la simulation |
+ blanc, champ de saisie) | Defaire | Refaire | Capture | Console | Simulation |
  Masquer/Afficher le code | IA | selecteur de carte [grise] | Televerser | Lancer la simulation /
  Arreter | version | Aide (Visite guidee, IA, Mon premier programme [grise], clic droit, Console), tout a droite.
 Correspondances (modele -> ce logiciel) : Le "Moniteur serie" du modele est FUSIONNE dans "Console" (la console est le moniteur) : le bouton Console

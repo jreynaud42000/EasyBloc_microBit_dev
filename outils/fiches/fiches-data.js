@@ -315,7 +315,7 @@ window.FICHES = [
     sert: 'Écrit un nombre ou un texte dans la **console**, sur une nouvelle ligne à chaque fois. Pratique pour suivre des mesures sans occuper la matrice de LED.',
     util: [
       'Accrochez dans la case un texte, un nombre, ou un bloc qui renvoie une valeur.',
-      'Ouvrez la console avec le bouton « Afficher la console » de la barre d\'outils, en haut : elle s\'ouvre en bas de l\'écran.',
+      'Ouvrez la console avec le bouton « Console » de la barre d\'outils, en haut : elle s\'ouvre en bas de l\'écran.',
     ],
     savoir: [
       'Sur la vraie carte, le texte part par le **câble USB** : il s\'affiche dans la console après « Connecter » (navigateur Chrome ou Edge).',
