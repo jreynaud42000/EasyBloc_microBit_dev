@@ -10275,12 +10275,85 @@ try {
         reinitialiserMp3();
     };
 
-    // Lecteur MP3 Grove : pas de son dans le simulateur, mais son etat (piste, lecture, volume, mode) dans
-    // « Peripheriques », comme le comprendrait le vrai module. Suivant / Precedent : piste suivante ou precedente.
+    // Lecteur MP3 Grove : etat (piste, lecture, volume, mode) dans « Peripheriques », comme le comprendrait le vrai
+    // module, et musique jouee par le navigateur : les pistes 1 a 6 sont les melodies de musiques-mp3.js (libres de
+    // droits), a la place des fichiers de la carte microSD. Suivant / Precedent tournent en boucle sur ces pistes.
     const MODES_MP3 = ['une fois', 'répéter la piste', 'tout répéter', 'aléatoire'];
+    const DEMI_TONS_MP3 = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+    /** « A4 » -> 440 Hz ; « R » (silence) ou note inconnue -> 0. */
+    function frequenceNoteMp3(nom) {
+        const m = /^([A-G])([#b]?)(\d)$/.exec(nom);
+        if (!m) return 0;
+        const midi = DEMI_TONS_MP3[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0) + (Number(m[3]) + 1) * 12;
+        return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+    const pistesMp3 = () => window.MUSIQUES_MP3 || [];
     let etatMp3 = null;
+    let sonMp3 = null;   // { contexte, gain, reste (ms), debut, fin (minuterie de fin de piste) }
+    function arreterSonMp3() {
+        if (!sonMp3) return;
+        clearTimeout(sonMp3.fin);
+        sonMp3.contexte.close().catch(() => {});
+        sonMp3 = null;
+    }
+    // Volume 0 a 31 du module -> gain du navigateur (courbe quadratique, plafond modere : ce n'est qu'un essai)
+    const gainMp3 = () => Math.pow(etatMp3.volume / 31, 2) * 0.3;
+    function jouerPisteMp3() {
+        arreterSonMp3();
+        const morceau = pistesMp3()[etatMp3.piste - 1];
+        etatMp3.absente = !morceau;
+        if (!morceau) { etatMp3.lecture = 'arrêt'; return; }
+        try {
+            const Contexte = window.AudioContext || window.webkitAudioContext;
+            const contexte = new Contexte(), gain = contexte.createGain();
+            gain.gain.value = gainMp3();
+            gain.connect(contexte.destination);
+            const temps = 60 / morceau.tempo, jetons = morceau.notes.trim().split(/\s+/);
+            let t = contexte.currentTime + 0.05;
+            for (let i = 0; i + 1 < jetons.length; i += 2) {
+                const f = frequenceNoteMp3(jetons[i]), d = Number(jetons[i + 1]) * temps;
+                if (f && d > 0) {
+                    // Son « triangle » doux, attaque et relache courtes : les notes repetees restent distinctes
+                    const osc = contexte.createOscillator(), env = contexte.createGain();
+                    osc.type = 'triangle'; osc.frequency.value = f;
+                    env.gain.setValueAtTime(0, t);
+                    env.gain.linearRampToValueAtTime(1, t + 0.012);
+                    env.gain.setValueAtTime(1, Math.max(t + 0.012, t + d * 0.82));
+                    env.gain.linearRampToValueAtTime(0, t + d * 0.92);
+                    osc.connect(env); env.connect(gain);
+                    osc.start(t); osc.stop(t + d);
+                }
+                t += d;
+            }
+            const duree = (t - contexte.currentTime) * 1000 + 150;
+            sonMp3 = { contexte, gain, reste: duree, debut: performance.now(), fin: setTimeout(finPisteMp3, duree) };
+        } catch (erreur) { sonMp3 = null; }
+    }
+    function pauseSonMp3(enPause) {
+        if (!sonMp3) return;
+        clearTimeout(sonMp3.fin);
+        if (enPause) {
+            sonMp3.reste -= performance.now() - sonMp3.debut;
+            sonMp3.contexte.suspend().catch(() => {});
+        } else {
+            sonMp3.debut = performance.now();
+            sonMp3.contexte.resume().catch(() => {});
+            sonMp3.fin = setTimeout(finPisteMp3, Math.max(0, sonMp3.reste));
+        }
+    }
+    // Fin d'une piste : selon le mode de lecture, comme le module (une fois, repeter, tout repeter, aleatoire)
+    function finPisteMp3() {
+        const n = pistesMp3().length;
+        if (!etatMp3 || etatMp3.lecture !== 'lecture' || !n) return;
+        if (etatMp3.mode === 0) { arreterSonMp3(); etatMp3.lecture = 'arrêt'; dessinerMp3(); return; }
+        if (etatMp3.mode === 2) etatMp3.piste = etatMp3.piste >= n ? 1 : etatMp3.piste + 1;
+        if (etatMp3.mode === 3) etatMp3.piste = 1 + Math.floor(Math.random() * n);
+        jouerPisteMp3();
+        dessinerMp3();
+    }
     function reinitialiserMp3() {
-        etatMp3 = { piste: 1, lecture: 'arrêt', volume: 20, mode: 0, utilise: false };
+        arreterSonMp3();
+        etatMp3 = { piste: 1, lecture: 'arrêt', volume: 20, mode: 0, utilise: false, absente: false };
         dessinerMp3();
     }
     function dessinerMp3() {
@@ -10288,25 +10361,32 @@ try {
         if (!zone || !etatMp3) return;
         if (!etatMp3.utilise) { zone.innerHTML = '<span class="grove-vide">' + window.tr('aucun ordre reçu') + '</span>'; return; }
         const symbole = { 'lecture': '▶', 'pause': '❚❚', 'arrêt': '■' }[etatMp3.lecture];
+        const morceau = pistesMp3()[etatMp3.piste - 1];
+        const titre = morceau ? window.tr(morceau.titre) : window.tr('piste absente (le simulateur en a {n})', { n: pistesMp3().length });
         zone.innerHTML = '<div class="grove-sortie mp3-etat"><span class="mp3-symbole' + (etatMp3.lecture === 'lecture' ? ' on' : '') +
-            '" aria-hidden="true">' + symbole + '</span>' +
-            window.tr('Piste {p} · {l} · volume {v} · {m}', { p: etatMp3.piste,
-                                                               l: window.tr(etatMp3.lecture === 'arrêt' ? 'à l\'arrêt' : etatMp3.lecture),
-                                                               v: etatMp3.volume, m: window.tr(MODES_MP3[etatMp3.mode] || '') }) + '</div>';
+            '" aria-hidden="true">' + symbole + '</span><span>' +
+            window.tr('Piste {p} : {t}', { p: etatMp3.piste, t: titre }) + '<br>' +
+            window.tr('{l} · volume {v} · {m}', { l: window.tr(etatMp3.lecture === 'arrêt' ? 'à l\'arrêt' : etatMp3.lecture),
+                                                  v: etatMp3.volume, m: window.tr(MODES_MP3[etatMp3.mode] || '') }) + '</span></div>';
     }
-    window.etatMp3Test = () => etatMp3;
+    window.etatMp3Test = () => etatMp3 && Object.assign({ son: !!sonMp3, suspendu: !!(sonMp3 && sonMp3.contexte.state === 'suspended') }, etatMp3);
     function appliquerMp3(action) {
-        const e = etatMp3;
+        const e = etatMp3, n = Math.max(1, pistesMp3().length);
         e.utilise = true;
-        if (action.quoi === 'piste') { e.piste = Math.max(1, Math.round(action.valeur)); e.lecture = 'lecture'; }
+        if (action.quoi === 'piste') { e.piste = Math.max(1, Math.round(action.valeur)); e.lecture = 'lecture'; jouerPisteMp3(); }
         else if (action.quoi === 'volume') e.volume = Math.max(0, Math.min(31, Math.round(action.valeur)));
         else if (action.quoi === 'mode') e.mode = Math.round(action.valeur);
-        else if (action.ordre === 'lecture_pause') e.lecture = e.lecture === 'lecture' ? 'pause' : 'lecture';
-        else if (action.ordre === 'stop') e.lecture = 'arrêt';
-        else if (action.ordre === 'suivant') { e.piste += 1; e.lecture = 'lecture'; }
-        else if (action.ordre === 'precedent') { e.piste = Math.max(1, e.piste - 1); e.lecture = 'lecture'; }
+        else if (action.ordre === 'lecture_pause') {
+            if (e.lecture === 'lecture') { e.lecture = 'pause'; pauseSonMp3(true); }
+            else if (e.lecture === 'pause' && sonMp3) { e.lecture = 'lecture'; pauseSonMp3(false); }
+            else { e.lecture = 'lecture'; jouerPisteMp3(); }
+        }
+        else if (action.ordre === 'stop') { e.lecture = 'arrêt'; arreterSonMp3(); }
+        else if (action.ordre === 'suivant') { e.piste = e.piste >= n ? 1 : e.piste + 1; e.lecture = 'lecture'; jouerPisteMp3(); }
+        else if (action.ordre === 'precedent') { e.piste = e.piste <= 1 ? n : e.piste - 1; e.lecture = 'lecture'; jouerPisteMp3(); }
         else if (action.ordre === 'volume+') e.volume = Math.min(31, e.volume + 2);
         else if (action.ordre === 'volume-') e.volume = Math.max(0, e.volume - 2);
+        if (sonMp3) sonMp3.gain.gain.value = gainMp3();
         dessinerMp3();
     }
     window.simu_mp3 = function(quoi, ordre, valeur) {

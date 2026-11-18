@@ -1094,7 +1094,7 @@ fonctions de ce logiciel sont conserves. Ordre, de gauche a droite :
  logo | Affichage (icone ronde : Theme Clair/Sombre, Contraste Normal/Eleve, avec ✓) | Fichier (Nouveau projet,
  Charger .hex, Charger .py, Telecharger .xml [grise], Telecharger .hex, Telecharger .py) | nom du fichier (encadre
  blanc, champ de saisie) | Defaire | Refaire | Capture | Console | Simulation |
- Masquer/Afficher le code | IA | selecteur de carte [grise] | Televerser | Lancer la simulation /
+ Code | IA | selecteur de carte [grise] | Televerser | Lancer la simulation /
  Arreter | version | Aide (Visite guidee, IA, Mon premier programme [grise], clic droit, Console), tout a droite.
 Correspondances (modele -> ce logiciel) : Le "Moniteur serie" du modele est FUSIONNE dans "Console" (la console est le moniteur) : le bouton Console
 affiche / masque le panneau et porte un VOYANT de connexion de la carte (anneau vide = non connectee, disque
@@ -1276,7 +1276,7 @@ masque (display: none), pas supprime, car c'est lui que le bandeau clique (bande
 Restent sous la carte : « Secouer la carte » et « Reinitialiser la simulation ». Les visites guidees visent le bouton vert.
 
 36. DISPOSITION AU LANCEMENT (oct. 2026)
-L'application s'ouvre avec : simulation affichee, code MicroPython MASQUE (bouton « Afficher le code »), console et IA
+L'application s'ouvre avec : simulation affichee, code MicroPython MASQUE (bouton « Code »), console et IA
 masquees. Code masque, le simulateur occupe 37 % de la largeur (au lieu de 24 %) : les boutons « Secouer la carte » et
 « Reinitialiser la simulation » se placent a droite de la carte, et la poignee de redimensionnement est active d'emblee.
 Reglage : classes inactif / replie dans index.html (#btn-vue-code, #code-container), regle CSS
@@ -1317,8 +1317,12 @@ Grove du simulateur et reconstruction en blocs a l'import d'un .py :
   Port Grove : fil jaune = TX du module (rx de la carte), fil blanc = RX du module ; « P1 / P15 » donne
   uart.init(9600, tx=pin15, rx=pin1). La micro:bit n'a qu'un uart, partage avec l'USB : il est prete au module le temps
   d'une trame (15 ms) puis rendu a l'USB (uart.init(115200)) ; reponses du module ignorees (etat et volume non lus),
-  100 ms au moins entre deux ordres. Volume + / - partent de 20 tant qu'aucun volume n'a ete regle. Simulateur : pas de
-  son, etat dans « Peripheriques » (piste, lecture / pause / arret, volume, mode) ; montage : module dessine (40 x 20 mm,
+  100 ms au moins entre deux ordres. Volume + / - partent de 20 tant qu'aucun volume n'a ete regle. Simulateur : les
+  pistes 1 a 6 sont six courtes melodies libres de droits (musiques-mp3.js : Au clair de la lune, Frere Jacques, Ode a
+  la joie, Ah ! vous dirai-je maman, Vive le vent, Fanfare EasyBloc ecrite pour le logiciel), jouees par le navigateur
+  (Web Audio, un.js : jouerPisteMp3) avec pause, reprise, volume et les quatre modes ; Suivant / Precedent tournent en
+  boucle sur ces six pistes ; une piste au-dela de 6 est « absente ». Etat dans « Peripheriques » (piste et titre,
+  lecture / pause / arret, volume, mode) ; montage : module dessine (40 x 20 mm,
   prise Grove a gauche, prise casque, connecteur haut-parleur). Trames verifiees en executant le pilote avec un faux uart ;
   NON verifie sur une vraie carte avec le module.
 - Relais (numerique) : ferme (marche) / ouvert (arret). Simulateur : un module Grove dessine par broche (boitier

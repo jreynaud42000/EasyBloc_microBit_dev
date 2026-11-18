@@ -249,11 +249,11 @@ function suivreBascule(idBouton, idLibelle, quandOuvert, quandFerme) {
     new MutationObserver(maj).observe(bouton, { attributes: true, attributeFilter: ['class'] });
     maj();
 }
-// Libelles fixes « Console » et « Simulation » (demande de l'utilisateur, nov. 2026) : l'etat ouvert se voit au
+// Libelles fixes « Console », « Simulation » et « Code » (demandes de l'utilisateur, nov. 2026) : l'etat ouvert se voit au
 // soulignement du bouton (classe inactif absente).
 suivreBascule('btn-vue-console', 'lib-console', 'Console', 'Console');
 suivreBascule('btn-vue-simu', 'lib-simulation', 'Simulation', 'Simulation');
-suivreBascule('btn-vue-code', 'lib-code', 'Masquer le code', 'Afficher le code');
+suivreBascule('btn-vue-code', 'lib-code', 'Code', 'Code');
 
 // ---------- Voyant de connexion de la carte (bouton Console) ----------
 // Le bouton « Moniteur serie » du modele est fusionne dans « Console » : la console EST le moniteur.

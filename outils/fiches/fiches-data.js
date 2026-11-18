@@ -3562,7 +3562,7 @@ window.FICHES = [
       'Le numéro suit l\'**ordre de copie** des fichiers sur la carte, pas leur nom : copiez-les un par un, dans l\'ordre.',
       'La carte doit être formatée en **FAT16 ou FAT32** (32 Go au plus).',
       'Pendant l\'envoi d\'un ordre (quelques millisecondes), la liaison USB est prêtée au module : la console continue de fonctionner, mais le module ne peut pas renvoyer d\'information (piste en cours, volume).',
-      'Dans le simulateur, on n\'entend rien : le panneau « Périphériques » montre la piste, l\'état (lecture, pause, arrêt), le volume et le mode.',
+      'Dans le simulateur, les pistes **1 à 6** sont six courtes mélodies libres de droits (Au clair de la lune, Frère Jacques, Ode à la joie…) : on les entend, et le panneau « Périphériques » montre la piste, son titre, l\'état (lecture, pause, arrêt), le volume et le mode.',
     ],
     legende: 'Au démarrage, le volume est réglé à 20, puis la piste 1 de la carte microSD est jouée.',
     exemple: [START(B('grove_mp3_volume', { PORT: 'pin1, pin15' }, { VOLUME: N(20) }),

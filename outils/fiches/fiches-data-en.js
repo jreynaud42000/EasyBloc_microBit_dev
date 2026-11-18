@@ -3103,7 +3103,7 @@ window.FICHES_EN = {
       'The number follows the **order in which the files were copied** to the card, not their names: copy them one by one, in order.',
       'The card must be formatted in **FAT16 or FAT32** (32 GB at most).',
       'While a command is sent (a few milliseconds), the USB link is lent to the module: the console keeps working, but the module cannot send any information back (current track, volume).',
-      'In the simulator, you hear nothing: the ‘Devices’ panel shows the track, the state (playing, paused, stopped), the volume and the mode.',
+      'In the simulator, tracks **1 to 6** are six short copyright-free tunes (Au clair de la lune, Frère Jacques, Ode to Joy…): you hear them, and the ‘Devices’ panel shows the track, its title, the state (playing, paused, stopped), the volume and the mode.',
     ],
     legende: 'On start, the volume is set to 20, then track 1 of the microSD card is played.',
   },
