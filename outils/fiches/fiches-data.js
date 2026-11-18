@@ -35,6 +35,10 @@ function START() { return B('au_demarrage', null, { DO: S.apply(null, arguments)
 function LOOP() { return B('boucle_infinie', null, { DO: S.apply(null, arguments) }); }
 function QUAND(type, champs) { return B(type, champs, { DO: S.apply(null, Array.prototype.slice.call(arguments, 2)) }); }
 
+function LISTE() { var a = Array.prototype.slice.call(arguments), e = {}; a.forEach(function (v, i) { e['ADD' + i] = v; });
+  return V(Object.assign(B('lists_create_with', null, e), { extraState: { itemCount: a.length } })); }
+function OBTENIR(liste, ou, n) { var b = B('lists_getIndex', { MODE: 'GET', WHERE: ou }, { VALUE: V(liste) }); if (n != null) b.inputs.AT = N(n); return b; }
+
 window.FICHES = [
   {
     t: 'afficher_icone',
@@ -3444,6 +3448,136 @@ window.FICHES = [
     legende: 'Au démarrage, le robot V3 tourne à droite aux intersections en T, puis le suivi de ligne démarre.',
     exemple: [START(B('maqueen_v3_mode_T', { MODE: '2' }), B('maqueen_v3_suiveur', { ACTIF: '1' }))],
   },
+  // ═══════════════ Listes (nov. 2026) ═══════════════
+  {
+    t: 'lists_create_with',
+    titre: 'créer une liste avec …',
+    sert: 'Renvoie une **liste** : plusieurs valeurs (textes, nombres…) rangées dans l\'ordre, sous un seul nom de variable.',
+    valeur: 'liste',
+    util: [
+      'Accrochez une valeur dans chaque case, puis rangez la liste dans une variable avec le bloc « définir … à ».',
+      'Pour ajouter ou retirer des cases, cliquez sur la **roue dentée** du bloc. Sans aucune case, le bloc crée une **liste vide**.',
+    ],
+    savoir: [
+      'Les éléments sont numérotés à partir de **1** : le premier élément porte le n° 1.',
+      'Une liste peut mélanger textes et nombres, mais il est plus clair de n\'y ranger qu\'une sorte de valeur.',
+    ],
+    legende: 'Au démarrage, trois prénoms sont rangés dans la liste « prenoms » ; à chaque secousse, un prénom tiré au hasard défile.',
+    exemple: [START(DEF('prenoms', LISTE(T('Léa'), T('Sam'), T('Noé')))),
+      QUAND('lorsque_geste', { GESTE: 'shake' }, DEFILE(OBTENIR(VAR('prenoms'), 'RANDOM')))],
+  },
+  {
+    t: 'lists_repeat',
+    titre: 'créer une liste avec l\'élément … répété … fois',
+    sert: 'Renvoie une **liste** qui contient plusieurs fois la même valeur : par exemple 5 scores qui valent tous 0.',
+    valeur: 'liste',
+    util: [
+      'Accrochez la valeur dans la première case et le nombre d\'éléments dans la seconde.',
+      'Rangez la liste dans une variable avec le bloc « définir … à ».',
+    ],
+    savoir: [
+      'Pratique pour **préparer** une liste de départ, que l\'on modifie ensuite avec le bloc « dans la liste … mettre n° … comme … ».',
+    ],
+    legende: 'Au démarrage, la liste « scores » reçoit cinq fois le nombre 0, puis elle défile : [0, 0, 0, 0, 0].',
+    exemple: [START(DEF('scores', V(B('lists_repeat', null, { ITEM: N(0), NUM: N(5) }))), DEFILE(VAR('scores')))],
+  },
+  {
+    t: 'lists_length',
+    titre: 'longueur de …',
+    sert: 'Renvoie le **nombre d\'éléments** de la liste (ou le nombre de caractères d\'un texte).',
+    valeur: 'nombre',
+    util: [
+      'Accrochez la variable de la liste dans la case du bloc.',
+    ],
+    savoir: [
+      'Une liste vide a une longueur de **0**.',
+      'Le dernier élément porte le numéro égal à la longueur de la liste.',
+    ],
+    legende: 'Au démarrage, la liste « prenoms » reçoit trois prénoms, puis la carte affiche sa longueur : 3.',
+    exemple: [START(DEF('prenoms', LISTE(T('Léa'), T('Sam'), T('Noé'))), AFF(B('lists_length', null, { VALUE: V(VAR('prenoms')) })))],
+  },
+  {
+    t: 'lists_isEmpty',
+    titre: '… est vide',
+    sert: 'Renvoie **vrai** si la liste ne contient aucun élément, **faux** sinon.',
+    valeur: 'logique',
+    util: [
+      'Accrochez la variable de la liste dans la case, puis placez le bloc dans un bloc « si ».',
+    ],
+    savoir: [
+      'Utile avant de prendre un élément : demander un élément à une liste vide **arrête le programme** avec une erreur.',
+    ],
+    legende: 'Au démarrage, la liste « courses » est vide : la carte affiche le visage triste.',
+    exemple: [START(DEF('courses', V(Object.assign(B('lists_create_with'), { extraState: { itemCount: 0 } }))),
+      SI(B('lists_isEmpty', null, { VALUE: V(VAR('courses')) }), S(ICONE('SAD')), S(ICONE('HAPPY'))))],
+  },
+  {
+    t: 'lists_indexOf',
+    titre: 'dans la liste … trouver la première occurrence de l\'élément …',
+    sert: 'Renvoie le **numéro** (la position) d\'un élément dans la liste.',
+    valeur: 'nombre',
+    util: [
+      'Accrochez la liste dans la première case et l\'élément cherché dans la seconde.',
+      'Choisissez **première** ou **dernière** occurrence quand l\'élément peut être présent plusieurs fois.',
+    ],
+    savoir: [
+      'Si l\'élément n\'est pas dans la liste, le bloc renvoie **0**.',
+      'Les textes doivent être identiques, majuscules et accents compris : « sam » n\'est pas « Sam ».',
+    ],
+    legende: 'Au démarrage, la carte cherche « Sam » dans la liste « prenoms » et affiche sa position : 2.',
+    exemple: [START(DEF('prenoms', LISTE(T('Léa'), T('Sam'), T('Noé'))),
+      AFF(B('lists_indexOf', { END: 'FIRST' }, { VALUE: V(VAR('prenoms')), FIND: T('Sam') })))],
+  },
+  {
+    t: 'lists_getIndex',
+    titre: 'dans la liste … obtenir n° …',
+    sert: 'Renvoie **un élément** de la liste : le n° choisi, le premier, le dernier ou un élément **au hasard**.',
+    util: [
+      'Accrochez la liste dans la première case, puis choisissez dans le menu quel élément prendre.',
+      'Avec « n° », écrivez le numéro de l\'élément (1 pour le premier).',
+      'Le menu « obtenir » propose aussi « obtenir et supprimer » et « supprimer » : l\'élément est alors retiré de la liste.',
+    ],
+    savoir: [
+      'Un numéro plus grand que la longueur de la liste **arrête le programme** avec une erreur : vérifiez avec le bloc « longueur de … ».',
+    ],
+    legende: 'Le bouton A fait défiler le premier prénom de la liste (Léa), le bouton B le dernier (Noé).',
+    exemple: [START(DEF('prenoms', LISTE(T('Léa'), T('Sam'), T('Noé')))),
+      QUAND('lorsque_bouton', { BOUTON: 'a' }, DEFILE(OBTENIR(VAR('prenoms'), 'FROM_START', 1))),
+      QUAND('lorsque_bouton', { BOUTON: 'b' }, DEFILE(OBTENIR(VAR('prenoms'), 'LAST')))],
+  },
+  {
+    t: 'lists_setIndex',
+    titre: 'dans la liste … mettre n° … comme …',
+    sert: '**Remplace** un élément de la liste par une nouvelle valeur (ou l\'**insère** à cette place).',
+    util: [
+      'Accrochez la liste, choisissez quel élément changer (n°, premier, dernier, au hasard), puis accrochez la nouvelle valeur.',
+      'Avec « insérer en », l\'élément s\'ajoute à cette place et la liste s\'allonge d\'un élément.',
+    ],
+    savoir: [
+      'Avec « mettre », la longueur de la liste **ne change pas** : l\'ancien élément est perdu.',
+    ],
+    legende: 'Un appui sur A remplace le prénom n° 2 (Sam) par « Max », puis la liste défile : [\'Léa\', \'Max\', \'Noé\'].',
+    exemple: [START(DEF('prenoms', LISTE(T('Léa'), T('Sam'), T('Noé')))),
+      QUAND('lorsque_bouton', { BOUTON: 'a' },
+        B('lists_setIndex', { MODE: 'SET', WHERE: 'FROM_START' }, { LIST: V(VAR('prenoms')), AT: N(2), TO: T('Max') }),
+        DEFILE(VAR('prenoms')))],
+  },
+  {
+    t: 'lists_getSublist',
+    titre: 'dans la liste … obtenir la sous-liste depuis le n° … jusqu\'au n° …',
+    sert: 'Renvoie une **nouvelle liste** faite d\'un morceau de la liste : les éléments entre deux numéros, ces deux numéros compris.',
+    valeur: 'liste',
+    util: [
+      'Accrochez la liste, puis choisissez le début et la fin du morceau (n°, depuis la fin, premier, dernier).',
+    ],
+    savoir: [
+      'La liste de départ **ne change pas** : le morceau est une copie.',
+    ],
+    legende: 'Au démarrage, la carte fait défiler les éléments n° 2 à n° 4 de la liste [1, 2, 3, 4, 5] : [2, 3, 4].',
+    exemple: [START(DEF('nombres', LISTE(N(1), N(2), N(3), N(4), N(5))),
+      DEFILE(B('lists_getSublist', { WHERE1: 'FROM_START', WHERE2: 'FROM_START' }, { LIST: V(VAR('nombres')), AT1: N(2), AT2: N(4) })))],
+  },
+
   // ═══════════════ Graphique (blocs de l'éditeur R4, nov. 2026) ═══════════════
   {
     t: 'graph_tracer',

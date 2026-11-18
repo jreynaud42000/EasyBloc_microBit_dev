@@ -3008,6 +3008,104 @@ window.FICHES_EN = {
     ],
     legende: 'At start, the V3 robot turns right at T-junctions, then line following starts.',
   },
+  // ═══════════════ Lists (Nov. 2026) ═══════════════
+  lists_create_with: {
+    titre: 'create list with …',
+    sert: 'Returns a **list**: several values (texts, numbers…) stored in order, under a single variable name.',
+    util: [
+      'Attach a value in each slot, then store the list in a variable with the ‘set … to’ block.',
+      'To add or remove slots, click the **gear** of the block. With no slot at all, the block creates an **empty list**.',
+    ],
+    savoir: [
+      'Items are numbered from **1**: the first item is no. 1.',
+      'A list can mix texts and numbers, but it is clearer to store only one kind of value in it.',
+    ],
+    legende: 'At start, three first names are stored in the ‘names’ list; each time the board is shaken, a first name picked at random scrolls.',
+  },
+  lists_repeat: {
+    titre: 'create list with item … repeated … times',
+    sert: 'Returns a **list** that contains the same value several times: for example 5 scores that are all 0.',
+    util: [
+      'Attach the value in the first slot and the number of items in the second.',
+      'Store the list in a variable with the ‘set … to’ block.',
+    ],
+    savoir: [
+      'Handy to **prepare** a starting list, which you then change with the ‘in list … set # … as …’ block.',
+    ],
+    legende: 'At start, the ‘scores’ list gets the number 0 five times, then it scrolls: [0, 0, 0, 0, 0].',
+  },
+  lists_length: {
+    titre: 'length of …',
+    sert: 'Returns the **number of items** in the list (or the number of characters in a text).',
+    util: [
+      'Attach the list variable in the slot of the block.',
+    ],
+    savoir: [
+      'An empty list has a length of **0**.',
+      'The last item has the number equal to the length of the list.',
+    ],
+    legende: 'At start, the ‘names’ list gets three first names, then the board shows its length: 3.',
+  },
+  lists_isEmpty: {
+    titre: '… is empty',
+    sert: 'Returns **true** if the list has no item, **false** otherwise.',
+    util: [
+      'Attach the list variable in the slot, then put the block in an ‘if’ block.',
+    ],
+    savoir: [
+      'Useful before taking an item: asking an empty list for an item **stops the program** with an error.',
+    ],
+    legende: 'At start, the ‘shopping’ list is empty: the board shows the sad face.',
+  },
+  lists_indexOf: {
+    titre: 'in list … find first occurrence of item …',
+    sert: 'Returns the **number** (the position) of an item in the list.',
+    util: [
+      'Attach the list in the first slot and the item you are looking for in the second.',
+      'Choose **first** or **last** occurrence when the item may be there several times.',
+    ],
+    savoir: [
+      'If the item is not in the list, the block returns **0**.',
+      'Texts must be identical, capital letters and accents included: ‘sam’ is not ‘Sam’.',
+    ],
+    legende: 'At start, the board looks for ‘Sam’ in the ‘names’ list and shows its position: 2.',
+  },
+  lists_getIndex: {
+    titre: 'in list … get # …',
+    sert: 'Returns **one item** of the list: the chosen number, the first, the last or a **random** item.',
+    util: [
+      'Attach the list in the first slot, then choose in the menu which item to take.',
+      'With ‘#’, type the number of the item (1 for the first).',
+      'The ‘get’ menu also offers ‘get and remove’ and ‘remove’: the item is then taken out of the list.',
+    ],
+    savoir: [
+      'A number larger than the length of the list **stops the program** with an error: check with the ‘length of …’ block.',
+    ],
+    legende: 'Button A scrolls the first name of the list (Léa), button B the last one (Noé).',
+  },
+  lists_setIndex: {
+    titre: 'in list … set # … as …',
+    sert: '**Replaces** an item of the list with a new value (or **inserts** it at that place).',
+    util: [
+      'Attach the list, choose which item to change (#, first, last, random), then attach the new value.',
+      'With ‘insert at’, the item is added at that place and the list gets one item longer.',
+    ],
+    savoir: [
+      'With ‘set’, the length of the list **does not change**: the old item is lost.',
+    ],
+    legende: 'Pressing A replaces first name no. 2 (Sam) with ‘Max’, then the list scrolls: [\'Léa\', \'Max\', \'Noé\'].',
+  },
+  lists_getSublist: {
+    titre: 'in list … get sub-list from # … to # …',
+    sert: 'Returns a **new list** made of a piece of the list: the items between two numbers, both numbers included.',
+    util: [
+      'Attach the list, then choose the start and the end of the piece (#, # from end, first, last).',
+    ],
+    savoir: [
+      'The starting list **does not change**: the piece is a copy.',
+    ],
+    legende: 'At start, the board scrolls items no. 2 to no. 4 of the list [1, 2, 3, 4, 5]: [2, 3, 4].',
+  },
   // ═══════════════ Graph (blocks of the R4 editor, Nov. 2026) ═══════════════
   graph_tracer: {
     titre: 'plot … on curve …',
@@ -3205,6 +3303,11 @@ window.FICHES_EN = {
   },
 };
 window.EXEMPLES_EN = {
+  'prenoms': 'names',
+  'scores': 'scores',
+  'courses': 'shopping',
+  'nombres': 'numbers',
+  'Max': 'Max',
   'Prêt': 'Ready',
   'Chaud': 'Hot',
   'Frais': 'Cool',
