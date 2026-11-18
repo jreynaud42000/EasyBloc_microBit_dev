@@ -46,6 +46,7 @@ const MODULES = [
     { motif: /^grove_lumiere$/,               nom: 'Capteur de lumière',    champs: ['BROCHE'], picto: 'lumiere' },
     { motif: /^grove_pir$/,                   nom: 'Détecteur de mouvement', champs: ['BROCHE'], picto: 'pir' },
     { motif: /^grove_buzzer_/,                nom: 'Buzzer',                champs: ['BROCHE'], picto: 'buzzer' },
+    { motif: /^grove_mp3_/,                   nom: 'Lecteur MP3',           champs: ['PORT'], picto: 'mp3', large: true },
     { motif: /^grove_relais$/,                nom: 'Relais',                champs: ['BROCHE'], picto: 'relais' },
     { motif: /^grove_dht11_definir$/,         nom: 'DHT11',                 champs: ['BROCHE'], picto: 'dht11' },
     { motif: /^grove_dht22_definir$/,         nom: 'DHT22',                 champs: ['BROCHE'], picto: 'dht22' },

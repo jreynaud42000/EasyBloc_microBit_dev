@@ -2374,6 +2374,116 @@ try {
                (P.valueToCode(block, 'DUREE', P.ORDER_NONE) || '200') + ')\n';
     };
 
+    // --- Lecteur MP3 Grove v3.0 (puce WT2003S, liaison serie 9600 bauds ; nov. 2026) ---
+    //
+    // Trames de la bibliotheque Seeed (Seeed_Serial_MP3_Player, WT2003S_Player.cpp) :
+    //     7E <longueur> <commande> <parametres...> <somme> EF
+    // longueur = nombre d'octets de commande et de parametres + 2 ; somme = longueur + ces octets, sur 8 bits.
+    // La micro:bit n'a qu'un uart, relie aussi a l'USB (console, graphique, IA) : il est envoye vers le module le temps
+    // d'une trame, puis rendu a l'USB. Les reponses du module sont donc ignorees (etat et volume non lus). 100 ms au
+    // moins entre deux ordres, comme la bibliotheque. Port Grove : fil jaune (1re broche) = TX du module, fil blanc
+    // (2e broche) = RX du module ; la carte emet donc sur la 2e broche.
+    function piloteMp3() {
+        importerMicrobit();
+        pilote('mp3', [
+            '_mp3_vol = 20',
+            '_mp3_temps = -1000',
+            '',
+            'def _mp3_envoyer(rx, tx, octets):',
+            '    global _mp3_temps',
+            '    attente = 100 - (running_time() - _mp3_temps)',
+            '    if attente > 0:',
+            '        sleep(attente)',
+            '    n = len(octets) + 2',
+            '    trame = bytes([0x7E, n] + octets + [(n + sum(octets)) & 0xFF, 0xEF])',
+            '    uart.init(9600, tx=tx, rx=rx)',
+            '    uart.write(trame)',
+            '    sleep(15)',
+            '    uart.init(115200)',
+            '    _mp3_temps = running_time()',
+            '',
+            'def _mp3_volume(rx, tx, v):',
+            '    global _mp3_vol',
+            '    _mp3_vol = max(0, min(31, int(v)))',
+            '    _mp3_envoyer(rx, tx, [0xAE, _mp3_vol])',
+            '',
+            'def _mp3_ordre(rx, tx, ordre):',
+            '    if ordre == "volume+":',
+            '        _mp3_volume(rx, tx, _mp3_vol + 2)',
+            '    elif ordre == "volume-":',
+            '        _mp3_volume(rx, tx, _mp3_vol - 2)',
+            '    else:',
+            '        _mp3_envoyer(rx, tx, [{"lecture_pause": 0xAA, "stop": 0xAB, "suivant": 0xAC, "precedent": 0xAD}[ordre]])',
+            '',
+            'def _mp3_piste(rx, tx, n):',
+            '    n = max(1, int(n))',
+            '    _mp3_envoyer(rx, tx, [0xA2, (n >> 8) & 0xFF, n & 0xFF])',
+            '',
+            'def _mp3_mode(rx, tx, mode):',
+            '    _mp3_envoyer(rx, tx, [0xAF, int(mode)])',
+        ]);
+    }
+    const debutMp3 = (bloc, texte) => bloc.appendField("lecteur MP3 sur")
+        .appendField(new Blockly.FieldDropdown(PORTS_GROVE), "PORT").appendField(texte);
+    const portMp3 = block => block.getFieldValue('PORT');   // « pin0, pin14 » : rx (fil jaune), tx (fil blanc)
+
+    Blockly.Blocks['grove_mp3_ordre'] = { init: function() {
+        debutMp3(this.appendDummyInput(), ":").appendField(new Blockly.FieldDropdown([
+            ["Lecture / Pause", "lecture_pause"], ["Stop", "stop"], ["Suivant", "suivant"], ["Précédent", "precedent"],
+            ["Volume +", "volume+"], ["Volume −", "volume-"]]), "ORDRE");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COULEUR_GROVE);
+        this.setTooltip("Commande le lecteur MP3 Grove (v3.0) : « Lecture / Pause » met en pause ou relance, « Stop » " +
+                        "arrête, « Suivant » et « Précédent » changent de piste, « Volume + » et « Volume − » changent le volume.");
+    }};
+    P.forBlock['grove_mp3_ordre'] = function(block) {
+        piloteMp3();
+        return '_mp3_ordre(' + portMp3(block) + ', "' + block.getFieldValue('ORDRE') + '")\n';
+    };
+
+    Blockly.Blocks['grove_mp3_piste'] = { init: function() {
+        debutMp3(this.appendValueInput("PISTE").setCheck("Number"), ": jouer la piste n°");
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COULEUR_GROVE);
+        this.setTooltip("Joue la piste choisie de la carte microSD : 1 pour le premier fichier MP3 copié à la racine " +
+                        "de la carte, 2 pour le deuxième, etc.");
+    }};
+    P.forBlock['grove_mp3_piste'] = function(block) {
+        piloteMp3();
+        return '_mp3_piste(' + portMp3(block) + ', ' + (P.valueToCode(block, 'PISTE', P.ORDER_NONE) || '1') + ')\n';
+    };
+
+    Blockly.Blocks['grove_mp3_volume'] = { init: function() {
+        debutMp3(this.appendValueInput("VOLUME").setCheck("Number"), ": régler le volume à");
+        this.appendDummyInput().appendField("(0 à 31)");
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COULEUR_GROVE);
+        this.setTooltip("Règle le volume du lecteur MP3, de 0 (muet) à 31 (le plus fort).");
+    }};
+    P.forBlock['grove_mp3_volume'] = function(block) {
+        piloteMp3();
+        return '_mp3_volume(' + portMp3(block) + ', ' + (P.valueToCode(block, 'VOLUME', P.ORDER_NONE) || '20') + ')\n';
+    };
+
+    Blockly.Blocks['grove_mp3_mode'] = { init: function() {
+        debutMp3(this.appendDummyInput(), ": mode de lecture").appendField(new Blockly.FieldDropdown([
+            ["une fois", "0"], ["répéter la piste", "1"], ["tout répéter", "2"], ["aléatoire", "3"]]), "MODE");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COULEUR_GROVE);
+        this.setTooltip("Choisit ce que fait le lecteur MP3 à la fin d'une piste : s'arrêter (une fois), rejouer la " +
+                        "même piste, jouer toutes les pistes en boucle, ou les jouer au hasard.");
+    }};
+    P.forBlock['grove_mp3_mode'] = function(block) {
+        piloteMp3();
+        return '_mp3_mode(' + portMp3(block) + ', ' + block.getFieldValue('MODE') + ')\n';
+    };
+
     // --- Relais (Grove Relay : contact ferme tant que la broche est au niveau haut) ---
 
     function piloteRelais() {
@@ -4630,6 +4740,16 @@ try {
             "contents": [
               { "kind": "block", "type": "grove_buzzer_etat" },
               { "kind": "block", "type": "grove_buzzer_bip", "inputs": { "DUREE": { "shadow": { "type": "math_number", "fields": { "NUM": "200" } } } } }
+              ]
+            },
+            {
+            // Lecteur MP3 Grove v3.0 (nov. 2026, variante « quatre blocs » choisie par l'utilisateur)
+            "kind": "category", "name": "Lecteur MP3", "colour": String(COULEUR_GROVE),
+            "contents": [
+              { "kind": "block", "type": "grove_mp3_piste", "inputs": { "PISTE": { "shadow": { "type": "math_number", "fields": { "NUM": "1" } } } } },
+              { "kind": "block", "type": "grove_mp3_ordre" },
+              { "kind": "block", "type": "grove_mp3_volume", "inputs": { "VOLUME": { "shadow": { "type": "math_number", "fields": { "NUM": "20" } } } } },
+              { "kind": "block", "type": "grove_mp3_mode" }
               ]
             },
             {
@@ -10082,6 +10202,7 @@ try {
         ['grove-sec-lumiere',  /^grove_lumiere$/],
         ['grove-sec-pir',      /^grove_pir$/],
         ['grove-sec-buzzer',   /^grove_buzzer_/],
+        ['grove-sec-mp3',      /^grove_mp3_/],
         ['grove-sec-relais',   /^grove_relais$/],
         ['grove-sec-oled',     /^grove_oled_/],
         ['grove-sec-gestes',   /^grove_gestes_/],
@@ -10151,7 +10272,47 @@ try {
         etatSortiesGrove.buzzer = {};
         majSonBuzzer();
         dessinerSortiesGrove();
+        reinitialiserMp3();
     };
+
+    // Lecteur MP3 Grove : pas de son dans le simulateur, mais son etat (piste, lecture, volume, mode) dans
+    // « Peripheriques », comme le comprendrait le vrai module. Suivant / Precedent : piste suivante ou precedente.
+    const MODES_MP3 = ['une fois', 'répéter la piste', 'tout répéter', 'aléatoire'];
+    let etatMp3 = null;
+    function reinitialiserMp3() {
+        etatMp3 = { piste: 1, lecture: 'arrêt', volume: 20, mode: 0, utilise: false };
+        dessinerMp3();
+    }
+    function dessinerMp3() {
+        const zone = document.getElementById('grove-mp3');
+        if (!zone || !etatMp3) return;
+        if (!etatMp3.utilise) { zone.innerHTML = '<span class="grove-vide">' + window.tr('aucun ordre reçu') + '</span>'; return; }
+        const symbole = { 'lecture': '▶', 'pause': '❚❚', 'arrêt': '■' }[etatMp3.lecture];
+        zone.innerHTML = '<div class="grove-sortie mp3-etat"><span class="mp3-symbole' + (etatMp3.lecture === 'lecture' ? ' on' : '') +
+            '" aria-hidden="true">' + symbole + '</span>' +
+            window.tr('Piste {p} · {l} · volume {v} · {m}', { p: etatMp3.piste,
+                                                               l: window.tr(etatMp3.lecture === 'arrêt' ? 'à l\'arrêt' : etatMp3.lecture),
+                                                               v: etatMp3.volume, m: window.tr(MODES_MP3[etatMp3.mode] || '') }) + '</div>';
+    }
+    window.etatMp3Test = () => etatMp3;
+    function appliquerMp3(action) {
+        const e = etatMp3;
+        e.utilise = true;
+        if (action.quoi === 'piste') { e.piste = Math.max(1, Math.round(action.valeur)); e.lecture = 'lecture'; }
+        else if (action.quoi === 'volume') e.volume = Math.max(0, Math.min(31, Math.round(action.valeur)));
+        else if (action.quoi === 'mode') e.mode = Math.round(action.valeur);
+        else if (action.ordre === 'lecture_pause') e.lecture = e.lecture === 'lecture' ? 'pause' : 'lecture';
+        else if (action.ordre === 'stop') e.lecture = 'arrêt';
+        else if (action.ordre === 'suivant') { e.piste += 1; e.lecture = 'lecture'; }
+        else if (action.ordre === 'precedent') { e.piste = Math.max(1, e.piste - 1); e.lecture = 'lecture'; }
+        else if (action.ordre === 'volume+') e.volume = Math.min(31, e.volume + 2);
+        else if (action.ordre === 'volume-') e.volume = Math.max(0, e.volume - 2);
+        dessinerMp3();
+    }
+    window.simu_mp3 = function(quoi, ordre, valeur) {
+        window.simuQueue.push({ type: 'mp3', quoi: String(quoi), ordre: String(ordre), valeur: Number(valeur) });
+    };
+    reinitialiserMp3();
 
     function dessinerSortiesGrove() {
         const lignes = (etat, dessin) => {
@@ -10684,6 +10845,10 @@ try {
         else if (action.type === 'groveSortie') {
             if (etatSortiesGrove[action.nom]) etatSortiesGrove[action.nom][action.broche] = action.valeur ? 1 : 0;
             dessinerSortiesGrove();
+            window.simu_playQueue();
+        }
+        else if (action.type === 'mp3') {
+            appliquerMp3(action);
             window.simu_playQueue();
         }
         else if (action.type === 'barreLed') {

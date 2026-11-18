@@ -1309,6 +1309,18 @@ Grove du simulateur et reconstruction en blocs a l'import d'un .py :
   voyant rouge), un clic ou Entree simule un mouvement ; la case « mouvement detecte » reste dessous.
 - Buzzer (actif, numerique) : marche / arret, et « bip pendant ... ms ». Simulateur : pastille orange qui vibre et bip
   de 2,3 kHz a faible volume ; le buzzer se tait a l'arret de la simulation.
+- Lecteur MP3 v3.0 (nov. 2026, sous-categorie « Lecteur MP3 » ; puce WT2003S, liaison serie 9600 bauds) : jouer la
+  piste n°, Lecture / Pause, Stop, Suivant, Precedent, Volume + / -, regler le volume (0 a 31), mode de lecture (une
+  fois, repeter la piste, tout repeter, aleatoire). Fichiers MP3 a la RACINE de la carte microSD (FAT16/FAT32), numerotes
+  dans l'ordre de copie. Trames de la bibliotheque Seeed (Seeed_Serial_MP3_Player) : 7E, longueur (octets + 2), commande
+  et parametres, somme (longueur + octets, sur 8 bits), EF ; codes A2 (piste), AA, AB, AC, AD, AE (volume), AF (mode).
+  Port Grove : fil jaune = TX du module (rx de la carte), fil blanc = RX du module ; « P1 / P15 » donne
+  uart.init(9600, tx=pin15, rx=pin1). La micro:bit n'a qu'un uart, partage avec l'USB : il est prete au module le temps
+  d'une trame (15 ms) puis rendu a l'USB (uart.init(115200)) ; reponses du module ignorees (etat et volume non lus),
+  100 ms au moins entre deux ordres. Volume + / - partent de 20 tant qu'aucun volume n'a ete regle. Simulateur : pas de
+  son, etat dans « Peripheriques » (piste, lecture / pause / arret, volume, mode) ; montage : module dessine (40 x 20 mm,
+  prise Grove a gauche, prise casque, connecteur haut-parleur). Trames verifiees en executant le pilote avec un faux uart ;
+  NON verifie sur une vraie carte avec le module.
 - Relais (numerique) : ferme (marche) / ouvert (arret). Simulateur : un module Grove dessine par broche (boitier
   RELAY bleu, bornier vert), voyant rouge allume quand le contact est ferme.
 - Ecran OLED 0,96" 128 x 64 (I2C 0x3C, SSD1315 / SSD1306) : initialiser, afficher un texte en colonne (0 a 20) et ligne

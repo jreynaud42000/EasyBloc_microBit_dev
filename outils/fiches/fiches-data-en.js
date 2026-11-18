@@ -3091,6 +3091,59 @@ window.FICHES_EN = {
     ],
     legende: 'The temperature is plotted every 0.5 second. Button A stops the measurement, button B restarts it: the curve is cut during the pause.',
   },
+  // ═══════════════ Grove › MP3 player v3.0 (Nov. 2026) ═══════════════
+  grove_mp3_piste: {
+    titre: 'MP3 player on … : play track no. …',
+    sert: 'Makes the **Grove MP3 player (v3.0)** play a track from its microSD card: track 1 is the first MP3 file copied to the card, track 2 the second, and so on.',
+    util: [
+      'Copy the MP3 files **straight to the root** of the microSD card (not into a folder), in the order you want. Slide the card into the back of the module.',
+      'Plug the module into a Grove port of the board (P0/P14, P1/P15 or P2/P16) and choose this port in the block. Plug in a speaker (SPK socket) or headphones (PHONE socket).',
+    ],
+    savoir: [
+      'The number follows the **order in which the files were copied** to the card, not their names: copy them one by one, in order.',
+      'The card must be formatted in **FAT16 or FAT32** (32 GB at most).',
+      'While a command is sent (a few milliseconds), the USB link is lent to the module: the console keeps working, but the module cannot send any information back (current track, volume).',
+      'In the simulator, you hear nothing: the ‘Devices’ panel shows the track, the state (playing, paused, stopped), the volume and the mode.',
+    ],
+    legende: 'On start, the volume is set to 20, then track 1 of the microSD card is played.',
+  },
+  grove_mp3_ordre: {
+    titre: 'MP3 player on … : Play / Pause, Stop, Next…',
+    sert: 'Controls the **Grove MP3 player (v3.0)**: pause or resume, stop, go to the next or previous track, turn the volume up or down.',
+    util: [
+      '‘Play / Pause’ is a **toggle**: the same command pauses if it is playing, and resumes if it is paused.',
+      '‘Volume +’ and ‘Volume −’ change the volume by 2 steps (out of 31).',
+    ],
+    savoir: [
+      'With a button, use the ‘when button … is pressed’ block: the command is sent only once per press. In ‘forever’, it would be sent several times while the button is held down.',
+      'The assumed starting volume is 20: set it first with the ‘set the volume to …’ block so that ‘Volume +’ and ‘Volume −’ start from the right value.',
+      'At least 0.1 second is needed between two commands: the block waits by itself if needed.',
+    ],
+    legende: 'Track 1 starts when the program runs. Button A pauses or resumes, button B goes to the next track.',
+  },
+  grove_mp3_volume: {
+    titre: 'MP3 player on … : set the volume to … (0 to 31)',
+    sert: 'Sets the **volume** of the Grove MP3 player (v3.0), from **0** (silent) to **31** (loudest).',
+    util: [
+      'Put it in ‘on start’, before playing a track, to start from a known volume.',
+      'Attach a number, or a value that changes: for example a potentiometer turned into a number from 0 to 31.',
+    ],
+    savoir: [
+      'A value below 0 becomes 0, a value above 31 becomes 31.',
+    ],
+    legende: 'The volume is set to 10, track 2 is played, then the volume goes up to 25 after 5 seconds.',
+  },
+  grove_mp3_mode: {
+    titre: 'MP3 player on … : play mode …',
+    sert: 'Chooses what the Grove MP3 player (v3.0) does **at the end of a track**: stop (**once**), **repeat the track**, **repeat all** (all the tracks in a loop) or play the tracks in random order (**shuffle**).',
+    util: [
+      'Put it in ‘on start’, before playing a track.',
+    ],
+    savoir: [
+      '‘repeat all’ is handy for background music; ‘repeat the track’ for an alarm sound that loops.',
+    ],
+    legende: 'On start, the player switches to ‘repeat all’, then plays track 1: all the tracks follow one another endlessly.',
+  },
 };
 window.EXEMPLES_EN = {
   'Prêt': 'Ready',

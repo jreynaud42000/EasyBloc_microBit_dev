@@ -3549,4 +3549,71 @@ window.FICHES = [
               LOOP(SI(BOUTON('a'), S(B('graph_arreter'))), SI(BOUTON('b'), S(B('graph_reprendre'))),
                    B('graph_tracer', { COURBE: 'Température' }, { VAL: V(B('capteur_temperature')) }), ATT(0.5))],
   },
+  // ═══════════════ Grove › Lecteur MP3 v3.0 (nov. 2026) ═══════════════
+  {
+    t: 'grove_mp3_piste',
+    titre: 'lecteur MP3 sur … : jouer la piste n° …',
+    sert: 'Fait jouer au **lecteur MP3 Grove (v3.0)** un morceau de sa carte microSD : la piste 1 est le premier fichier MP3 copié sur la carte, la piste 2 le deuxième, etc.',
+    util: [
+      'Copiez les fichiers MP3 **directement à la racine** de la carte microSD (pas dans un dossier), dans l\'ordre voulu. Glissez la carte au dos du module.',
+      'Branchez le module sur un port Grove de la carte (P0/P14, P1/P15 ou P2/P16) et choisissez ce port dans le bloc. Branchez un haut-parleur (prise SPK) ou un casque (prise PHONE).',
+    ],
+    savoir: [
+      'Le numéro suit l\'**ordre de copie** des fichiers sur la carte, pas leur nom : copiez-les un par un, dans l\'ordre.',
+      'La carte doit être formatée en **FAT16 ou FAT32** (32 Go au plus).',
+      'Pendant l\'envoi d\'un ordre (quelques millisecondes), la liaison USB est prêtée au module : la console continue de fonctionner, mais le module ne peut pas renvoyer d\'information (piste en cours, volume).',
+      'Dans le simulateur, on n\'entend rien : le panneau « Périphériques » montre la piste, l\'état (lecture, pause, arrêt), le volume et le mode.',
+    ],
+    legende: 'Au démarrage, le volume est réglé à 20, puis la piste 1 de la carte microSD est jouée.',
+    exemple: [START(B('grove_mp3_volume', { PORT: 'pin1, pin15' }, { VOLUME: N(20) }),
+                    B('grove_mp3_piste', { PORT: 'pin1, pin15' }, { PISTE: N(1) }))],
+  },
+  {
+    t: 'grove_mp3_ordre',
+    titre: 'lecteur MP3 sur … : Lecture / Pause, Stop, Suivant…',
+    sert: 'Commande le **lecteur MP3 Grove (v3.0)** : mettre en pause ou relancer, arrêter, passer au morceau suivant ou précédent, monter ou baisser le volume.',
+    util: [
+      '« Lecture / Pause » est une **bascule** : le même ordre met en pause si ça joue, et relance si c\'est en pause.',
+      '« Volume + » et « Volume − » changent le volume de 2 crans (sur 31).',
+    ],
+    savoir: [
+      'Avec un bouton, utilisez le bloc « lorsque le bouton … est appuyé » : l\'ordre part une seule fois par appui. Dans « répéter indéfiniment », il partirait plusieurs fois pendant l\'appui.',
+      'Le volume de départ supposé est 20 : réglez-le d\'abord avec le bloc « régler le volume à … » pour que « Volume + » et « Volume − » partent de la bonne valeur.',
+      'Il faut au moins 0,1 seconde entre deux ordres : le bloc attend tout seul si besoin.',
+    ],
+    legende: 'La piste 1 démarre au lancement. Le bouton A met en pause ou relance, le bouton B passe au morceau suivant.',
+    exemple: [START(B('grove_mp3_piste', { PORT: 'pin1, pin15' }, { PISTE: N(1) })),
+              QUAND('lorsque_bouton', { BOUTON: 'a' }, B('grove_mp3_ordre', { PORT: 'pin1, pin15', ORDRE: 'lecture_pause' })),
+              QUAND('lorsque_bouton', { BOUTON: 'b' }, B('grove_mp3_ordre', { PORT: 'pin1, pin15', ORDRE: 'suivant' }))],
+  },
+  {
+    t: 'grove_mp3_volume',
+    titre: 'lecteur MP3 sur … : régler le volume à … (0 à 31)',
+    sert: 'Règle le **volume** du lecteur MP3 Grove (v3.0), de **0** (muet) à **31** (le plus fort).',
+    util: [
+      'Placez-le dans « au démarrage », avant de jouer une piste, pour partir d\'un volume connu.',
+      'Accrochez un nombre, ou une valeur qui change : par exemple un potentiomètre transformé en nombre de 0 à 31.',
+    ],
+    savoir: [
+      'Une valeur plus petite que 0 devient 0, une valeur plus grande que 31 devient 31.',
+    ],
+    legende: 'Le volume est réglé à 10, la piste 2 est jouée, puis le volume monte à 25 au bout de 5 secondes.',
+    exemple: [START(B('grove_mp3_volume', { PORT: 'pin1, pin15' }, { VOLUME: N(10) }),
+                    B('grove_mp3_piste', { PORT: 'pin1, pin15' }, { PISTE: N(2) }), ATT(5),
+                    B('grove_mp3_volume', { PORT: 'pin1, pin15' }, { VOLUME: N(25) }))],
+  },
+  {
+    t: 'grove_mp3_mode',
+    titre: 'lecteur MP3 sur … : mode de lecture …',
+    sert: 'Choisit ce que fait le lecteur MP3 Grove (v3.0) **à la fin d\'une piste** : s\'arrêter (**une fois**), **répéter la piste**, **tout répéter** (toutes les pistes en boucle) ou jouer les pistes au hasard (**aléatoire**).',
+    util: [
+      'Placez-le dans « au démarrage », avant de jouer une piste.',
+    ],
+    savoir: [
+      '« tout répéter » est pratique pour une musique de fond ; « répéter la piste » pour un son d\'alarme qui tourne en boucle.',
+    ],
+    legende: 'Au démarrage, le lecteur passe en « tout répéter », puis joue la piste 1 : toutes les pistes s\'enchaînent sans fin.',
+    exemple: [START(B('grove_mp3_mode', { PORT: 'pin1, pin15', MODE: '2' }),
+                    B('grove_mp3_piste', { PORT: 'pin1, pin15' }, { PISTE: N(1) }))],
+  },
 ];

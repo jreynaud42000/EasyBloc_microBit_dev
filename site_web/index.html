@@ -1437,6 +1437,9 @@
     .grove-sortie { display: flex; align-items: center; gap: 6px; font-size: 11px; margin: 2px 0; }
     .buzzer-pastille { width: 14px; height: 14px; border-radius: 50%; background: #3b3f46; border: 2px solid #6b7480; box-sizing: border-box; }
     .buzzer-pastille.on { background: #ffb020; border-color: #ffd27a; animation: buzzer-vibre 0.12s linear infinite; }
+    /* Lecteur MP3 Grove (un.js, dessinerMp3) : symbole lecture / pause / arret, vert quand ca joue */
+    .mp3-symbole { min-width: 18px; text-align: center; font-size: 11px; color: #8b95a1; }
+    .mp3-symbole.on { color: #3fb950; }
     @keyframes buzzer-vibre { 50% { transform: translateX(1px); } }
     /* Capteurs a curseur (modele C) : petit module Grove dessine + afficheur numerique vert, curseur dessous. */
     .mesure-ligne { display: flex; align-items: center; gap: 8px; margin: 4px 0 6px; }
@@ -2259,6 +2262,11 @@
         <div class="grove-bloc" id="grove-sec-buzzer">
           <span class="grove-titre">Buzzer</span>
           <div id="grove-buzzer"><span class="grove-vide">aucun</span></div>
+        </div>
+
+        <div class="grove-bloc" id="grove-sec-mp3">
+          <span class="grove-titre">Lecteur MP3</span>
+          <div id="grove-mp3" aria-live="polite"><span class="grove-vide">aucun ordre reçu</span></div>
         </div>
 
         <div class="grove-bloc" id="grove-sec-relais">
@@ -3100,6 +3108,11 @@
         sleep(int(duree))
         window.simu_groveSortie('buzzer', broche.id_pin, 0)
     def _grove_relais(broche, etat): window.simu_groveSortie('relais', broche.id_pin, 1 if etat else 0)
+    # Lecteur MP3 Grove : etat montre dans « Peripheriques » (un.js, simu_mp3), pas de son
+    def _mp3_ordre(rx, tx, ordre): window.simu_mp3('ordre', str(ordre), 0)
+    def _mp3_piste(rx, tx, n): window.simu_mp3('piste', '', int(n))
+    def _mp3_volume(rx, tx, v): window.simu_mp3('volume', '', int(v))
+    def _mp3_mode(rx, tx, mode): window.simu_mp3('mode', '', int(mode))
     class _EcranOLEDMock:
         def __init__(self): window.simu_oled('init', '', 0, 0)
         def effacer(self): window.simu_oled('effacer', '', 0, 0)
@@ -3469,6 +3482,7 @@
             '_grove_bouton': _grove_bouton, '_grove_bouton_front': _grove_bouton_front,
             '_grove_lumiere': _grove_lumiere, '_grove_pir': _grove_pir,
             '_grove_buzzer': _grove_buzzer, '_grove_buzzer_bip': _grove_buzzer_bip, '_grove_relais': _grove_relais,
+            '_mp3_ordre': _mp3_ordre, '_mp3_piste': _mp3_piste, '_mp3_volume': _mp3_volume, '_mp3_mode': _mp3_mode,
             '_EcranOLED': _EcranOLEDMock, '_grove_oled': _grove_oled,
             '_BarreLED': _BarreLEDMock, '_grove_barre': _grove_barre,
             '_CapteurBMP280': _CapteurBMP280Mock, '_grove_bmp280': _grove_bmp280,
