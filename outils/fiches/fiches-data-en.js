@@ -3144,6 +3144,65 @@ window.FICHES_EN = {
     ],
     legende: 'On start, the player switches to ‘repeat all’, then plays track 1: all the tracks follow one another endlessly.',
   },
+  // ═══════════════ Expansion boards: Grove Shield V2.0 and BitMaker V2 (Nov. 2026) ═══════════════
+  carte_grove_shield: {
+    titre: 'expansion board: Grove Shield V2.0',
+    sert: 'Shows that the program uses the **Grove Shield V2.0** expansion board (Seeed), into which the micro:bit is pushed and where the Grove modules are plugged in: the **wiring view** then draws this board.',
+    util: [
+      'Put this block in ‘on start’. Then plug the modules into the sockets of the board: P0/P14, P1/P15, P2/P16 and I2C.',
+    ],
+    savoir: [
+      'This block produces **no code** for the board: the Grove Shield only links the pins of the micro:bit to its sockets.',
+      'Without this block, the board is chosen in the menu of the wiring view.',
+    ],
+    legende: 'The Grove Shield V2.0 board is chosen, then the buzzer plugged into P0/P14 sounds for half a second.',
+  },
+  carte_bitmaker: {
+    titre: 'expansion board: BitMaker V2',
+    sert: 'Shows that the program uses the **BitMaker V2** expansion board (Seeed), with its six Grove sockets and its four RGB LEDs: the **wiring view** then draws this board.',
+    util: [
+      'Put this block in ‘on start’. The blocks for the board LEDs also choose the BitMaker by themselves.',
+    ],
+    savoir: [
+      'This block produces **no code** for the board.',
+      'The sockets of the BitMaker are not those of the Grove Shield: check in the wiring view which socket each module goes into.',
+    ],
+    legende: 'The BitMaker V2 board is chosen, then its four LEDs light up in blue.',
+  },
+  bitmaker_led: {
+    titre: 'BitMaker: LED no. … of the board in …',
+    sert: 'Lights one of the **4 RGB LEDs** soldered on the **BitMaker V2** board, in the chosen colour.',
+    util: [
+      'Choose the number of the LED (1 to 4) and the colour. The colour **black** turns the LED off.',
+    ],
+    savoir: [
+      'The LEDs of the board are linked to pin **P13**: do not plug any other module into it.',
+      'The other LEDs keep their colour.',
+    ],
+    legende: 'LEDs 1 to 4 light up in red one after the other, then they all turn off, forever.',
+  },
+  bitmaker_leds: {
+    titre: 'BitMaker: all the board LEDs in …',
+    sert: 'Lights the **4 RGB LEDs** of the **BitMaker V2** board in the same colour.',
+    util: [
+      'Choose the colour in the block\'s list.',
+    ],
+    savoir: [
+      'The LEDs of the board are linked to pin **P13**.',
+    ],
+    legende: 'The board LEDs light up in green when button A is pressed, in red with button B.',
+  },
+  bitmaker_leds_eteindre: {
+    titre: 'BitMaker: turn off the board LEDs',
+    sert: 'Turns off the **4 RGB LEDs** of the **BitMaker V2** board.',
+    util: [
+      'Put it after showing something, for example with the ‘wait’ block to make the LEDs blink.',
+    ],
+    savoir: [
+      'Only the board LEDs turn off: the LED matrix of the micro:bit does not change.',
+    ],
+    legende: 'The board LEDs blink in yellow, on for half a second, off for half a second.',
+  },
 };
 window.EXEMPLES_EN = {
   'Prêt': 'Ready',

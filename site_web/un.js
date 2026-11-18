@@ -1608,6 +1608,65 @@ try {
         return m === 'tous' ? '_motorbit().arreter_tout()\n' : '_motorbit().arreter(' + m + ')\n';
     };
 
+    // ---------- Grove Shield V2.0 et BitMaker V2 (nov. 2026) ----------
+    // Bloc « carte d'extension : … » : dit au montage quelle carte dessiner (montage.js, cartesImposees), comme les blocs
+    // de la DFR0548 ; il ne produit qu'un commentaire, ces cartes ne font que relier les broches aux prises Grove.
+    // BitMaker V2 : 4 LED RGB soudees, pilotees par P13 (WS2812 : module neopixel), numerotees 1 a 4 pour l'eleve.
+    [['carte_grove_shield', 'Grove Shield V2.0', "Indique que le programme utilise la carte d'extension Grove Shield V2.0 " +
+         "(Seeed) : le montage la dessine. Ce bloc ne produit aucun code pour la carte."],
+     ['carte_bitmaker', 'BitMaker V2', "Indique que le programme utilise la carte d'extension BitMaker V2 (Seeed) : le " +
+         "montage la dessine. Ce bloc ne produit aucun code pour la carte."]].forEach(([type, nom, aide]) => {
+        Blockly.Blocks[type] = { init: function() {
+            this.appendDummyInput().appendField("carte d'extension :").appendField(nom);
+            this.setPreviousStatement(true, null);
+            this.setNextStatement(true, null);
+            this.setTooltip(aide);
+        }};
+        P.forBlock[type] = () => '# Carte d\'extension : ' + nom + '\n';
+    });
+
+    function piloteLedsBitmaker() {
+        piloteRuban();
+        pilote('leds_bitmaker', [
+            '# BitMaker V2 : 4 LED RGB soudees sur la carte, pilotees par P13.',
+            'def _bitmaker_leds():',
+            '    return _grove_obj("leds_bitmaker", lambda: neopixel.NeoPixel(pin13, 4))',
+        ]);
+    }
+    Blockly.Blocks['bitmaker_led'] = { init: function() {
+        this.appendDummyInput().appendField("BitMaker : LED n°")
+            .appendField(new Blockly.FieldDropdown([["1", "0"], ["2", "1"], ["3", "2"], ["4", "3"]]), "LED")
+            .appendField("de la carte en").appendField(menuCouleur(), "COULEUR");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setTooltip("Allume une des 4 LED RGB soudées sur la carte BitMaker V2 dans la couleur choisie (noir : éteinte).");
+    }};
+    P.forBlock['bitmaker_led'] = function(block) {
+        piloteLedsBitmaker();
+        return '_bitmaker_leds()[' + block.getFieldValue('LED') + '] = _grove_teinte(' + block.getFieldValue('COULEUR') + ')\n' +
+               '_bitmaker_leds().show()\n';
+    };
+    Blockly.Blocks['bitmaker_leds'] = { init: function() {
+        this.appendDummyInput().appendField("BitMaker : toutes les LED de la carte en").appendField(menuCouleur(), "COULEUR");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setTooltip("Allume les 4 LED RGB de la carte BitMaker V2 dans la même couleur.");
+    }};
+    P.forBlock['bitmaker_leds'] = function(block) {
+        piloteLedsBitmaker();
+        return '_bitmaker_leds().fill(_grove_teinte(' + block.getFieldValue('COULEUR') + '))\n_bitmaker_leds().show()\n';
+    };
+    Blockly.Blocks['bitmaker_leds_eteindre'] = { init: function() {
+        this.appendDummyInput().appendField("BitMaker : éteindre les LED de la carte");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setTooltip("Éteint les 4 LED RGB de la carte BitMaker V2.");
+    }};
+    P.forBlock['bitmaker_leds_eteindre'] = function(block) {
+        piloteLedsBitmaker();
+        return '_bitmaker_leds().clear()\n';
+    };
+
     Blockly.Blocks['dfr_servo'] = { init: function() {
         this.appendDummyInput().appendField("DFR0548 : servo").appendField(new Blockly.FieldDropdown(MENU_SERVOS_DFR), "SERVO")
             .appendField("à");
@@ -4241,6 +4300,8 @@ try {
         'Cartes d\'extension': '#5C5C1E',
         'DFR0548': '#5C5C1E',
         'Motor:bit': '#5C5C1E',
+        'Grove Shield V2.0': '#5C5C1E',
+        'BitMaker V2': '#5C5C1E',
         'Radio': '#336C93',
         'IA': '#607610',
         'Grove': '#356D48',
@@ -4696,6 +4757,23 @@ try {
               { "kind": "block", "type": "dfr_moteur_arreter" },
               { "kind": "label", "text": "Moteurs pas à pas", "web-class": "groupe-flyout" },
               { "kind": "block", "type": "dfr_pas_a_pas", "inputs": { "QUANTITE": { "shadow": { "type": "math_number", "fields": { "NUM": "90" } } } } }
+            ]
+            },
+            {
+            // Cartes a prises Grove (nov. 2026) : le bloc « carte d'extension » choisit la carte du montage
+            "kind": "category", "name": "Grove Shield V2.0", "colour": "190",
+            "contents": [
+              { "kind": "block", "type": "carte_grove_shield" }
+            ]
+            },
+            {
+            "kind": "category", "name": "BitMaker V2", "colour": "190",
+            "contents": [
+              { "kind": "block", "type": "carte_bitmaker" },
+              { "kind": "label", "text": "LED RGB de la carte (P13)", "web-class": "groupe-flyout" },
+              { "kind": "block", "type": "bitmaker_led", "fields": { "LED": "0", "COULEUR": "0xFF0000" } },
+              { "kind": "block", "type": "bitmaker_leds", "fields": { "COULEUR": "0x00FF00" } },
+              { "kind": "block", "type": "bitmaker_leds_eteindre" }
             ]
             },
             {
@@ -10193,7 +10271,7 @@ try {
     // qu'un ruban, les neuf autres n'ont rien à faire à l'écran.
     const SECTIONS_GROVE = [
         ['grove-sec-led',      /^grove_led_/],
-        ['grove-sec-ruban',    /^grove_ruban_/],
+        ['grove-sec-ruban',    /^(grove_ruban_|bitmaker_led)/],
         ['grove-sec-4digit',   /^grove_4d_/],
         ['grove-sec-ultrason', /^grove_ultrason_/],
         ['grove-sec-joystick', /^grove_joystick_/],

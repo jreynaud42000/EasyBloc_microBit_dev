@@ -66,7 +66,7 @@ const MODULES = [
     { motif: /^grove_scd30_/,                 nom: 'Capteur CO₂ SCD30',     i2c: true, picto: 'scd30', large: true },
     { motif: /^grove_scd41_/,                 nom: 'Capteur CO₂ SCD41',     i2c: true, picto: 'scd41' },
 ];
-const BLOC_EXTENSION = /^(grove_|servo_|dfr_|motorbit_)/;
+const BLOC_EXTENSION = /^(grove_|servo_|dfr_|motorbit_|carte_|bitmaker_)/;
 // Lecteur de l'etat en direct (majVivant) quand il differe du dessin : plusieurs capteurs partagent le dessin « puce ».
 const VIVANT = {
     'Capteur de pression': 'pression', 'Capteur COV': 'cov', 'Capteur de gestes': 'gestes', 'Température, humidité': 'th',
@@ -222,9 +222,13 @@ function lireMontage() {
     const types = blocs.map(b => b.type);
     const dfr = types.some(t => /^dfr_/.test(t));
     // Des blocs Motor:bit imposent cette carte, comme ceux de la DFR0548 (celle-ci l'emporte si les deux sont poses).
-    const motorbit = !dfr && (types.some(t => /^motorbit_/.test(t)) || choixCarte() === 'motorbit');
-    const imposee = dfr ? 'dfr' : types.some(t => /^motorbit_/.test(t)) ? 'motorbit' : '';
-    const bitmaker = !dfr && !motorbit && choixCarte() === 'bitmaker';
+    // Bloc « carte d'extension : … » ou blocs des LED de la BitMaker (nov. 2026) : ils imposent leur carte, comme les blocs
+    // de la DFR0548 et de la Motor:bit (qui l'emportent) ; sans eux, le choix du menu du montage.
+    const parBloc = types.some(t => t === 'carte_bitmaker' || /^bitmaker_/.test(t)) ? 'bitmaker'
+                  : types.includes('carte_grove_shield') ? 'grove' : '';
+    const motorbit = !dfr && (types.some(t => /^motorbit_/.test(t)) || (!parBloc && choixCarte() === 'motorbit'));
+    const imposee = dfr ? 'dfr' : types.some(t => /^motorbit_/.test(t)) ? 'motorbit' : parBloc;
+    const bitmaker = !dfr && !motorbit && (parBloc ? parBloc === 'bitmaker' : choixCarte() === 'bitmaker');
     const utile = types.some(t => BLOC_EXTENSION.test(t));
     const modules = new Map();
     const ajouter = (cle, m) => { if (!modules.has(cle)) { m.id = cle; modules.set(cle, m); } };
@@ -260,6 +264,11 @@ function lireMontage() {
             const n = Number(b.getFieldValue('SERVO'));
             ajouter('S' + n, { nom: 'Servomoteur', picto: 'servo', etiquette: 'S' + n, occupe: ['S' + n], cle: 'DFR S' + n,
                 fils: filsRangeeDfr(COLONNES_SERVO, yRangDfr(n - 1), [F.orange, F.rouge, F.marron]) });
+            continue;
+        }
+        // LED de la BitMaker (blocs bitmaker_led...) : soudees sur la carte, pas de module ni de cable (comme un ruban sur P13).
+        if (/^bitmaker_led/.test(b.type)) {
+            if (bitmaker) ajouter('ruban-carte', { nom: 'LED RGB', etiquette: 'LED de la carte (P13)', fils: [], surCarte: true, note: '' });
             continue;
         }
         const def = MODULES.find(m => m.motif.test(b.type));
@@ -1253,7 +1262,8 @@ function finirRedessin(etat) {
     }
     if (choixAuto) {
         choixAuto.hidden = !etat.imposee;
-        choixAuto.textContent = (etat.imposee === 'motorbit' ? 'Carte Motor:bit' : 'Carte DFR0548') + ' : choisie car le programme utilise ses blocs.';
+        choixAuto.textContent = ({ motorbit: 'Carte Motor:bit', bitmaker: 'Carte BitMaker V2', grove: 'Carte Grove Shield V2.0' }[etat.imposee] ||
+                                 'Carte DFR0548') + ' : choisie car le programme utilise ses blocs.';
     }
     resume.innerHTML = etat.modules.length
         // Chaque morceau traduit a part (en anglais) : la ligne entiere ne correspond a aucune cle du dictionnaire

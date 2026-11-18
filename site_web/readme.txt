@@ -274,8 +274,21 @@ Le simulateur dessine un cadran par broche utilisee, dans la section
 6. CARTE D'EXTENSION BITMAKER V2
 ---------------------------------------------------------
 La BitMaker V2 (Seeed, ref 114992653) est un simple repartiteur : elle amene des
-broches de la micro:bit sur six connecteurs Grove. Aucun bloc special n'est
-necessaire, il suffit de choisir la broche correspondant au port utilise.
+broches de la micro:bit sur six connecteurs Grove. Il suffit de choisir la broche
+correspondant au port utilise.
+Categorie « Cartes d'extension » (nov. 2026) : sous-categories « Grove Shield V2.0 » et
+« BitMaker V2 ». Le bloc « carte d'extension : ... » (carte_grove_shield,
+carte_bitmaker) ne produit qu'un commentaire ; il impose la carte du montage,
+comme les blocs DFR0548 et Motor:bit (qui l'emportent), a la place du menu du
+montage. La BitMaker a aussi trois blocs pour ses 4 LED RGB : « LED n° 1 a 4 de
+la carte en couleur », « toutes les LED de la carte en couleur », « eteindre les
+LED de la carte » (bitmaker_led, bitmaker_leds, bitmaker_leds_eteindre) :
+neopixel.NeoPixel(pin13, 4), cles « leds_bitmaker » du registre ; ils imposent
+aussi la BitMaker. Simulateur : les 4 LED dans « Peripheriques » (section du
+ruban RGB) et sur la carte dessinee. Broche P13 d'apres le blog Seeed
+(« Getting Started with Bitmaker », 2019) ; NON verifie sur une vraie carte V2.
+Pas de bloc buzzer : la presence d'un buzzer sur la V2 n'est pas confirmee
+(wiki Seeed : oui, fiche RobotShop de la V2 : non).
 
 Correspondance des six ports Grove :
 
@@ -305,10 +318,8 @@ surintensites a 1,5 A.
 Deux points a savoir :
 - P13 figure dans les menus de broches de l'application mais n'est PAS sorti sur
   la BitMaker V2. Les huit autres choix correspondent bien a des ports.
-- La carte porte quatre LED RGB adressables. La broche qui les commande n'est
-  pas indiquee dans la documentation que j'ai pu consulter. Pour la trouver,
-  poser "definir le ruban RGB sur <broche> avec 4 LED" puis "colorer tout le
-  ruban", et essayer les broches candidates.
+- La carte porte quatre LED RGB adressables, sur P13 (voir les blocs
+  « BitMaker » ci-dessus) : P13 ne sort donc sur aucun port.
 
 ---------------------------------------------------------
 7. LES MODULES GROVE

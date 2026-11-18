@@ -3247,6 +3247,8 @@
         return _grove_objets[nom]
 
     def _grove_ruban(): return _grove_obj('ruban', lambda: _NeoPixelMock(None, 16))
+    # BitMaker V2 : ses 4 LED (P13) s'affichent comme un ruban de 4 LED (panneau et montage)
+    def _bitmaker_leds(): return _grove_obj('leds_bitmaker', lambda: _NeoPixelMock(None, 4))
     def _grove_afficheur(): return _grove_obj('afficheur', lambda: _Afficheur4Mock(None, None))
     def _grove_gestes(): return _grove_obj('gestes', _CapteurGestesMock)
     def _grove_th(): return _grove_obj('th', _CapteurTHMock)
@@ -3505,7 +3507,7 @@
             '_grove_moteur_effacer_defaut': _grove_moteur_effacer_defaut,
             '_grove_moteur_defaut': _grove_moteur_defaut,
             '_grove_objets': _grove_objets, '_grove_obj': _grove_obj,
-            '_grove_ruban': _grove_ruban, '_grove_afficheur': _grove_afficheur,
+            '_grove_ruban': _grove_ruban, '_bitmaker_leds': _bitmaker_leds, '_grove_afficheur': _grove_afficheur,
             '_grove_gestes': _grove_gestes, '_grove_th': _grove_th,
             '_grove_lcd': _grove_lcd, '_grove_lcdrgb': _grove_lcdrgb, '_grove_couleur': _grove_couleur,
             '_grove_scd30': _grove_scd30, '_grove_scd41': _grove_scd41,

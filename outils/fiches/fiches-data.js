@@ -3616,4 +3616,76 @@ window.FICHES = [
     exemple: [START(B('grove_mp3_mode', { PORT: 'pin1, pin15', MODE: '2' }),
                     B('grove_mp3_piste', { PORT: 'pin1, pin15' }, { PISTE: N(1) }))],
   },
+  // ═══════════════ Cartes d'extension : Grove Shield V2.0 et BitMaker V2 (nov. 2026) ═══════════════
+  {
+    t: 'carte_grove_shield',
+    titre: 'carte d\'extension : Grove Shield V2.0',
+    sert: 'Indique que le programme utilise la carte d\'extension **Grove Shield V2.0** (Seeed), sur laquelle la micro:bit est enfoncée et où l\'on branche les modules Grove : le **montage** dessine alors cette carte.',
+    util: [
+      'Placez ce bloc dans « au démarrage ». Branchez ensuite les modules sur les prises de la carte : P0/P14, P1/P15, P2/P16 et I2C.',
+    ],
+    savoir: [
+      'Ce bloc ne produit **aucun code** pour la carte : le Grove Shield ne fait que relier les broches de la micro:bit à ses prises.',
+      'Sans ce bloc, la carte se choisit dans le menu du montage.',
+    ],
+    legende: 'La carte Grove Shield V2.0 est choisie, puis le buzzer branché sur P0/P14 sonne une demi-seconde.',
+    exemple: [START(B('carte_grove_shield'), B('grove_buzzer_bip', { BROCHE: 'pin0' }, { DUREE: N(500) }))],
+  },
+  {
+    t: 'carte_bitmaker',
+    titre: 'carte d\'extension : BitMaker V2',
+    sert: 'Indique que le programme utilise la carte d\'extension **BitMaker V2** (Seeed), avec ses six prises Grove et ses quatre LED RGB : le **montage** dessine alors cette carte.',
+    util: [
+      'Placez ce bloc dans « au démarrage ». Les blocs des LED de la carte choisissent aussi la BitMaker tout seuls.',
+    ],
+    savoir: [
+      'Ce bloc ne produit **aucun code** pour la carte.',
+      'Les prises de la BitMaker ne sont pas celles du Grove Shield : regardez dans le montage sur quelle prise brancher chaque module.',
+    ],
+    legende: 'La carte BitMaker V2 est choisie, puis ses quatre LED s\'allument en bleu.',
+    exemple: [START(B('carte_bitmaker'), B('bitmaker_leds', { COULEUR: '0x0000FF' }))],
+  },
+  {
+    t: 'bitmaker_led',
+    titre: 'BitMaker : LED n° … de la carte en …',
+    sert: 'Allume une des **4 LED RGB** soudées sur la carte **BitMaker V2**, dans la couleur choisie.',
+    util: [
+      'Choisissez le numéro de la LED (1 à 4) et la couleur. La couleur **noir** éteint la LED.',
+    ],
+    savoir: [
+      'Les LED de la carte sont reliées à la broche **P13** : n\'y branchez pas d\'autre module.',
+      'Les autres LED gardent leur couleur.',
+    ],
+    legende: 'Les LED 1 à 4 s\'allument en rouge l\'une après l\'autre, puis toutes s\'éteignent, sans fin.',
+    exemple: [LOOP(B('bitmaker_led', { LED: '0', COULEUR: '0xFF0000' }), ATT(0.3), B('bitmaker_led', { LED: '1', COULEUR: '0xFF0000' }), ATT(0.3),
+                   B('bitmaker_led', { LED: '2', COULEUR: '0xFF0000' }), ATT(0.3), B('bitmaker_led', { LED: '3', COULEUR: '0xFF0000' }), ATT(0.3),
+                   B('bitmaker_leds_eteindre'), ATT(0.3))],
+  },
+  {
+    t: 'bitmaker_leds',
+    titre: 'BitMaker : toutes les LED de la carte en …',
+    sert: 'Allume les **4 LED RGB** de la carte **BitMaker V2** dans la même couleur.',
+    util: [
+      'Choisissez la couleur dans la liste du bloc.',
+    ],
+    savoir: [
+      'Les LED de la carte sont reliées à la broche **P13**.',
+    ],
+    legende: 'Les LED de la carte s\'allument en vert quand on appuie sur le bouton A, en rouge sur le bouton B.',
+    exemple: [QUAND('lorsque_bouton', { BOUTON: 'a' }, B('bitmaker_leds', { COULEUR: '0x00FF00' })),
+              QUAND('lorsque_bouton', { BOUTON: 'b' }, B('bitmaker_leds', { COULEUR: '0xFF0000' }))],
+  },
+  {
+    t: 'bitmaker_leds_eteindre',
+    titre: 'BitMaker : éteindre les LED de la carte',
+    sert: 'Éteint les **4 LED RGB** de la carte **BitMaker V2**.',
+    util: [
+      'Placez-le après un affichage, par exemple avec le bloc « attendre » pour faire clignoter les LED.',
+    ],
+    savoir: [
+      'Seules les LED de la carte s\'éteignent : la matrice de LED de la micro:bit ne change pas.',
+    ],
+    legende: 'Les LED de la carte clignotent en jaune, une demi-seconde allumées, une demi-seconde éteintes.',
+    exemple: [LOOP(B('bitmaker_leds', { COULEUR: '0xFFFF00' }), ATT(0.5), B('bitmaker_leds_eteindre'), ATT(0.5))],
+  },
 ];
