@@ -3008,6 +3008,89 @@ window.FICHES_EN = {
     ],
     legende: 'At start, the V3 robot turns right at T-junctions, then line following starts.',
   },
+  // ═══════════════ Graph (blocks of the R4 editor, Nov. 2026) ═══════════════
+  graph_tracer: {
+    titre: 'plot … on curve …',
+    sert: [
+      'Adds a point to the **graph**: the **value** attached gives the height (Y axis), and the **time** elapsed since the board started gives the position across (X axis, in seconds).',
+      'Placed in a loop, it draws how a measurement changes over time: a temperature going up, light going down…',
+    ],
+    util: [
+      'The graph shows in the **Graph** tab of the console (‘Console’ button of the toolbar).',
+      'Attach a sensor (or a variable) to the block and give the **curve a name**. To follow two measurements, use two ‘plot’ blocks with two different names.',
+      'With the real board, click ‘Connect’ in the console (Chrome or Edge): the points arrive through the USB cable.',
+    ],
+    savoir: [
+      'Put a ‘wait’ block in the loop (0.1 to 1 second): without a pause, the board sends too many points. Each curve keeps its last 600 points.',
+      'The export button of the console saves the points in an Excel file.',
+    ],
+    legende: 'The axes are named on start, then the board\'s temperature is added to the ‘Temperature’ curve every 0.5 second.',
+  },
+  graph_point: {
+    titre: 'add the point X … Y … to curve …',
+    sert: 'Adds a point to the graph whose **two values** you choose: X (across) and Y (upwards). To plot a quantity **against another one** than time: the distance against the angle, the light against the position…',
+    util: [
+      'Attach a value to X and one to Y, and give the **curve a name**. The points of the same curve are joined in the order they arrive.',
+      'The graph shows in the **Graph** tab of the console.',
+    ],
+    savoir: [
+      'To measure against time, the ‘plot … on curve …’ block is simpler: it takes the time as X by itself.',
+      'The export button of the console saves the points in an Excel file.',
+    ],
+    legende: 'The ‘count’ loop makes x go from 0 to 10: each point has the value of x as X and its square (x × x) as Y. A parabola appears.',
+  },
+  graph_axes: {
+    titre: 'name the axes: X … Y …',
+    sert: 'Writes the **name of each axis** of the graph, with its unit: ‘Time (s)’ under the horizontal axis (X), ‘Temperature (°C)’ along the vertical axis (Y).',
+    util: [
+      'Put this block **only once**, in ‘on start’. Click in the boxes to type your names.',
+      'A scientific graph always has named axes, with the unit in brackets.',
+    ],
+    savoir: [
+      'The names of the axes stay after the ‘clear the graph’ block.',
+    ],
+    legende: 'The axes are named on start, then the light measured by the LED matrix is plotted every second.',
+  },
+  graph_effacer: {
+    titre: 'clear the graph',
+    sert: 'Clears **all the curves** and all the measurements from the graph, to start a measurement again from scratch.',
+    util: [
+      'Use it for example when a button is pressed, to redo a measurement without restarting the program.',
+    ],
+    savoir: [
+      'The names of the axes are kept.',
+      'A cleared measurement is no longer plotted: export it first (export button of the console) if you want to keep it.',
+    ],
+    legende: 'The temperature is plotted every 0.5 second. Pressing button A clears the graph: a new measurement starts.',
+  },
+  graph_arreter: {
+    titre: 'stop the measurement',
+    sert: 'Stops the **measurement**: from this block on, the ‘plot … on curve …’ and ‘add the point X … Y … to curve …’ blocks no longer plot anything. The graph **stays on screen**: you can study it or export the measurements.',
+    util: [
+      'Put it where the measurement must stop: for example in an ‘if’ block, when a button is pressed or when a measurement goes over a value.',
+      'The rest of the program **carries on**: the LED matrix, the modules, the motors… still work. Only the points are no longer added to the graph.',
+    ],
+    savoir: [
+      'The block can be in the loop and be repeated: the measurement stops only once.',
+      'To restart the measurement, use the ‘resume the measurement’ block.',
+      'The points sent while it is stopped are not exported to Excel either.',
+    ],
+    legende: 'The temperature is plotted every 0.5 second. Pressing button A stops the measurement: the curve stops, but the graph stays on screen.',
+  },
+  graph_reprendre: {
+    titre: 'resume the measurement',
+    sert: '**Restarts** a measurement stopped by the ‘stop the measurement’ block: the ‘plot … on curve …’ and ‘add the point X … Y … to curve …’ blocks plot their points again.',
+    util: [
+      'Put it where the measurement must restart: for example in an ‘if’ block, when a second button is pressed.',
+      'With two buttons, you make a measurement ‘on demand’: one button stops the measurement, the other restarts it.',
+    ],
+    savoir: [
+      'The points carry on **following** the curves: nothing is cleared. The curve is **cut** during the pause: no line between the last point before the stop and the first point after resuming.',
+      'Time kept counting during the pause: the curve starts again further to the right.',
+      'If the measurement was not stopped, this block does nothing: it can be in the loop and be repeated.',
+    ],
+    legende: 'The temperature is plotted every 0.5 second. Button A stops the measurement, button B restarts it: the curve is cut during the pause.',
+  },
 };
 window.EXEMPLES_EN = {
   'Prêt': 'Ready',
@@ -3022,4 +3105,10 @@ window.EXEMPLES_EN = {
   'Démarrage': 'Start',
   'dé': 'die',
   'i': 'i',
+  'Température': 'Temperature',
+  'Temps (s)': 'Time (s)',
+  'Température (°C)': 'Temperature (°C)',
+  'Carré': 'Square',
+  'Lumière': 'Light',
+  'Lumière (0 à 255)': 'Light (0 to 255)',
 };

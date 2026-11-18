@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8017", "--bind", "127.0.0.1"],
       "port": 8017
+    },
+    {
+      "name": "easybloc_fiches",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["outils/fiches/serveur-fiches.py", "8041"],
+      "port": 8041
     }
   ]
 }

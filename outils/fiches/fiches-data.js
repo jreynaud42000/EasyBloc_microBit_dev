@@ -3444,4 +3444,109 @@ window.FICHES = [
     legende: 'Au démarrage, le robot V3 tourne à droite aux intersections en T, puis le suivi de ligne démarre.',
     exemple: [START(B('maqueen_v3_mode_T', { MODE: '2' }), B('maqueen_v3_suiveur', { ACTIF: '1' }))],
   },
+  // ═══════════════ Graphique (blocs de l'éditeur R4, nov. 2026) ═══════════════
+  {
+    t: 'graph_tracer',
+    titre: 'tracer … dans la courbe …',
+    sert: [
+      'Ajoute un point au **graphique** : la **valeur** branchée donne la hauteur (axe Y), et le **temps** écoulé depuis le démarrage de la carte donne la position en largeur (axe X, en secondes).',
+      'Placé dans une boucle, il dessine l\'évolution d\'une mesure au cours du temps : une température qui monte, une lumière qui baisse…',
+    ],
+    util: [
+      'Le graphique s\'affiche dans l\'onglet **Graphique** de la console (bouton « Console » de la barre d\'outils).',
+      'Branchez un capteur (ou une variable) dans le bloc et donnez un **nom à la courbe**. Pour suivre deux mesures, utilisez deux blocs « tracer » avec deux noms différents.',
+      'Avec la vraie carte, cliquez « Connecter » dans la console (Chrome ou Edge) : les points arrivent par le câble USB.',
+    ],
+    savoir: [
+      'Mettez un bloc « attendre » dans la boucle (0,1 à 1 seconde) : sans pause, la carte envoie trop de points. Chaque courbe garde ses 600 derniers points.',
+      'Le bouton d\'export de la console enregistre les points dans un fichier Excel.',
+    ],
+    legende: 'Les axes sont nommés au démarrage, puis la température de la carte est ajoutée à la courbe « Température » toutes les 0,5 seconde.',
+    exemple: [START(B('graph_axes', { NOM_X: 'Temps (s)', NOM_Y: 'Température (°C)' })),
+              LOOP(B('graph_tracer', { COURBE: 'Température' }, { VAL: V(B('capteur_temperature')) }), ATT(0.5))],
+  },
+  {
+    t: 'graph_point',
+    titre: 'ajouter le point X … Y … à la courbe …',
+    sert: 'Ajoute un point au graphique dont vous choisissez **les deux valeurs** : X (en largeur) et Y (en hauteur). Pour tracer une grandeur **en fonction d\'une autre** que le temps : la distance en fonction de l\'angle, la lumière en fonction de la position…',
+    util: [
+      'Branchez une valeur dans X et une dans Y, et donnez un **nom à la courbe**. Les points d\'une même courbe sont reliés dans l\'ordre où ils arrivent.',
+      'Le graphique s\'affiche dans l\'onglet **Graphique** de la console.',
+    ],
+    savoir: [
+      'Pour mesurer en fonction du temps, le bloc « tracer … dans la courbe … » est plus simple : il prend le temps comme X tout seul.',
+      'Le bouton d\'export de la console enregistre les points dans un fichier Excel.',
+    ],
+    legende: 'La boucle « compter » fait varier x de 0 à 10 : chaque point a pour X la valeur de x et pour Y son carré (x × x). On voit apparaître une parabole.',
+    exemple: [START(B('graph_axes', { NOM_X: 'x', NOM_Y: 'x × x' }),
+                    B('controls_for', { VAR: { name: 'x' } }, { FROM: N(0), TO: N(10), BY: N(1),
+                      DO: S(B('graph_point', { COURBE: 'Carré' }, { X: V(VAR('x')), Y: V(B('math_arithmetic', { OP: 'MULTIPLY' }, { A: V(VAR('x')), B: V(VAR('x')) })) }), ATT(0.2)) }))],
+  },
+  {
+    t: 'graph_axes',
+    titre: 'nommer les axes : X … Y …',
+    sert: 'Écrit le **nom de chaque axe** du graphique, avec son unité : « Temps (s) » sous l\'axe horizontal (X), « Température (°C) » le long de l\'axe vertical (Y).',
+    util: [
+      'Placez ce bloc **une seule fois**, dans « au démarrage ». Cliquez dans les cases pour écrire vos noms.',
+      'Un graphique scientifique a toujours ses axes nommés, avec l\'unité entre parenthèses.',
+    ],
+    savoir: [
+      'Le nom des axes reste affiché après le bloc « effacer le graphique ».',
+    ],
+    legende: 'Les axes sont nommés au démarrage, puis la lumière mesurée par la matrice de LED est tracée chaque seconde.',
+    exemple: [START(B('graph_axes', { NOM_X: 'Temps (s)', NOM_Y: 'Lumière (0 à 255)' })),
+              LOOP(B('graph_tracer', { COURBE: 'Lumière' }, { VAL: V(B('capteur_luminosite')) }), ATT(1))],
+  },
+  {
+    t: 'graph_effacer',
+    titre: 'effacer le graphique',
+    sert: 'Efface **toutes les courbes** et toutes les mesures du graphique, pour recommencer une mesure à zéro.',
+    util: [
+      'Utilisez-le par exemple quand on appuie sur un bouton, pour refaire une mesure sans relancer le programme.',
+    ],
+    savoir: [
+      'Le nom des axes est gardé.',
+      'Une mesure effacée n\'est plus tracée : exportez-la d\'abord (bouton d\'export de la console) si vous voulez la garder.',
+    ],
+    legende: 'La température est tracée toutes les 0,5 seconde. Un appui sur le bouton A efface le graphique : une nouvelle mesure commence.',
+    exemple: [START(B('graph_axes', { NOM_X: 'Temps (s)', NOM_Y: 'Température (°C)' })),
+              LOOP(SI(BOUTON('a'), S(B('graph_effacer'))),
+                   B('graph_tracer', { COURBE: 'Température' }, { VAL: V(B('capteur_temperature')) }), ATT(0.5))],
+  },
+  {
+    t: 'graph_arreter',
+    titre: 'arrêter la mesure',
+    sert: 'Arrête la **mesure** : à partir de ce bloc, les blocs « tracer … dans la courbe … » et « ajouter le point X … Y … à la courbe … » ne tracent plus rien. Le graphique **reste affiché** : on peut l\'analyser ou exporter les mesures.',
+    util: [
+      'Placez-le là où la mesure doit s\'arrêter : par exemple dans un bloc « si », quand on appuie sur un bouton ou quand une mesure dépasse une valeur.',
+      'Le reste du programme **continue** : la matrice de LED, les modules, les moteurs… fonctionnent toujours. Seuls les points ne sont plus ajoutés au graphique.',
+    ],
+    savoir: [
+      'Le bloc peut se trouver dans la boucle et être répété : la mesure s\'arrête une seule fois.',
+      'Pour faire repartir la mesure, utilisez le bloc « reprendre la mesure ».',
+      'Les points envoyés pendant l\'arrêt ne sont pas non plus exportés vers Excel.',
+    ],
+    legende: 'La température est tracée toutes les 0,5 seconde. Un appui sur le bouton A arrête la mesure : la courbe s\'arrête, mais le graphique reste affiché.',
+    exemple: [START(B('graph_axes', { NOM_X: 'Temps (s)', NOM_Y: 'Température (°C)' })),
+              LOOP(B('graph_tracer', { COURBE: 'Température' }, { VAL: V(B('capteur_temperature')) }),
+                   SI(BOUTON('a'), S(B('graph_arreter'))), ATT(0.5))],
+  },
+  {
+    t: 'graph_reprendre',
+    titre: 'reprendre la mesure',
+    sert: 'Fait **repartir** une mesure arrêtée par le bloc « arrêter la mesure » : les blocs « tracer … dans la courbe … » et « ajouter le point X … Y … à la courbe … » tracent de nouveau leurs points.',
+    util: [
+      'Placez-le là où la mesure doit repartir : par exemple dans un bloc « si », quand on appuie sur un second bouton.',
+      'Avec deux boutons, on fait une mesure « à la demande » : un bouton arrête la mesure, l\'autre la fait repartir.',
+    ],
+    savoir: [
+      'Les points reprennent **à la suite** des courbes : rien n\'est effacé. La courbe est **coupée** pendant la pause : pas de trait entre le dernier point avant l\'arrêt et le premier point après la reprise.',
+      'Le temps a continué de compter pendant la pause : la courbe reprend plus loin à droite.',
+      'Si la mesure n\'était pas arrêtée, ce bloc ne fait rien : il peut se trouver dans la boucle et être répété.',
+    ],
+    legende: 'La température est tracée toutes les 0,5 seconde. Le bouton A arrête la mesure, le bouton B la fait repartir : la courbe est coupée pendant la pause.',
+    exemple: [START(B('graph_axes', { NOM_X: 'Temps (s)', NOM_Y: 'Température (°C)' })),
+              LOOP(SI(BOUTON('a'), S(B('graph_arreter'))), SI(BOUTON('b'), S(B('graph_reprendre'))),
+                   B('graph_tracer', { COURBE: 'Température' }, { VAL: V(B('capteur_temperature')) }), ATT(0.5))],
+  },
 ];

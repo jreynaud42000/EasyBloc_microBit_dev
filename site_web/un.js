@@ -207,6 +207,76 @@ try {
         return 'print(' + (P.valueToCode(block, 'VALEUR', P.ORDER_NONE) || '""') + ')\n';
     };
 
+    // ---------- Graphique (blocs de l'editeur R4, nov. 2026) ----------
+    // Chaque bloc ecrit une ligne de commande dans la console (print : port USB sur la carte, console du simulateur),
+    // lue par l'onglet Graphique et masquee dans la console :
+    //     #G|P|<courbe>|<x>|<y>   point (« tracer » : x = secondes depuis le demarrage de la carte)
+    //     #G|A|<nom X>|<nom Y>    noms des axes
+    //     #G|E                    effacer le graphique
+    //     #G|S  /  #G|R           arreter / reprendre la mesure (points ignores entre les deux)
+    // Le separateur « | » est retire des noms saisis par l'eleve.
+    const nomGraphique = (block, champ, defaut) =>
+        String(block.getFieldValue(champ) || defaut).replace(/\|/g, '/').replace(/[\r\n]+/g, ' ').trim() || defaut;
+
+    Blockly.Blocks['graph_tracer'] = { init: function() {
+        this.appendValueInput("VAL").setCheck("Number").appendField("tracer");
+        this.appendDummyInput().appendField("dans la courbe").appendField(new Blockly.FieldTextInput("Courbe 1"), "COURBE");
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setTooltip("Ajoute un point au graphique : la valeur en hauteur (Y) et, en largeur (X), le temps écoulé " +
+                        "depuis le démarrage de la carte, en secondes. Donnez un nom différent à chaque courbe.");
+    }};
+    P.forBlock['graph_tracer'] = function(block) {
+        importerMicrobit();
+        const v = P.valueToCode(block, 'VAL', P.ORDER_NONE) || '0';
+        return 'print(' + P.quote_('#G|P|' + nomGraphique(block, 'COURBE', 'Courbe 1') + '|') + ' + str(running_time() / 1000) + \'|\' + str(' + v + '))\n';
+    };
+
+    Blockly.Blocks['graph_point'] = { init: function() {
+        this.appendValueInput("X").setCheck("Number").appendField("ajouter le point X");
+        this.appendValueInput("Y").setCheck("Number").appendField("Y");
+        this.appendDummyInput().appendField("à la courbe").appendField(new Blockly.FieldTextInput("Courbe 1"), "COURBE");
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setTooltip("Ajoute un point dont vous choisissez les deux valeurs : par exemple la distance (Y) en " +
+                        "fonction de l'angle (X). Donnez un nom différent à chaque courbe.");
+    }};
+    P.forBlock['graph_point'] = function(block) {
+        importerMicrobit();
+        const x = P.valueToCode(block, 'X', P.ORDER_NONE) || '0';
+        const y = P.valueToCode(block, 'Y', P.ORDER_NONE) || '0';
+        return 'print(' + P.quote_('#G|P|' + nomGraphique(block, 'COURBE', 'Courbe 1') + '|') + ' + str(' + x + ') + \'|\' + str(' + y + '))\n';
+    };
+
+    Blockly.Blocks['graph_axes'] = { init: function() {
+        this.appendDummyInput().appendField("nommer les axes : X")
+            .appendField(new Blockly.FieldTextInput("Temps (s)"), "NOM_X")
+            .appendField("Y").appendField(new Blockly.FieldTextInput("Température (°C)"), "NOM_Y");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setTooltip("Écrit le nom (et l'unité) de chaque axe du graphique. À placer une fois, dans « au démarrage ».");
+    }};
+    P.forBlock['graph_axes'] = function(block) {
+        return 'print(' + P.quote_('#G|A|' + nomGraphique(block, 'NOM_X', 'X') + '|' + nomGraphique(block, 'NOM_Y', 'Y')) + ')\n';
+    };
+
+    [['graph_effacer', "effacer le graphique", 'E', "Efface toutes les courbes et toutes les mesures du graphique."],
+     ['graph_arreter', "arrêter la mesure", 'S', "Arrête la mesure : les blocs « tracer » et « ajouter le point » ne " +
+         "tracent plus rien. Le graphique reste affiché : vous pouvez l'analyser ou exporter les mesures. Le reste du " +
+         "programme continue."],
+     ['graph_reprendre', "reprendre la mesure", 'R', "Fait repartir une mesure arrêtée : les points sont de nouveau " +
+         "tracés, à la suite des courbes (sans trait pendant la pause)."]].forEach(([type, texte, code, aide]) => {
+        Blockly.Blocks[type] = { init: function() {
+            this.appendDummyInput().appendField(texte);
+            this.setPreviousStatement(true, null);
+            this.setNextStatement(true, null);
+            this.setTooltip(aide);
+        }};
+        P.forBlock[type] = () => 'print(' + P.quote_('#G|' + code) + ')\n';
+    });
+
     // ---------- IA : vision et son (Teachable Machine) ----------
     //
     // La reconnaissance tourne dans le NAVIGATEUR (camera / micro, panneau IA,
@@ -4070,6 +4140,7 @@ try {
         'Texte': '#6D4415',
         'Fonctions': '#5F2BD4',
         'Listes': '#88009B',
+        'Graphique': '#8E1B3A',   // bordeaux, variante A choisie par l'utilisateur (nov. 2026)
     };
     // Texte des blocs : blanc par defaut ; fonce sur les couleurs claires, ou le blanc contraste a moins de 3:1 (seuil
     // WCAG, luminance relative) : Boucles, Temps, Capteurs, Servos, Logique, Maths. Regle CSS par couleur : « un bloc dont le fond a cette
@@ -4099,9 +4170,9 @@ try {
     // Ordre voulu par l'utilisateur (la table sert aussi d'ordre « par defaut » du panneau administrateur, qui part de
     // TOOLBOX_ORIGINAL). Les categories qui n'y figurent pas restent
     // a la suite, dans leur ordre d'origine. « Communication » est renommee « Radio ». « Graphique » n'existe pas encore.
-    // IA en dernier, apres Listes (demande de l'utilisateur, nov. 2026).
+    // Graphique puis IA en dernier, apres Listes (demandes de l'utilisateur, nov. 2026).
     const ORDRE_CATEGORIES = ['Boucles', 'Temps', 'Matrice LED', 'Entrées/Sorties', 'Capteurs', 'Actionneurs (Audio)', 'Servos', 'Cartes d\'extension', 'Radio', 'Grove',
-                              'Logique', 'Variables', 'Maths', 'Texte', 'Fonctions', 'Listes', 'IA'];
+                              'Logique', 'Variables', 'Maths', 'Texte', 'Fonctions', 'Listes', 'Graphique', 'IA'];
     const CATEGORIE_LISTES = {
         "kind": "category", "name": "Listes", "colour": "260",
         "contents": [
@@ -4454,6 +4525,20 @@ try {
               { "kind": "block", "type": "radio_canal", "inputs": { "CANAL": { "shadow": { "type": "math_number", "fields": { "NUM": "7" } } } } }
             ]
             }
+            ]
+          },
+          {
+            // Blocs de l'editeur R4 (nov. 2026) : courbes de l'onglet Graphique de la console
+            "kind": "category", "name": "Graphique", "colour": "330",
+            "contents": [
+              { "kind": "label", "text": "Tracer", "web-class": "groupe-flyout" },
+              { "kind": "block", "type": "graph_tracer", "inputs": { "VAL": { "shadow": { "type": "math_number", "fields": { "NUM": "0" } } } } },
+              { "kind": "block", "type": "graph_point", "inputs": { "X": { "shadow": { "type": "math_number", "fields": { "NUM": "0" } } }, "Y": { "shadow": { "type": "math_number", "fields": { "NUM": "0" } } } } },
+              { "kind": "block", "type": "graph_axes" },
+              { "kind": "label", "text": "Gérer le graphique", "web-class": "groupe-flyout" },
+              { "kind": "block", "type": "graph_effacer" },
+              { "kind": "block", "type": "graph_arreter" },
+              { "kind": "block", "type": "graph_reprendre" }
             ]
           },
           {
@@ -6113,7 +6198,10 @@ try {
             if (i > 0) ligneConsoleCourante[source] = null;            // saut de ligne : on ferme la ligne en cours
             if (morceau === '' && i === morceaux.length - 1) return;   // rien apres le dernier saut de ligne
             if (!ligneConsoleCourante[source]) ligneConsoleCourante[source] = nouvelleLigneConsole(source);
-            ligneConsoleCourante[source].textContent += morceau;
+            const ligne = ligneConsoleCourante[source];
+            ligne.textContent += morceau;
+            // Commandes des blocs Graphique (#G|...) : lues par le graphique, masquees dans la console (CSS).
+            ligne.classList.toggle('console-commande', ligne.textContent.startsWith('#G|'));
         });
         // On ne force le defilement que si l'utilisateur etait deja en bas.
         if (enBas) consoleSortie.scrollTop = consoleSortie.scrollHeight;
@@ -6212,10 +6300,25 @@ try {
     /** Lignes actuellement affichees dans la console, avec heure, source et valeur numerique eventuelle. */
     function lignesPourExport() {
         if (!consoleSortie) return [];
-        return Array.from(consoleSortie.querySelectorAll('.console-ligne')).map((l, i) => {
-            const texte = l.textContent;
-            const nombre = texte.trim() !== '' && Number.isFinite(Number(texte.trim().replace(',', '.')))
-                ? Number(texte.trim().replace(',', '.')) : null;
+        // Commandes des blocs Graphique : seuls les points sont exportes, en clair (« Courbe 1 : X = 2 ; Y = 21 »).
+        // Points envoyes entre « arreter la mesure » et « reprendre la mesure » : ignores, comme dans le graphique.
+        const arrete = {};
+        const lignes = Array.from(consoleSortie.querySelectorAll('.console-ligne')).filter(l => {
+            if (!l.classList.contains('console-commande')) return true;
+            const code = l.textContent.split('|')[1];
+            if (code === 'S') arrete[l.dataset.src] = true;
+            if (code === 'R') arrete[l.dataset.src] = false;
+            return code === 'P' && !arrete[l.dataset.src];
+        });
+        return lignes.map((l, i) => {
+            let texte = l.textContent, nombre = null;
+            if (l.classList.contains('console-commande')) {
+                const [, , courbe, x, y] = texte.split('|');
+                texte = courbe + ' : X = ' + x + ' ; Y = ' + y;
+                nombre = Number.isFinite(Number(y)) ? Number(y) : null;
+            } else if (texte.trim() !== '' && Number.isFinite(Number(texte.trim().replace(',', '.')))) {
+                nombre = Number(texte.trim().replace(',', '.'));
+            }
             return { n: i + 1, heure: heureLisible(Number(l.dataset.t) || Date.now()),
                      source: NOMS_SOURCES[l.dataset.src] || l.dataset.src, texte, nombre };
         });
@@ -6309,12 +6412,47 @@ try {
         return paires;
     }
 
+    /** Blocs Graphique : series tirees des commandes #G| (voir graph_tracer), ou null s'il n'y en a aucune. Les
+        points gardent leur X (pas de remise a zero) ; « effacer » oublie tout ce qui precede ; entre « arreter » et
+        « reprendre », les points sont ignores, et le premier point apres la reprise n'est pas relie au precedent. */
+    function collecterCommandesGraphique() {
+        const commandes = Array.from(consoleSortie.querySelectorAll('.console-ligne.console-commande'));
+        if (!commandes.length) return null;
+        const sources = new Set(commandes.map(l => l.dataset.src));
+        const parCle = new Map(), arrete = {}, saut = {};
+        let axes = null;
+        commandes.forEach(l => {
+            const champs = l.textContent.split('|'), src = l.dataset.src;
+            switch (champs[1]) {
+                case 'E': parCle.clear(); break;   // les noms des axes restent
+                case 'A': axes = { x: champs[2] || '', y: champs[3] || '' }; break;
+                case 'S': arrete[src] = true; break;
+                case 'R': if (arrete[src]) { arrete[src] = false; saut[src] = true; } break;
+                case 'P': {
+                    const x = Number(champs[3]), y = Number(champs[4]);
+                    if (arrete[src] || !Number.isFinite(x) || !Number.isFinite(y)) break;
+                    const nom = champs[2] || 'Courbe 1';
+                    const cle = sources.size > 1 ? (NOMS_SOURCES[src] || src) + ' · ' + nom : nom;
+                    if (!parCle.has(cle)) parCle.set(cle, { nom: cle, points: [] });
+                    parCle.get(cle).points.push({ t: x, v: y, saut: !!saut[src] });
+                    break;
+                }
+            }
+            if (champs[1] === 'P' && !arrete[src]) saut[src] = false;
+        });
+        const series = Array.from(parCle.values()).map(s => {
+            if (s.points.length > MAX_POINTS_COURBE) s.points = s.points.slice(-MAX_POINTS_COURBE);
+            return s;
+        });
+        return { series, axes };
+    }
+
     /** Series { nom, points: [{t, v}] } tirees des lignes de la console, t en secondes depuis la premiere mesure. */
     function collecterSeries() {
         if (!consoleSortie) return [];
         const mesures = [];
         consoleSortie.querySelectorAll('.console-ligne').forEach(l => {
-            if (l.dataset.src === 'info') return;
+            if (l.dataset.src === 'info' || l.classList.contains('console-commande')) return;
             const t = Number(l.dataset.t) || 0;
             extraireMesures(l.textContent).forEach(([nom, v]) => {
                 if (Number.isFinite(v)) mesures.push({ t, v, nom, source: l.dataset.src });
@@ -6381,16 +6519,25 @@ try {
         ctx.font = '11px sans-serif';
         ctx.textBaseline = 'middle';
 
-        const series = collecterSeries();
+        // Blocs Graphique presents : leurs courbes seules (X choisi par le programme, noms des axes) ; sinon les
+        // nombres ecrits avec « afficher dans la console », en fonction du temps.
+        const commandes = collecterCommandesGraphique();
+        const series = commandes ? commandes.series : collecterSeries();
+        const axes = commandes && commandes.axes;
         if (!series.length) {
             ctx.fillStyle = texte; ctx.globalAlpha = 0.7; ctx.textAlign = 'center';
-            ctx.fillText('Aucune valeur numérique à tracer.', largeur / 2, hauteur / 2 - 8);
-            ctx.fillText('Écrivez des nombres avec « afficher dans la console » (ex. 21.5, ou temp:21 lum:40).', largeur / 2, hauteur / 2 + 10);
+            if (commandes) {
+                ctx.fillText(window.tr('Aucun point à tracer pour l\'instant.'), largeur / 2, hauteur / 2);
+            } else {
+                ctx.fillText(window.tr('Aucune valeur numérique à tracer.'), largeur / 2, hauteur / 2 - 8);
+                ctx.fillText(window.tr('Utilisez les blocs de la catégorie Graphique, ou écrivez des nombres avec « afficher dans la console » (ex. 21.5, ou temp:21 lum:40).'), largeur / 2, hauteur / 2 + 10);
+            }
             ctx.globalAlpha = 1;
             return;
         }
 
-        const haut = 22, bas = 20, gauche = 46, droite = 12;
+        const haut = 22, bas = axes && axes.x ? 36 : 20, gauche = axes && axes.y ? 62 : 46, droite = 12;
+        const suffixeX = commandes ? '' : ' s';
         const zw = largeur - gauche - droite, zh = hauteur - haut - bas;
         if (zw < 30 || zh < 20) return;
         let tmax = Math.max(...series.map(s => s.points[s.points.length - 1].t));
@@ -6416,10 +6563,16 @@ try {
         gx.valeurs.forEach(t => {
             const x = Math.round(X(t)) + 0.5;
             ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.moveTo(x, haut); ctx.lineTo(x, haut + zh); ctx.stroke();
-            ctx.globalAlpha = 1; ctx.fillText(formaterGraduation(t, gx.pas) + ' s', x, hauteur - bas / 2 + 1);
+            ctx.globalAlpha = 1; ctx.fillText(formaterGraduation(t, gx.pas) + suffixeX, x, haut + zh + 10);
         });
         ctx.globalAlpha = 1; ctx.strokeStyle = texte;
         ctx.strokeRect(gauche + 0.5, haut + 0.5, zw, zh);
+        // Noms des axes (bloc « nommer les axes ») : X sous les graduations, Y le long du bord gauche
+        if (axes && axes.x) { ctx.textAlign = 'center'; ctx.fillText(axes.x, gauche + zw / 2, hauteur - 8); }
+        if (axes && axes.y) {
+            ctx.save(); ctx.translate(10, haut + zh / 2); ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center'; ctx.fillText(axes.y, 0, 0); ctx.restore();
+        }
 
         // Courbes
         ctx.save();
@@ -6428,7 +6581,8 @@ try {
             ctx.strokeStyle = ctx.fillStyle = COULEURS_COURBES[i % COULEURS_COURBES.length];
             ctx.lineWidth = 1.8; ctx.lineJoin = 'round';
             ctx.beginPath();
-            s.points.forEach((p, k) => { if (k === 0) ctx.moveTo(X(p.t), Y(p.v)); else ctx.lineTo(X(p.t), Y(p.v)); });
+            // saut : premier point apres « reprendre la mesure », non relie au precedent
+            s.points.forEach((p, k) => { if (k === 0 || p.saut) ctx.moveTo(X(p.t), Y(p.v)); else ctx.lineTo(X(p.t), Y(p.v)); });
             ctx.stroke();
             if (s.points.length <= 80) s.points.forEach(p => { ctx.beginPath(); ctx.arc(X(p.t), Y(p.v), 2.4, 0, Math.PI * 2); ctx.fill(); });
         });
@@ -6471,7 +6625,7 @@ try {
     if (ongletTexteConsole) ongletTexteConsole.addEventListener('click', () => afficherVueConsole('texte'));
     if (ongletGraphiqueConsole) ongletGraphiqueConsole.addEventListener('click', () => afficherVueConsole('graphique'));
     if (zoneGraphique && 'ResizeObserver' in window) new ResizeObserver(() => planifierGraphique()).observe(zoneGraphique);
-    window.graphiqueConsoleTest = { extraireMesures, collecterSeries, dessinerGraphique, afficherVueConsole };
+    window.graphiqueConsoleTest = { extraireMesures, collecterSeries, collecterCommandesGraphique, dessinerGraphique, afficherVueConsole };
 
     // ---- Afficher / masquer la barre (bouton >_ de la barre d'outils) ----
     // Masquee au depart. Elle s'ouvre toute seule a la premiere sortie (print

@@ -638,6 +638,21 @@ courbes sont separees (prefixe "Simulateur ·" / "Carte ·"). 600 derniers point
 par courbe, echelle verticale automatique, couleurs du theme en cours (sombre,
 clair, contraste eleve), mise a jour automatique (regroupee par pas de 100 ms).
 Fonctions : extraireMesures, collecterSeries, dessinerGraphique (un.js).
+Blocs de la categorie Graphique (nov. 2026, repris de l'editeur R4 : graph_tracer, graph_point, graph_axes,
+graph_effacer, graph_arreter, graph_reprendre) : chaque bloc genere un print() d'une ligne de commande, la meme
+dans le simulateur et sur la carte (port USB) :
+  #G|P|<courbe>|<x>|<y>   point ; "tracer" prend x = running_time() / 1000 (secondes depuis le demarrage)
+  #G|A|<nom X>|<nom Y>    noms des axes (ecrits sous l'axe X et le long de l'axe Y)
+  #G|E                    effacer le graphique (les noms des axes restent)
+  #G|S  /  #G|R           arreter / reprendre la mesure (points ignores entre les deux ; pas de trait
+                          entre le dernier point avant l'arret et le premier apres la reprise)
+Ces lignes sont MASQUEES dans la console (classe console-commande, index.html). Des qu'il y en a une, l'onglet
+Graphique ne trace QUE les courbes de ces blocs (axe X choisi par le programme, sans « s ») ; sinon il trace les
+nombres de "afficher dans la console" comme avant. Le separateur "|" est remplace par "/" dans les noms saisis.
+Export Excel : seuls les points sont exportes (« Courbe 1 : X = 2 ; Y = 21 », Y dans la colonne Valeur
+numerique), sans ceux envoyes pendant un arret. Fonction : collecterCommandesGraphique (un.js). Verifie dans le
+navigateur en envoyant les lignes a la console (lecture, masquage, arret/reprise, export) ; le dessin du
+graphique et l'envoi sur une vraie carte micro:bit ne sont PAS verifies a l'ecran.
 1) SIMULATEUR : le bloc "afficher dans la console" (categorie
 Affichage, genere print(x)) ecrit dans la console, dans l'ordre du programme
 par rapport aux affichages et aux pauses (file d'actions du simulateur, voir
@@ -1003,7 +1018,8 @@ regle CSS dans index.html) ET tous les blocs de la categorie la suivent
 (Communication, Grove) heritent de leur parent.
 Palette volontairement reduite a 7 couleurs TRANCHEES (orange, bleu, or, violet,
 turquoise, rouge, magenta), sans vert, choisies pour rester distinguables en cas de
-daltonisme. Une couleur sert a plusieurs categories mais jamais a deux categories
+daltonisme. Graphique (nov. 2026) : bordeaux #8E1B3A (variante A choisie par l'utilisateur, distincte de
+Variables #A10D6E). Une couleur sert a plusieurs categories mais jamais a deux categories
 voisines de la colonne ; les quatre robots (Maqueen Plus/Lite, Kitrobot, LiDAR)
 partagent le violet. Texte blanc des blocs lisible (contraste >= 3,9). Pour changer
 une couleur : modifier la ligne de la table (constantes C_ORANGE, C_BLEU...). Les
@@ -1119,7 +1135,9 @@ Boucles, Temps, Affichage, Entrees/Sorties, Capteurs, Actionneurs (Audio), Servo
 - "Listes" (nouvelle) : blocs de listes standards de Blockly - creer une liste (3 elements, vide), repeter, longueur, est
   vide, position de, obtenir / definir un element, sous-liste. Le code MicroPython genere (listes, len, tranches, une
   fonction first_index) a ete execute dans le simulateur (resultats justes) ; PAS verifie sur une vraie carte.
-- "Graphique" (demandee) n'existe pas : non creee, contenu a definir.
+- "Graphique" (nov. 2026, entre Listes et IA, bordeaux #8E1B3A) : les six blocs de l'editeur R4 - tracer, ajouter le
+  point X Y, nommer les axes, effacer le graphique, arreter / reprendre la mesure. Fonctionnement : voir la console (§3,
+  « Blocs de la categorie Graphique »).
 - Couleurs (§21) : Maths passe au rouge, Listes au turquoise, pour que deux categories voisines restent differentes.
 Sous-categories (Radio, Grove) : leur puce et leur texte sont decales de 14 px vers la droite par rapport aux
 categories de premier niveau (regle .blocklyToolboxCategory .blocklyToolboxCategory, index.html).

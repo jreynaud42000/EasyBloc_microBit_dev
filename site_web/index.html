@@ -673,6 +673,8 @@
     .console-ligne { display: block; min-height: 1.45em; }
     .console-ligne[data-src="carte"] { color: #7ee787; }
     .console-ligne[data-src="info"] { color: #b8b8b8; font-style: italic; }
+    /* Commandes des blocs Graphique (#G|...) : lues par l'onglet Graphique, pas affichees (un.js) */
+    .console-ligne.console-commande { display: none; }
     #console-saisie { display: flex; gap: 6px; }
     #console-entree { flex: 1 1 auto; min-width: 0; padding: 5px 8px; font-size: 12px; border-radius: 4px;
         background: var(--fond-saisie); color: var(--texte-saisie); border: 1px solid var(--bordure-chrome); }
