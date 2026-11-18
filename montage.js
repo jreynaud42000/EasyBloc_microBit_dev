@@ -841,6 +841,23 @@ function dessinFil(f, fin, o) {
     return s;
 }
 
+/** Fiche Grove enfoncee dans la prise d'un module dessine (variante A choisie par l'utilisateur, nov. 2026) : boitier
+    blanc a l'ouverture de la prise, qui en depasse de FICHE_DEPASSE ; les fils arrivent a son dos. pts : bord de la
+    prise au droit de chaque contact (dans l'ordre des contacts) ; d : sens d'arrivee du cable (vers le module). */
+const FICHE_DEPASSE = 4.2 * K_MODULE, FICHE_ENFONCE = 1.6 * K_MODULE, FICHE_MARGE = 1.5 * K_MODULE;
+function dessinFiche(pts, d) {
+    const a0 = pts[0], a1 = pts[pts.length - 1], l = Math.hypot(a1.x - a0.x, a1.y - a0.y) || 1;
+    const u = [(a1.x - a0.x) / l, (a1.y - a0.y) / l];
+    const coin = (p, le, pr) => `${(p.x + u[0] * le + d[0] * pr).toFixed(1)},${(p.y + u[1] * le + d[1] * pr).toFixed(1)}`;
+    const corps = [coin(a0, -FICHE_MARGE, FICHE_ENFONCE), coin(a1, FICHE_MARGE, FICHE_ENFONCE),
+                   coin(a1, FICHE_MARGE, -FICHE_DEPASSE), coin(a0, -FICHE_MARGE, -FICHE_DEPASSE)].join(' ');
+    // Nervure du verrou, au milieu du dos de la fiche, et trait au ras de la prise
+    const loquet = [coin(a0, l * 0.3, -FICHE_DEPASSE * 0.55), coin(a1, -l * 0.3, -FICHE_DEPASSE * 0.55)];
+    return `<g class="montage-fiche"><polygon points="${corps}" fill="#f1efe8" stroke="#a9a597" stroke-width="1" stroke-linejoin="round"/>` +
+           `<polyline points="${coin(a0, -FICHE_MARGE, 0)} ${coin(a1, FICHE_MARGE, 0)}" fill="none" stroke="#c9c4b6" stroke-width="1"/>` +
+           `<polyline points="${loquet.join(' ')}" fill="none" stroke="#d6d1c3" stroke-width="2" stroke-linecap="round"/></g>`;
+}
+
 function dessinerScene(etat) {
     if (etat.carte === 'aucune') return { bas: '', hauteur: CARTE.y + CARTE.h + 20 };   // micro:bit seule
     const basCarte = etat.carte === 'dfr' ? DFR_BAS + 18 : etat.carte === 'motorbit' ? MB_BAS : etat.carte === 'bitmaker' ? BM_BAS : GROVE_PCB.y + GROVE_PCB.l;
@@ -862,7 +879,7 @@ function dessinerScene(etat) {
     if (surCarte) hauteur = Math.max(hauteur, basCarte + 50);
     if (surCarte) bas += texte(LARGEUR / 2, basCarte + 30, echap(surCarte.nom + ' · ' + surCarte.etiquette +
                                (surCarte.note ? ' · ' + surCarte.note : '')), 'class="montage-note" text-anchor="middle"');
-    let filsDessus = '', points = '';   // points des broches du hub : par-dessus les fils
+    let filsDessus = '', points = '', fiches = '';   // points des broches du hub et fiches Grove : par-dessus les fils
     for (const m of etat.modules) {
         if (m.x === undefined) continue;
         const fin = arrivee(m), n = m.fils.length;
@@ -881,6 +898,7 @@ function dessinerScene(etat) {
         // Module dessine (modele R4) : chaque fil arrive sur son contact de la prise (SIG, NC, VCC, GND), d'apres la serigraphie.
         if (contacts && contacts.length === n) {
             const conn = geo.def.connecteur, vertical = conn.sens === 'haut' || conn.sens === 'bas';
+            const bordsFiche = [];   // bord de la prise au droit de chaque contact, pour dessiner la fiche
             m.fils.forEach((f, iFil) => {
                 // Contact choisi par la couleur du fil (jaune SIG1, blanc SIG2, rouge VCC, noir GND) : l'ordre des fils
                 // depend de la carte (inverse sur la BitMaker, ou le noir arrivait sur SCL ; nov. 2026).
@@ -959,9 +977,14 @@ function dessinerScene(etat) {
                 const yPassage = yArrivee;
                 passage.push([xc, yPassage], [xc, p.y], [xc + 14, p.y]);
                 const contour = geo.def.filsDessus && Object.assign({}, f, { passage });
-                const fil = dessinFil(m.fixe ? routeRuban(f, iFil, p, basCarte) : contour || f, { x: p.x, y: p.y, d: fin.d }, 0);
+                // Fiche Grove (sauf ruban fixe sur la carte) : le fil s'arrete au dos de la fiche, en dehors de la prise.
+                const avecFiche = !m.fixe;
+                if (avecFiche) bordsFiche[i] = p;
+                const bout = avecFiche ? { x: p.x - fin.d[0] * FICHE_DEPASSE, y: p.y - fin.d[1] * FICHE_DEPASSE } : p;
+                const fil = dessinFil(m.fixe ? routeRuban(f, iFil, p, basCarte) : contour || f, { x: bout.x, y: bout.y, d: fin.d }, 0);
                 if (geo.def.filsDessus || depuisHub) filsDessus += fil; else bas += fil;
             });
+            if (bordsFiche.filter(Boolean).length === n) fiches += dessinFiche(bordsFiche, fin.d);
             continue;
         }
         m.fils.forEach((f, i) => { const fil = dessinFil(f, fin, (i - (n - 1) / 2) * 6); if (depuisHub) filsDessus += fil; else bas += fil; });
@@ -1003,7 +1026,7 @@ function dessinerScene(etat) {
         if (note) bas += texte(cx, yLib + 82, echap(note), `class="montage-note${m.alerte ? ' alerte' : ''}${m.conflit ? ' conflit' : ''}" text-anchor="middle"`);
         bas += '</g>';
     }
-    bas += filsDessus + points;
+    bas += filsDessus + fiches + points;
     return { bas, hauteur };
 }
 
