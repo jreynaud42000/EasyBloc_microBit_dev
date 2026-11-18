@@ -4170,8 +4170,9 @@ try {
     // Ordre voulu par l'utilisateur (la table sert aussi d'ordre « par defaut » du panneau administrateur, qui part de
     // TOOLBOX_ORIGINAL). Les categories qui n'y figurent pas restent
     // a la suite, dans leur ordre d'origine. « Communication » est renommee « Radio ». « Graphique » n'existe pas encore.
-    // Graphique puis IA en dernier, apres Listes ; Logique juste apres Boucles (demandes de l'utilisateur, nov. 2026).
-    const ORDRE_CATEGORIES = ['Boucles', 'Logique', 'Temps', 'Matrice LED', 'Entrées/Sorties', 'Capteurs', 'Actionneurs (Audio)', 'Servos', 'Cartes d\'extension', 'Radio', 'Grove',
+    // Graphique puis IA en dernier, apres Listes ; Logique juste apres Boucles ; Radio entre Actionneurs (Audio) et
+    // Servos (demandes de l'utilisateur, nov. 2026).
+    const ORDRE_CATEGORIES = ['Boucles', 'Logique', 'Temps', 'Matrice LED', 'Entrées/Sorties', 'Capteurs', 'Actionneurs (Audio)', 'Radio', 'Servos', 'Cartes d\'extension', 'Grove',
                               'Variables', 'Maths', 'Texte', 'Fonctions', 'Listes', 'Graphique', 'IA'];
     const CATEGORIE_LISTES = {
         "kind": "category", "name": "Listes", "colour": "260",
