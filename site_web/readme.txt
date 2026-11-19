@@ -1108,9 +1108,9 @@ fonctions de ce logiciel sont conserves. Ordre, de gauche a droite :
  Code | IA | selecteur de carte [grise] | Televerser | Lancer la simulation /
  Arreter | version | Aide (Visite guidee, IA, Mon premier programme [grise], clic droit, Console), tout a droite.
 Correspondances (modele -> ce logiciel) : Le "Moniteur serie" du modele est FUSIONNE dans "Console" (la console est le moniteur) : le bouton Console
-affiche / masque le panneau et porte un VOYANT de connexion de la carte (anneau vide = non connectee, disque
-vert plein = connectee ; la forme change en plus de la couleur) ; la connexion se fait avec "Connecter" dans
-l'en-tete de la console (#btn-console-carte, code existant ; le voyant suit sa classe .connecte) ; Televerser = "Envoyer sur la carte" (#btn-envoyer) ; Lancer = #run-sim, Arreter = #btn-reset ; Theme / Contraste =
+affiche / masque le panneau (depuis nov. 2026 : Capture, Console, Simulation et Code en icones seules, panneau
+ouvert = pastille claire, plus de voyant de connexion sur le bouton Console) ; la connexion se fait avec "Connecter" dans
+l'en-tete de la console (#btn-console-carte, code existant, vert quand la carte est connectee) ; Televerser = "Envoyer sur la carte" (#btn-envoyer) ; Lancer = #run-sim, Arreter = #btn-reset ; Theme / Contraste =
 boutons d'origine #btn-theme / #btn-contraste, caches dans le menu et pilotes par les nouvelles entrees ; Telecharger
 .ino = .hex et .py. Absents de ce logiciel, donc GRISES : Telecharger .xml, Mon premier programme.
 Selecteur de carte ACTIF : le menu liste les micro:bit deja autorisees (Web Serial, navigator.serial.getPorts, filtre
