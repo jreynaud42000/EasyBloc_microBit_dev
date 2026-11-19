@@ -6523,6 +6523,40 @@ try {
         });
     }
 
+    /** Classeur Excel d'une feuille : titres en premiere ligne, puis les lignes (nombres ou textes). */
+    function creerXlsxTableau(nomFeuille, titres, lignes, largeurs) {
+        const texteCell = t => '<c t="inlineStr"><is><t xml:space="preserve">' + echapperXml(t) + '</t></is></c>';
+        const cellule = v => v === null || v === undefined || v === '' ? '<c/>' :
+            (typeof v === 'number' && Number.isFinite(v) ? '<c><v>' + v + '</v></c>' : texteCell(String(v)));
+        const xml = ['<row r="1">' + titres.map(texteCell).join('') + '</row>'].concat(
+            lignes.map((l, i) => '<row r="' + (i + 2) + '">' + l.map(cellule).join('') + '</row>'));
+        const enTete = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+        const ns = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
+        const cols = (largeurs || []).map((w, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>').join('');
+        return creerZip([
+            { nom: '[Content_Types].xml', contenu: enTete +
+              '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+              '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+              '<Default Extension="xml" ContentType="application/xml"/>' +
+              '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+              '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+              '</Types>' },
+            { nom: '_rels/.rels', contenu: enTete +
+              '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+              '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+              '</Relationships>' },
+            { nom: 'xl/workbook.xml', contenu: enTete + '<workbook ' + ns +
+              ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+              '<sheets><sheet name="' + echapperXml(nomFeuille) + '" sheetId="1" r:id="rId1"/></sheets></workbook>' },
+            { nom: 'xl/_rels/workbook.xml.rels', contenu: enTete +
+              '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+              '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+              '</Relationships>' },
+            { nom: 'xl/worksheets/sheet1.xml', contenu: enTete + '<worksheet ' + ns + '>' + (cols ? '<cols>' + cols + '</cols>' : '') +
+              '<sheetData>' + xml.join('') + '</sheetData></worksheet>' },
+        ]);
+    }
+
     function creerXlsxConsole(lignes) {
         const texteCell = t => '<c t="inlineStr"><is><t xml:space="preserve">' + echapperXml(t) + '</t></is></c>';
         const lignesXml = ['<row r="1">' + ['N°', 'Heure', 'Source', 'Texte', 'Valeur numérique'].map(e => texteCell(window.tr(e))).join('') + '</row>'];
@@ -6614,6 +6648,9 @@ try {
     /** Blocs Graphique : series tirees des commandes #G| (voir graph_tracer), ou null s'il n'y en a aucune. Les
         points gardent leur X (pas de remise a zero) ; « effacer » oublie tout ce qui precede ; entre « arreter » et
         « reprendre », les points sont ignores, et le premier point apres la reprise n'est pas relie au precedent. */
+    // « Effacer » de l'onglet Graphique : les lignes recues avant cet instant ne sont plus tracees (la console les garde).
+    let debutGraphique = 0;
+    const avantEffacement = l => (Number(l.dataset.t) || 0) < debutGraphique;
     function collecterCommandesGraphique() {
         const commandes = Array.from(consoleSortie.querySelectorAll('.console-ligne.console-commande'));
         if (!commandes.length) return null;
@@ -6622,6 +6659,7 @@ try {
         let axes = null;
         commandes.forEach(l => {
             const champs = l.textContent.split('|'), src = l.dataset.src;
+            if (avantEffacement(l) && champs[1] !== 'A') return;
             switch (champs[1]) {
                 case 'E': parCle.clear(); break;   // les noms des axes restent
                 case 'A': axes = { x: champs[2] || '', y: champs[3] || '' }; break;
@@ -6651,7 +6689,7 @@ try {
         if (!consoleSortie) return [];
         const mesures = [];
         consoleSortie.querySelectorAll('.console-ligne').forEach(l => {
-            if (l.dataset.src === 'info' || l.classList.contains('console-commande')) return;
+            if (l.dataset.src === 'info' || l.classList.contains('console-commande') || avantEffacement(l)) return;
             const t = Number(l.dataset.t) || 0;
             extraireMesures(l.textContent).forEach(([nom, v]) => {
                 if (Number.isFinite(v)) mesures.push({ t, v, nom, source: l.dataset.src });
@@ -6699,6 +6737,25 @@ try {
         minuterieGraphique = setTimeout(() => { minuterieGraphique = null; dessinerGraphique(); }, 100);
     }
 
+    const choixFenetre = document.getElementById('graph-fenetre');
+    const graphVide = document.getElementById('graph-vide');
+    const graphEtat = document.getElementById('graph-etat');
+    const boutonsExportGraphique = ['btn-graph-image', 'btn-graph-csv', 'btn-graph-excel'].map(id => document.getElementById(id));
+    /** Ce que montre le graphique : series des blocs Graphique (sinon nombres de la console), limitees a la fenetre choisie
+        dans « Afficher » (les N dernieres secondes de la mesure). Sert au dessin et aux exports. */
+    function donneesGraphique() {
+        const commandes = collecterCommandesGraphique();
+        let series = commandes ? commandes.series : collecterSeries();
+        const fenetre = Number(choixFenetre ? choixFenetre.value : 0) || 0;
+        if (fenetre > 0 && series.length) {
+            const fin = Math.max(...series.map(s => s.points[s.points.length - 1].t));
+            series = series.map(s => ({ nom: s.nom, points: s.points.filter(p => p.t >= fin - fenetre) })).filter(s => s.points.length);
+        }
+        return { commandes: !!commandes, series, axes: commandes && commandes.axes };
+    }
+    function etatGraphique(texte) { if (graphEtat) graphEtat.textContent = texte || ''; }
+    if (choixFenetre) choixFenetre.addEventListener('change', () => dessinerGraphique());
+
     function dessinerGraphique() {
         if (!graphiqueVisible() || !canevasConsole) return;
         const largeur = zoneGraphique.clientWidth, hauteur = zoneGraphique.clientHeight;
@@ -6720,20 +6777,16 @@ try {
 
         // Blocs Graphique presents : leurs courbes seules (X choisi par le programme, noms des axes) ; sinon les
         // nombres ecrits avec « afficher dans la console », en fonction du temps.
-        const commandes = collecterCommandesGraphique();
-        const series = commandes ? commandes.series : collecterSeries();
-        const axes = commandes && commandes.axes;
-        if (!series.length) {
-            ctx.fillStyle = texte; ctx.globalAlpha = 0.7; ctx.textAlign = 'center';
-            if (commandes) {
-                ctx.fillText(window.tr('Aucun point à tracer pour l\'instant.'), largeur / 2, hauteur / 2);
-            } else {
-                ctx.fillText(window.tr('Aucune valeur numérique à tracer.'), largeur / 2, hauteur / 2 - 8);
-                ctx.fillText(window.tr('Utilisez les blocs de la catégorie Graphique, ou écrivez des nombres avec « afficher dans la console » (ex. 21.5, ou temp:21 lum:40).'), largeur / 2, hauteur / 2 + 10);
-            }
-            ctx.globalAlpha = 1;
-            return;
-        }
+        const donnees = donneesGraphique();
+        const commandes = donnees.commandes, series = donnees.series, axes = donnees.axes;
+        // Aucune mesure : encadre d'aide (HTML, comme l'editeur Arduino R4) et exports grises.
+        if (graphVide) graphVide.classList.toggle('replie', series.length > 0);
+        boutonsExportGraphique.forEach(b => { if (b) b.disabled = !series.length; });
+        if (series.length) {
+            const n = series.reduce((total, s) => total + s.points.length, 0);
+            etatGraphique(window.tr(n > 1 ? '{n} points' : '{n} point', { n }));
+        } else etatGraphique('');
+        if (!series.length) return;
 
         const haut = 22, bas = axes && axes.x ? 36 : 20, gauche = axes && axes.y ? 62 : 46, droite = 12;
         const suffixeX = commandes ? '' : ' s';
@@ -6810,6 +6863,12 @@ try {
             consoleSortie.classList.toggle('replie', graphique);
             zoneGraphique.classList.toggle('replie', !graphique);
         }
+        const barreTexte = document.getElementById('console-barre-texte');
+        const barreGraphique = document.getElementById('console-barre-graphique');
+        if (barreTexte) barreTexte.classList.toggle('replie', graphique);
+        if (barreGraphique) barreGraphique.classList.toggle('replie', !graphique);
+        const saisie = document.getElementById('console-saisie');
+        if (saisie) saisie.classList.toggle('replie', graphique);
         const ongletTexte = document.getElementById('onglet-console-texte');
         const ongletGraphique = document.getElementById('onglet-console-graphique');
         [[ongletTexte, !graphique], [ongletGraphique, graphique]].forEach(([b, actif]) => {
@@ -6824,7 +6883,63 @@ try {
     if (ongletTexteConsole) ongletTexteConsole.addEventListener('click', () => afficherVueConsole('texte'));
     if (ongletGraphiqueConsole) ongletGraphiqueConsole.addEventListener('click', () => afficherVueConsole('graphique'));
     if (zoneGraphique && 'ResizeObserver' in window) new ResizeObserver(() => planifierGraphique()).observe(zoneGraphique);
-    window.graphiqueConsoleTest = { extraireMesures, collecterSeries, collecterCommandesGraphique, dessinerGraphique, afficherVueConsole };
+
+    const btnGraphEffacer = document.getElementById('btn-graph-effacer');
+    if (btnGraphEffacer) btnGraphEffacer.addEventListener('click', () => { debutGraphique = Date.now(); dessinerGraphique(); });
+
+    const horodatage = () => {
+        const p = n => String(n).padStart(2, '0'), d = new Date();
+        return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+    };
+    function telecharger(blob, nom) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = nom;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    /** Mesures affichees en lignes [courbe, X, Y], avec les titres des colonnes. */
+    function tableauGraphique() {
+        const d = donneesGraphique();
+        const titreX = (d.axes && d.axes.x) || (d.commandes ? 'X' : window.tr('Temps (s)'));
+        const titreY = (d.axes && d.axes.y) || window.tr('Valeur');
+        const lignes = [];
+        d.series.forEach(s => s.points.forEach(p => lignes.push([s.nom, Math.round(p.t * 1000) / 1000, p.v])));
+        return { titres: [window.tr('Courbe'), titreX, titreY], lignes };
+    }
+    const btnGraphImage = document.getElementById('btn-graph-image');
+    if (btnGraphImage) btnGraphImage.addEventListener('click', () => {
+        if (!canevasConsole || !canevasConsole.width) return;
+        // Fond du graphique peint sous les courbes : le PNG garde les couleurs du theme en cours.
+        const image = document.createElement('canvas');
+        image.width = canevasConsole.width; image.height = canevasConsole.height;
+        const ctx = image.getContext('2d');
+        ctx.fillStyle = getComputedStyle(zoneGraphique).backgroundColor || '#ffffff';
+        ctx.fillRect(0, 0, image.width, image.height);
+        ctx.drawImage(canevasConsole, 0, 0);
+        image.toBlob(blob => { if (blob) { telecharger(blob, 'graphique-microbit-' + horodatage() + '.png'); etatGraphique(window.tr('Image du graphique enregistrée.')); } }, 'image/png');
+    });
+    const btnGraphCsv = document.getElementById('btn-graph-csv');
+    if (btnGraphCsv) btnGraphCsv.addEventListener('click', () => {
+        const t = tableauGraphique();
+        if (!t.lignes.length) return;
+        // Point-virgule et virgule decimale : le CSV s'ouvre directement dans Excel ou LibreOffice en francais.
+        const cellule = v => typeof v === 'number' ? String(v).replace('.', ',') : '"' + String(v).replace(/"/g, '""') + '"';
+        const csv = [t.titres, ...t.lignes].map(l => l.map(cellule).join(';')).join('\r\n');
+        telecharger(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }), 'graphique-microbit-' + horodatage() + '.csv');
+        etatGraphique(window.tr('{n} mesure(s) exportée(s) en tableau CSV.', { n: t.lignes.length }));
+    });
+    const btnGraphExcel = document.getElementById('btn-graph-excel');
+    if (btnGraphExcel) btnGraphExcel.addEventListener('click', () => {
+        const t = tableauGraphique();
+        if (!t.lignes.length) return;
+        const blob = creerXlsxTableau(window.tr('Mesures'), t.titres, t.lignes, [22, 14, 16]);
+        telecharger(new Blob([blob], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+                    'graphique-microbit-' + horodatage() + '.xlsx');
+        etatGraphique(window.tr('{n} mesure(s) exportée(s) dans Excel.', { n: t.lignes.length }));
+    });
+    window.graphiqueConsoleTest = { extraireMesures, collecterSeries, collecterCommandesGraphique, dessinerGraphique, afficherVueConsole,
+                                    donneesGraphique, tableauGraphique };
 
     // ---- Afficher / masquer la barre (bouton >_ de la barre d'outils) ----
     // Masquee au depart. Elle s'ouvre toute seule a la premiere sortie (print
@@ -7910,7 +8025,7 @@ try {
         "La console affiche les messages écrits par le programme avec le bloc « afficher dans la console » " +
         "(catégorie Matrice LED). Elle se trouve en bas de l'application.\n\n" +
         "AFFICHER OU MASQUER\n" +
-        "• Bouton « Console » de la barre d'outils, ou croix ✕ de la console.\n" +
+        "• Bouton « Console » de la barre d'outils, ou bouton « Réduire » de la console.\n" +
         "• Elle s'ouvre toute seule à la première ligne reçue, sauf si vous l'avez fermée vous-même.\n" +
         "• Changez sa hauteur en glissant son bord haut (le trait orange qui apparaît au survol) : vers le haut " +
         "pour l'agrandir, vers le bas pour la réduire. La hauteur est retenue pour la fois suivante ; un double-clic " +
@@ -7942,13 +8057,13 @@ try {
         "virgule décimale quand la ligne ne contient qu'un nombre (« 21,5 »).\n" +
         "• La légende donne la dernière valeur de chaque courbe. Si le simulateur et la carte envoient " +
         "des valeurs, leurs courbes sont séparées. Les 600 derniers points de chaque courbe sont tracés.\n" +
-        "• Pour tracer une mesure, écrivez-la avec « afficher dans la console » dans une boucle avec une pause.\n\n" +
+        "• La barre du graphique : « Afficher » montre toute la mesure ou seulement la fin (10 s, 30 s, 1 min) ; « Effacer » vide le graphique sans toucher aux lignes de la console ; « Exporter » enregistre l'image (PNG), un tableau CSV ou un fichier Excel des mesures affichées.\n• Pour tracer une mesure, écrivez-la avec « afficher dans la console » dans une boucle avec une pause.\n\n" +
         "EXPORTER VERS EXCEL\n" +
-        "• Le bouton d'export (icône de tableur) enregistre toutes les lignes affichées dans un fichier Excel (.xlsx).\n" +
+        "• Dans l'onglet Console, « Exporter : Excel » enregistre toutes les lignes affichées dans un fichier Excel (.xlsx).\n" +
         "• Colonnes : numéro, heure, source (Simulateur, Carte ou Information), texte, et une colonne « Valeur " +
         "numérique » remplie quand la ligne est un nombre : pratique pour tracer une courbe de mesures.\n\n" +
         "AUTRES BOUTONS\n" +
-        "• La corbeille efface toute la console, y compris les lignes de la carte.";
+        "• « Effacer » (onglet Console) efface toute la console, y compris les lignes de la carte.";
 
     function ouvrirAideConsole() {
         if (!voileAide) return;
