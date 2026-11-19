@@ -823,7 +823,11 @@
     .blocklyToolboxContents > *, .blocklyToolboxCategory { min-width: 0; max-width: 100%; box-sizing: border-box; }
     .blocklyToolboxCategory .blocklyTreeLabel { white-space: normal !important; }
     .blocklyToolboxCategory .blocklyTreeRow { border-left-width: 0 !important; position: relative; height: auto !important;
-        line-height: 1.3; white-space: normal; padding: 10px 12px 10px 37px !important; }
+        line-height: normal; white-space: normal; padding: 10px 12px 10px 37px !important; margin: 0 !important; }
+    /* Comme la version Arduino R4 (nov. 2026) : pas de marge de 3 px entre les rangees (defaut de Blockly), interligne normal,
+       et la fleche invisible des categories sans sous-categorie ne reserve plus 18 px (« Entrees/Sorties » tient sur une ligne). */
+    .blocklyToolboxCategory .blocklyTreeIcon:not(.blocklyTreeIconClosed):not(.blocklyTreeIconOpen) { display: none !important; }
+    .blocklyToolboxCategory > .blocklyTreeRow .blocklyTreeIcon { margin-block: -1px; }   /* fleche de 16 px : meme hauteur de rangee */
     .blocklyToolboxCategory .blocklyTreeRowContentContainer { display: flex; align-items: center; }
     .blocklyToolboxCategory .blocklyTreeLabel { min-width: 0; overflow-wrap: break-word; }
     .blocklyToolboxCategory .blocklyTreeRow::before {
