@@ -26,6 +26,7 @@ exe = EXE(
     exclude_binaries=True,
     name='MicrobitEasybloc_V2.0E',
     version='version_info.txt',
+    icon='icone.ico',   # carte micro:bit sur fond violet (outils/icone/creer_icone.py, variante B, nov. 2026)
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
