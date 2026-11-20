@@ -1645,3 +1645,20 @@ Kitronik seule, sans bloc Motor:bit, reste vissee sur la micro:bit (P0 a P2, pas
 une carte avec des blocs Motor:bit ; dans le premier cas, "Motor:bit V1.6" choisi dans le menu fait eviter les
 broches de ses moteurs et de son buzzer. (Remplace "ou une seule avec la Motor:bit (blocs Motor:bit, ou carte choisie
 dans le menu du montage)" plus haut.)
+
+52. CARTE KITRONIK VISSEE SUR LA MICRO:BIT, DANS LE MONTAGE (nov. 2026, variante A ajustee par l'utilisateur)
+Programme sans carte d'extension qui utilise UNE carte Kitronik sur son brochage d'origine (pas de fils) : le montage
+la dessine vissee sur la micro:bit, comme sur les photos de Kitronik, au lieu de la micro:bit seule. Cinq vis
+argentees sur les anneaux 0, 1, 2, 3V, GND ; les pastilles de la carte se voient par les trous des anneaux (le dessin
+est derriere la micro:bit, les vis devant). Titre : "Carte micro:bit V2 vissee sur la carte STOP:bit" (ou LAMP:bit,
+ACCESS:bit).
+- STOP:bit et LAMP:bit : poteau debout (tete du feu ; crosse vers la gauche et LED du lampadaire), micro:bit tournee
+  d'un quart de tour dans le sens horaire, bord a anneaux le long du poteau, anneau 0 en haut, bouton A en haut.
+  L'ecran tourne avec la carte, comme en vrai. Inscriptions du poteau : RED, YLW, GRN, 3V, GND / LAMP, DETECT, 2,
+  3V, 0V. La micro:bit reste cliquable (boutons, broches) ; la rotation est une classe CSS de sa place
+  (#montage-carte.montage-carte-tournee, position posee par montage.js).
+- ACCESS:bit : micro:bit droite, au-dessus de la carte (pastilles 0 SERVO, 1 BUZZ, 2, 3V, GND sous les anneaux),
+  buzzer, servomoteur bleu et barriere rouge qui pivote sous la micro:bit.
+Feu, lampe et barriere suivent la simulation. Deux cartes ou plus, ou une carte cablee par fils : montage habituel,
+micro:bit droite. Une carte vissee avec des modules Grove (carte d'extension) n'est pas dessinee.
+montage.js : dessinVissee, visVissee, anneauxVissee ; un.js : window.kitronikVissees.

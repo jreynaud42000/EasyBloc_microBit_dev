@@ -1157,6 +1157,9 @@
        ne tombe plus dans la fente du shield. La secousse y passe par translate et rotate, que ce !important ne bloque
        pas (nov. 2026 : la classe .secoue reste posee apres l'animation, elle ne doit donc rien changer d'autre). */
     #montage-carte #microbit-board { transform: none !important; }
+    /* Carte Kitronik vissee (STOP:bit, LAMP:bit) : la micro:bit est tournee d'un quart de tour, bord a anneaux le long
+       du poteau (montage.js : dessinVissee ; position left/top posee par le script). */
+    #montage-carte.montage-carte-tournee { transform: rotate(90deg); transform-origin: 50% 50%; }
     @keyframes secousse-montage {
         0%, 100% { translate: 0 0; rotate: 0deg; }
         20% { translate: -7px 0; rotate: -2deg; }

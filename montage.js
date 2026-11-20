@@ -347,9 +347,12 @@ function lireMontage() {
 
     // Sans bloc d'extension : la micro:bit seule dans la scene (carte « aucune »), comme la simulation du modele.
     const carte = !utile ? 'aucune' : dfr ? 'dfr' : motorbit ? 'motorbit' : bitmaker ? 'bitmaker' : 'grove';
+    // Une carte Kitronik vissee sur la micro:bit (sans carte d'extension ni fils) : dessinee fixee a la carte.
+    const vissees = !utile && window.kitronikVissees ? window.kitronikVissees() : [];
+    const vissee = vissees.length === 1 ? vissees[0] : '';
     const brancher = (pins, servo) => dfr ? branchementDfr(pins, servo) : motorbit ? branchementMotorbit(pins, servo) :
                                       bitmaker ? branchementBitmaker(pins) : branchementGrove(pins);
-    return { utile, imposee, carte, modules: liste, conflits: [...conflits.values()], brancher };
+    return { utile, imposee, carte, modules: liste, conflits: [...conflits.values()], brancher, vissee };
 }
 
 /** Plusieurs modules I2C sur une carte a prises Grove (Grove Shield, BitMaker) : une prise ne prend qu'un cable, on
@@ -964,6 +967,7 @@ function dessinFiche(pts, d) {
 }
 
 function dessinerScene(etat) {
+    if (etat.carte === 'aucune' && etat.vissee) return dessinVissee(etat.vissee);   // carte Kitronik vissee
     if (etat.carte === 'aucune') return { bas: '', hauteur: CARTE.y + CARTE.h + 20 };   // micro:bit seule
     const basCarte = etat.carte === 'dfr' ? DFR_BAS + 18 : etat.carte === 'motorbit' ? MB_BAS : etat.carte === 'bitmaker' ? BM_BAS : GROVE_PCB.y + GROVE_PCB.l;
     let hauteur = disposer(etat.modules, basCarte);
@@ -1303,7 +1307,8 @@ function redessiner() {
     dessinerSvg(etat);
     titre.textContent = { dfr: 'Carte moteurs DFRobot DFR0548', motorbit: 'Carte moteurs ELECFREAKS Motor:bit V1.6',
                           bitmaker: 'Carte BitMaker V2 (Seeed)', grove: 'Carte Grove Shield for micro:bit v2.0 (Seeed)',
-                          aucune: 'Carte micro:bit V2' }[etat.carte];
+                          aucune: 'Carte micro:bit V2' }[etat.carte] +
+                         (etat.vissee ? ' vissée sur la carte ' + { stopbit: 'STOP:bit', lampbit: 'LAMP:bit', accessbit: 'ACCESS:bit' }[etat.vissee] : '');
     finirRedessin(etat);
 }
 
@@ -1330,7 +1335,14 @@ function dessinerSvg(etat) {
     for (const svg of [svgBas, svgHaut]) svg.setAttribute('viewBox', `0 0 ${LARGEUR} ${hauteur}`);
     svgBas.innerHTML = bas;
     const fente = { dfr: FENTE, motorbit: FENTE_MOTORBIT, bitmaker: FENTE_BITMAKER, grove: FENTE_GROVE }[etat.carte];
-    if (!fente) {
+    // Carte Kitronik vissee : micro:bit tournee d'un quart de tour (STOP:bit, LAMP:bit), vis sur les anneaux.
+    const tournee = etat.vissee === 'stopbit' || etat.vissee === 'lampbit';
+    place.classList.toggle('montage-carte-tournee', tournee);
+    place.style.left = tournee ? VISSEE_TOURNEE.l + 'px' : '';
+    place.style.top = tournee ? VISSEE_TOURNEE.t + 'px' : '';
+    if (etat.vissee) {
+        svgHaut.innerHTML = visVissee(etat.vissee);
+    } else if (!fente) {
         svgHaut.innerHTML = '';   // micro:bit seule : pas de connecteur
     } else {
         // Connecteur en plastique gris fonce sur la BitMaker et la Motor:bit, noir sur les deux autres cartes.
@@ -1341,6 +1353,78 @@ function dessinerSvg(etat) {
                             (etat.carte === 'dfr' ? '' : Array.from({ length: 40 }, (_, i) =>
                                 r(fente.x + 10 + i * 7.3, fente.y + fente.h - 2, 3, 7, 'fill="#b87333"')).join(''));
     }
+}
+
+// ---------- Carte Kitronik vissee sur la micro:bit (nov. 2026, variante A choisie par l'utilisateur) ----------
+// Programme sans carte d'extension qui utilise UNE carte Kitronik sur son brochage d'origine : la carte est vissee sur
+// les cinq anneaux de la micro:bit (pastilles 0, 1, 2, 3V, GND), sans fils, comme sur les photos de Kitronik.
+// STOP:bit et LAMP:bit : poteau debout, micro:bit tournee d'un quart de tour (sens horaire), son bord a anneaux le
+// long du poteau, anneau 0 en haut ; l'ecran tourne avec elle, comme sur la vraie carte. ACCESS:bit : micro:bit droite,
+// au-dessus de la carte. Le poteau est dessine DERRIERE la micro:bit (ses pastilles se voient par les trous des
+// anneaux) ; les vis sont dessinees par-dessus (svgHaut). Place de la micro:bit (#montage-carte) : decalee et tournee
+// par la classe montage-carte-tournee (index.html).
+const VISSEE_TOURNEE = { l: 360, t: 150 };   // place de la micro:bit tournee (coin haut gauche avant rotation)
+const ANNEAUX_X = [20.56, 76.84, 140, 203.16, 259.44], ANNEAU_Y = 193.1;   // trous des anneaux sur la carte (280 x 230)
+/** Centres des cinq anneaux dans la scene, anneau 0 en premier. */
+function anneauxVissee(ext) {
+    if (ext === 'accessbit') return ANNEAUX_X.map(x => ({ x: CARTE.x + x, y: CARTE.y + ANNEAU_Y }));
+    // Rotation d'un quart de tour horaire autour du centre de la place : X = l + 255 - y, Y = t + x - 25.
+    const { l, t } = VISSEE_TOURNEE;
+    return ANNEAUX_X.map(x => ({ x: l + 255 - ANNEAU_Y, y: t + x - 25 }));
+}
+function dessinVissee(ext) {
+    const NOIR = '#1c1c1f', BLANC = '#f4f4f4', a = anneauxVissee(ext);
+    const ecrit = (x, y, t, taille, anc) => texte(x, y, t, `fill="#e8e8e8" font-family="sans-serif" font-size="${taille || 10}" text-anchor="${anc || 'start'}"`);
+    const pastille = p => cercle(p.x, p.y, 13, 'fill="#c9a54a" stroke="#8a6d22" stroke-width="1.5"');
+    let s = '';
+    if (ext === 'accessbit') {
+        // Carte sous la micro:bit : pastilles sous les anneaux, buzzer, servomoteur bleu et barriere rouge (vers la gauche).
+        // Servo assez bas pour que la barriere levee (110 unites) reste sous la micro:bit.
+        const ax = CARTE.x + 46, ay = 385;
+        s += r(CARTE.x - 14, CARTE.y + 168, CARTE.l + 28, 255, `rx="10" fill="${NOIR}"`) + a.map(pastille).join('') +
+             ['0 SERVO', '1 BUZZ', '2', '3V', 'GND'].map((t, i) => ecrit(a[i].x, a[i].y + 54, t, 10, 'middle')).join('') +
+             cercle(CARTE.x + 220, 330, 30, 'fill="#0e0e10" stroke="#3a3a3e" stroke-width="3"') + cercle(CARTE.x + 220, 330, 5, 'fill="#3a3a3e"') +
+             r(ax - 26, ay - 22, 56, 50, 'rx="4" fill="#2f5fc4"') +
+             `<g class="mv-kbras" data-s="-1" style="transform-origin: ${ax}px ${ay}px">` + r(ax - 110, ay - 8, 114, 16, 'rx="8" fill="#e8402a"') +
+             texte(ax - 56, ay + 5, 'KITRONIK', 'fill="#ffffff" font-family="sans-serif" font-size="12" text-anchor="middle"') + '</g>' +
+             cercle(ax, ay, 9, `fill="${BLANC}"`) + ecrit(CARTE.x + 140, CARTE.y + 395, 'Kitronik', 13, 'middle') +
+             r(CARTE.x, CARTE.y, CARTE.l, CARTE.h, 'fill="none"');
+        return { bas: s, hauteur: CARTE.y + 440 };
+    }
+    // Poteau debout a gauche de la micro:bit tournee : sa moitie droite passe sous la carte, ses pastilles sous les anneaux.
+    const px = a[0].x, gauche = px - 92, milieu = px - 64, haut = ext === 'stopbit' ? 120 : 40, bas = 412;
+    s += r(gauche, haut, 120, bas - haut, `fill="${NOIR}"`) + a.map(pastille).join('') +
+         `<path d="M${milieu - 62} ${bas + 20} L${milieu - 44} ${bas} H${milieu + 44} L${milieu + 62} ${bas + 20} Z" fill="${NOIR}"/>` +
+         ecrit(milieu, bas + 16, 'Kitronik', 12, 'middle');
+    const inscriptions = ext === 'stopbit' ? ['RED', 'YLW', 'GRN', '3V', 'GND'] : ['LAMP', 'DETECT', '2', '3V', '0V'];
+    s += inscriptions.map((t, i) => ecrit(gauche + 8, a[i].y + 4, t, 11)).join('');
+    if (ext === 'stopbit') {
+        s += r(milieu - 46, 6, 92, 120, `rx="20" fill="#141416" stroke="${BLANC}" stroke-width="3"`);
+        [['#e2261f', '#4a1714', '#ffb3ad', 'rouge'], ['#ffc21a', '#4f4012', '#fff1b0', 'orange'], ['#25b356', '#123a22', '#a8f0c0', 'vert']]
+            .forEach(([on, off, reflet, cle], i) => {
+                const y = 32 + i * 28;
+                s += cercle(milieu, y, 14, `class="mv-kfeu" data-k="${cle}" data-on="${on}" data-off="${off}" fill="${off}"`) +
+                     `<path d="M${milieu - 9} ${y - 4} a11 11 0 0 1 9 -7" stroke="${reflet}" stroke-width="3" fill="none" opacity="0.7"/>`;
+            });
+        s += ecrit(milieu, 116, 'STOP:bit', 9, 'middle');   // dans la tete, sous les LED
+    } else {
+        // LAMP:bit : capteur transparent en haut du poteau, crosse vers la gauche (hors de la micro:bit), LED au bout.
+        const lx = milieu - 104;
+        s += `<ellipse class="mv-khalo" cx="${lx}" cy="104" rx="34" ry="18" fill="#fff3b0" opacity="0"/>` +
+             `<path d="M${milieu - 10} 54 H${milieu - 60} L${milieu - 80} 40 H${lx - 14} V54 H${milieu - 86} L${milieu - 66} 68 H${milieu - 10} Z" fill="${NOIR}" stroke="${BLANC}" stroke-width="2"/>` +
+             `<path class="mv-klampe" d="M${lx - 12} 56 H${lx + 12} V68 A12 12 0 0 1 ${lx - 12} 68 Z" fill="#cfcabd" stroke="#9c978a" stroke-width="1"/>` +
+             r(milieu - 8, 14, 16, 30, 'rx="8" fill="#d9dde0" opacity="0.85"') +
+             ecrit(milieu, 100, 'LAMP:bit', 10, 'middle');
+    }
+    // Place de la micro:bit tournee (pour le recadrage de la vue : la carte HTML n'est pas dans le dessin).
+    const { l, t } = VISSEE_TOURNEE;
+    s += r(l + 25, t - 25, 230, 280, 'fill="none"');
+    return { bas: s, hauteur: bas + 40 };
+}
+/** Vis argentees sur les anneaux (par-dessus la micro:bit). */
+function visVissee(ext) {
+    return anneauxVissee(ext).map(p => cercle(p.x, p.y, 7, 'fill="#b8bec4" stroke="#6b7075" stroke-width="1.2"') +
+        `<path d="M${p.x - 4} ${p.y - 4} L${p.x + 4} ${p.y + 4}" stroke="#6b7075" stroke-width="1.6"/>`).join('');
 }
 
 // ---------- Cablage automatique de tout le programme (nov. 2026) ----------

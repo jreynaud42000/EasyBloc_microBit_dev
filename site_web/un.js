@@ -2672,6 +2672,12 @@ try {
     function modeCablageKitronik(ext) { return calculerCablageKitronik()[ext].mode; }
     window.simu_kitronikBroche = (ext, i) => String(cablageKitronik(String(ext))[Number(i)] || 'pin0').replace('pin', '');
     window.cablageKitronik = cablageKitronik;
+    /** Cartes vissees sur la micro:bit (brochage de Kitronik, utilisees dans le programme) : le montage les dessine
+        fixees a la carte, sans fils. */
+    window.kitronikVissees = () => {
+        const res = calculerCablageKitronik();
+        return Object.keys(res).filter(e => res[e].mode === 'kitronik' && res[e].utilisee);
+    };
     /** Cartes reliees par des fils (bloc « cabler » ou cablage automatique) : le montage les dessine. */
     window.kitronikCables = () => {
         const res = calculerCablageKitronik();
