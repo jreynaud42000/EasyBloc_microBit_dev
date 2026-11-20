@@ -1541,3 +1541,42 @@ LAMP:bit" (lampadaire dessine, eclaire d'apres P0, curseur "Lumiere ambiante (P1
 ACCESS:bit" (bras rouge et blanc qui pivote en 1 s ; baissee au depart et a la reinitialisation). Aide, exemples
 (lampadaire automatique, barriere de parking sur le bouton A), textes anglais, reconstruction depuis un .py.
 Non verifie sur les vraies cartes.
+Correctif (nov. 2026) : quand le montage est dans la colonne, les sections "Feu STOP:bit", "Lampadaire LAMP:bit" et
+"Barriere ACCESS:bit" ne sont plus rangees sous "Reglages des capteurs" (replier ce volet les faisait disparaitre).
+Le montage ne les dessine pas : elles s'affichent toujours, dans leur propre rangee AU-DESSUS du volet (montage.js,
+rangerTableau : rangee .tab-extensions ; SECTIONS_EXTENSIONS). Sans capteur a regler, le volet disparait et elles restent.
+
+49. CARTES KITRONIK CABLEES PAR FILS : LES TROIS ENSEMBLE, AVEC LA MOTOR:BIT (nov. 2026)
+Vissees sur la micro:bit, STOP:bit, LAMP:bit et ACCESS:bit prennent toutes P0 a P2 : impossible de les utiliser
+ensemble, ni avec la Motor:bit (P0 = son buzzer, P1 et P8 = moteur M1, P2 et P12 = moteur M2). Reliees par des fils
+(pinces crocodile ou cavaliers depuis les broches G-V-S de la Motor:bit vers les pastilles 0, 1, 2, 3V et GND de la
+carte Kitronik), elles peuvent prendre d'autres broches. Un bloc par carte, a la fin de sa categorie, facultatif :
+- "STOP:bit : cabler rouge sur P.. orange sur P.. vert sur P.." (pastilles 0, 1, 2) ;
+- "LAMP:bit : cabler lampe sur P.. capteur de lumiere sur P.." (capteur : entree analogique P0, P1, P2, P3, P4, P10) ;
+- "ACCESS:bit : cabler servomoteur sur P.. buzzer sur P..".
+Sans ce bloc : brochage de Kitronik. Broches proposees : P0 a P4, P6 a P10, P12 a P16 (P5 et P11 = boutons A et B).
+Le code est ecrit avec les broches choisies (un.js : cablageKitronik, lu en generant le code ; _STOPBIT = (...)),
+le bloc lui-meme ne produit qu'un commentaire ("pass  # STOP:bit : rouge sur P4, ..."). Une broche de la matrice de
+LED (P3, P4, P6, P7, P9, P10) ajoute display.off() en tete du programme : la matrice est eteinte.
+Simulateur : le feu et la lampe suivent les broches cablees (window.simu_kitronikBroche), les legendes les
+indiquent ; broches P3, P4, P6, P7, P9, P10 ajoutees au simulateur, display.off() / on() sans effet.
+Montage : un bloc "cabler" fait apparaitre la carte Kitronik (carte noire, pastilles 0 1 2 3V GND, feu, lampadaire ou
+barriere en petit) reliee par ses fils a la carte d'extension choisie (Motor:bit imposee par ses blocs, ou choisie
+dans le menu) ; feu, lampe et barriere suivent la simulation. Conflits signales comme pour les autres modules
+("P8 : moteur M1", "P0 : buzzer de la carte", "broche partagee").
+Exemple (aide du bloc "cabler") : "Trois cartes Kitronik sur la Motor:bit", moteurs libres : barriere P13 et buzzer
+P14 (G-VCC-S, 5 V possible pour le servo), lampe P15, capteur de lumiere P3, feu P4, P6, P7.
+Non verifie sur les vraies cartes. A l'import d'un .py, le cablage n'est pas reconstruit (broches de Kitronik).
+Cablage automatique (nov. 2026, demande de l'utilisateur) : des que deux ou trois cartes Kitronik sont utilisees, ou
+une seule avec la Motor:bit (blocs Motor:bit, ou "Motor:bit V1.6" choisie dans le menu du montage), chaque carte SANS
+bloc "cabler" recoit des broches libres, sans rien poser. Broches evitees : celles des autres blocs du programme
+(Grove, servos, entrees/sorties : tout champ "pinN"), celles des blocs "cabler", P0 / P1 / P2 / P8 / P12 avec la
+Motor:bit (buzzer, moteurs), P5 / P11 (boutons). Preference : P13 a P16, P8, P12, P0 a P2, puis la matrice de LED en
+dernier (P3, P4, P10, P6, P7, P9 ; display.off()). Capteur du LAMP:bit sur une entree analogique (P0, P1, P2, puis
+P3, P4, P10). Ordre fixe LAMP:bit, ACCESS:bit, STOP:bit : le meme programme donne toujours le meme cablage, mais
+ajouter un bloc qui prend une broche peut le deplacer ; poser un bloc "cabler" fige le cablage d'une carte.
+Une carte seule, sans Motor:bit : broches de Kitronik (carte vissee). Le code l'indique ("# Servomoteur P14, buzzer
+P15 (cablage automatique)"), les legendes de "Peripheriques" donnent les broches, et le montage dessine les cartes
+avec leurs fils et la mention "cablage automatique" (un.js : calculerCablageKitronik, window.kitronikCables).
+Exemple, trois cartes + moteur Motor:bit : LAMP:bit lampe P13, capteur P3 ; ACCESS:bit servo P14, buzzer P15 ;
+STOP:bit P16, P4, P10 (matrice eteinte).

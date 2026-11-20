@@ -2574,14 +2574,136 @@ try {
     // Le pilote est du Python pur qui ecrit sur ces broches : le simulateur le GARDE (comme le pilote "ia") et dessine
     // le feu d'apres l'etat de P0, P1 et P2 (dessinerStopbit) ; un bloc « ecrire sur la broche » allume donc le feu
     // aussi, comme sur la vraie carte.
+
+    // ======================================================================
+    // CABLAGE DES CARTES KITRONIK (nov. 2026) : STOP:bit, LAMP:bit, ACCESS:bit sur d'autres broches.
+    // ======================================================================
+    // Enfichees directement, les trois cartes utilisent P0 a P2 : impossible de les avoir ensemble, ni avec la
+    // Motor:bit (P0 = son buzzer, P1 / P8 = moteur M1, P2 / P12 = moteur M2). Reliees par des fils (pinces crocodile
+    // ou cavaliers depuis les broches G-V-S de la Motor:bit vers les pastilles 0, 1, 2, 3V et GND de la carte
+    // Kitronik), elles peuvent prendre d'autres broches : un bloc « cabler » par carte, facultatif. Sans lui, brochage
+    // d'origine de Kitronik. Les pilotes sont ecrits avec les broches choisies (cablageKitronik, lu au moment de
+    // generer le code) ; le simulateur et le montage lisent les memes (window.simu_kitronikBroche, montage.js).
+    // Broches de la matrice de LED (P3, P4, P6, P7, P9, P10) : le programme eteint la matrice (display.off()).
+    // P5 et P11 (boutons A et B) ne sont pas proposees.
+    const BROCHES_KITRONIK = ['0', '1', '2', '3', '4', '6', '7', '8', '9', '10', '12', '13', '14', '15', '16'].map(n => ['P' + n, 'pin' + n]);
+    const BROCHES_ANALOGIQUES_KITRONIK = ['0', '1', '2', '3', '4', '10'].map(n => ['P' + n, 'pin' + n]);
+    const BROCHES_MATRICE = ['pin3', 'pin4', 'pin6', 'pin7', 'pin9', 'pin10'];
+    const CABLAGE_KITRONIK = {
+        stopbit:   { bloc: 'stopbit_cablage',   champs: ['ROUGE', 'ORANGE', 'VERT'], defaut: ['pin0', 'pin1', 'pin2'] },
+        lampbit:   { bloc: 'lampbit_cablage',   champs: ['LAMPE', 'CAPTEUR'],        defaut: ['pin0', 'pin1'] },
+        accessbit: { bloc: 'accessbit_cablage', champs: ['SERVO', 'BUZZER'],         defaut: ['pin0', 'pin1'] },
+    };
+    // CABLAGE AUTOMATIQUE (nov. 2026) : des que deux ou trois cartes Kitronik sont utilisees, ou une seule avec la
+    // Motor:bit (blocs Motor:bit, ou carte choisie dans le menu du montage), chaque carte SANS bloc « cabler » recoit des
+    // broches libres : ni celles des autres blocs du programme, ni celles d'un bloc « cabler », ni P0 / P1 / P2 / P8 /
+    // P12 avec la Motor:bit (buzzer, moteurs), ni P5 / P11 (boutons A et B). Ordre de preference : P13 a P16 (G-VCC-S
+    // de la Motor:bit, le servo en premier), P8, P12, P0 a P2, puis les broches de la matrice de LED en dernier recours
+    // (P3, P4, P10, P6, P7, P9 ; display.off()). Le capteur du LAMP:bit prend une entree analogique (P0, P1, P2, puis P3,
+    // P4, P10). Attribution dans un ordre fixe (LAMP:bit, ACCESS:bit, STOP:bit) : le meme programme donne toujours le
+    // meme cablage ; ajouter un bloc qui prend une broche peut le changer. Un bloc « cabler » fige le cablage d'une carte.
+    const ORDRE_AUTO_KITRONIK = ['13', '14', '15', '16', '8', '12', '0', '1', '2', '3', '4', '10', '6', '7', '9'].map(n => 'pin' + n);
+    const ANALOGIQUES_AUTO_KITRONIK = ['0', '1', '2', '3', '4', '10'].map(n => 'pin' + n);
+    const RESERVEES_MOTORBIT_KITRONIK = ['pin0', 'pin1', 'pin2', 'pin8', 'pin12'];
+    let cacheCablage = null;
+    function calculerCablageKitronik() {
+        const blocs = (window.workspace ? window.workspace.getAllBlocks(false) : [])
+            .filter(b => b.isEnabled() && !(b.getInheritedDisabled && b.getInheritedDisabled()));
+        const types = blocs.map(b => b.type);
+        let choix = '';
+        try { choix = localStorage.getItem('montageCarte') || ''; } catch (erreur) { choix = ''; }
+        const motorbit = types.some(t => /^motorbit_/.test(t)) || choix === 'motorbit';
+        // Cle du cache : blocs actifs et valeurs de leurs champs (une broche changee change le cablage).
+        const cle = blocs.map(b => b.id + ':' + b.inputList.map(en => en.fieldRow.map(ch => (ch.getValue ? ch.getValue() : '')).join('/')).join('/')).join(',') + '|' + choix;
+        if (cacheCablage && cacheCablage.cle === cle) return cacheCablage.res;
+        const exts = Object.keys(CABLAGE_KITRONIK);
+        const utilisees = exts.filter(e => types.some(t => t.startsWith(e + '_')));
+        const auto = utilisees.length >= 2 || (utilisees.length >= 1 && motorbit);
+        const occupees = new Set(['pin5', 'pin11']);
+        if (motorbit) RESERVEES_MOTORBIT_KITRONIK.forEach(p => occupees.add(p));
+        // Broches des autres blocs (Grove, servos, entrees/sorties...) : tout champ dont la valeur est « pinN ».
+        blocs.filter(b => !/^(stopbit|lampbit|accessbit)_/.test(b.type)).forEach(b => b.inputList.forEach(entree =>
+            entree.fieldRow.forEach(champ => { const v = champ.getValue && champ.getValue(); if (typeof v === 'string' && /^pin\d+$/.test(v)) occupees.add(v); })));
+        const res = {};
+        exts.forEach(e => {
+            const c = CABLAGE_KITRONIK[e];
+            const bloc = blocs.find(b => b.type === c.bloc);
+            if (bloc) { res[e] = { pins: c.champs.map(ch => bloc.getFieldValue(ch)), mode: 'manuel', utilisee: true }; res[e].pins.forEach(p => occupees.add(p)); }
+        });
+        const prendre = (liste, defaut) => { const p = liste.find(x => !occupees.has(x)) || defaut; occupees.add(p); return p; };
+        // Ordre fixe : le plus contraint d'abord (capteur analogique), puis le servo (P13 a P16 de preference).
+        ['lampbit', 'accessbit', 'stopbit'].forEach(e => {
+            if (res[e]) return;
+            const c = CABLAGE_KITRONIK[e];
+            if (!auto || !utilisees.includes(e)) { res[e] = { pins: c.defaut.slice(), mode: 'kitronik', utilisee: utilisees.includes(e) }; return; }
+            const pins = e === 'lampbit'
+                ? (() => { const capteur = prendre(ANALOGIQUES_AUTO_KITRONIK, 'pin1'); return [prendre(ORDRE_AUTO_KITRONIK, 'pin0'), capteur]; })()
+                : c.defaut.map(d => prendre(ORDRE_AUTO_KITRONIK, d));
+            res[e] = { pins, mode: 'auto', utilisee: true };
+        });
+        cacheCablage = { cle, res };
+        return res;
+    }
+    /** Broches d'une carte Kitronik : bloc « cabler », sinon cablage automatique, sinon celles de Kitronik. */
+    function cablageKitronik(ext) { return calculerCablageKitronik()[ext].pins.slice(); }
+    function modeCablageKitronik(ext) { return calculerCablageKitronik()[ext].mode; }
+    window.simu_kitronikBroche = (ext, i) => String(cablageKitronik(String(ext))[Number(i)] || 'pin0').replace('pin', '');
+    window.cablageKitronik = cablageKitronik;
+    /** Cartes reliees par des fils (bloc « cabler » ou cablage automatique) : le montage les dessine. */
+    window.kitronikCables = () => {
+        const res = calculerCablageKitronik();
+        return Object.keys(res).filter(e => res[e].mode !== 'kitronik' && res[e].utilisee).map(e => ({ ext: e, pins: res[e].pins.slice(), mode: res[e].mode }));
+    };
+    function matriceKitronik(broches) {
+        if (broches.some(p => BROCHES_MATRICE.includes(p))) {
+            importerMicrobit();
+            P.definitions_['kitronik_matrice'] = '# Une carte Kitronik utilise une broche de la matrice de LED : matrice eteinte\ndisplay.off()';
+        }
+    }
+    function blocCablage(type, titre, morceaux, aide) {
+        Blockly.Blocks[type] = { init: function() {
+            const ligne = this.appendDummyInput().appendField(titre);
+            morceaux.forEach(([libelle, champ, liste, defaut]) => {
+                const menu = new Blockly.FieldDropdown(liste);
+                menu.setValue(defaut);
+                ligne.appendField(libelle).appendField(menu, champ);
+            });
+            this.setPreviousStatement(true, null);
+            this.setNextStatement(true, null);
+            this.setColour('#6B7280');
+            this.setTooltip(aide);
+        }};
+        P.forBlock[type] = function(block) {
+            const texte = morceaux.map(([libelle, champ]) => libelle.trim() + ' P' + block.getFieldValue(champ).slice(3)).join(', ');
+            return 'pass  # ' + titre.replace(/ :.*$/, '') + ' : ' + texte + '\n';
+        };
+    }
+    const AIDE_CABLAGE = " À poser dans « au démarrage », une seule fois. Sans ce bloc, la carte garde les broches de Kitronik. " +
+        "Une broche de la matrice de LED (P3, P4, P6, P7, P9, P10) éteint la matrice. Avec la Motor:bit, éviter P0 (son buzzer), " +
+        "P1, P8 (moteur M1), P2 et P12 (moteur M2).";
+    blocCablage('stopbit_cablage', "STOP:bit : câbler",
+        [["rouge sur", 'ROUGE', BROCHES_KITRONIK, 'pin0'], [" orange sur", 'ORANGE', BROCHES_KITRONIK, 'pin1'], [" vert sur", 'VERT', BROCHES_KITRONIK, 'pin2']],
+        "Choisit les broches reliées aux pastilles 0 (rouge), 1 (orange) et 2 (vert) de la STOP:bit." + AIDE_CABLAGE);
+    blocCablage('lampbit_cablage', "LAMP:bit : câbler",
+        [["lampe sur", 'LAMPE', BROCHES_KITRONIK, 'pin0'], [" capteur de lumière sur", 'CAPTEUR', BROCHES_ANALOGIQUES_KITRONIK, 'pin1']],
+        "Choisit les broches reliées aux pastilles 0 (lampe) et 1 (capteur de lumière) du LAMP:bit. Le capteur a besoin " +
+        "d'une entrée analogique : P0, P1, P2, P3, P4 ou P10." + AIDE_CABLAGE);
+    blocCablage('accessbit_cablage', "ACCESS:bit : câbler",
+        [["servomoteur sur", 'SERVO', BROCHES_KITRONIK, 'pin0'], [" buzzer sur", 'BUZZER', BROCHES_KITRONIK, 'pin1']],
+        "Choisit les broches reliées aux pastilles 0 (servomoteur de la barrière) et 1 (buzzer) de l'ACCESS:bit." + AIDE_CABLAGE);
+
     const COULEUR_STOPBIT = '#6B7280';
     function piloteStopbit() {
         importerMicrobit();
+        const p = cablageKitronik('stopbit');
+        matriceKitronik(p);
         pilote('stopbit', [
+            '_STOPBIT = (' + p.join(', ') + ')   # rouge, orange, vert' + (modeCablageKitronik('stopbit') === 'auto' ? ' (cablage automatique)' : ''),
+            '',
             'def _stopbit_feu(rouge, orange, vert):',
-            '    pin0.write_digital(rouge)',
-            '    pin1.write_digital(orange)',
-            '    pin2.write_digital(vert)',
+            '    _STOPBIT[0].write_digital(rouge)',
+            '    _STOPBIT[1].write_digital(orange)',
+            '    _STOPBIT[2].write_digital(vert)',
             '',
             'def _stopbit_led(broche, etat):',
             '    broche.write_digital(1 if etat else 0)',
@@ -2616,7 +2738,9 @@ try {
     }};
     P.forBlock['stopbit_led'] = function(block) {
         piloteStopbit();
-        return '_stopbit_led(' + block.getFieldValue('COULEUR') + ', ' + block.getFieldValue('ETAT') + ')\n';
+        // Champ COULEUR : pin0 / pin1 / pin2 = rouge / orange / vert, ramene a la broche cablee.
+        const broche = cablageKitronik('stopbit')[Number(block.getFieldValue('COULEUR').slice(3))] || block.getFieldValue('COULEUR');
+        return '_stopbit_led(' + broche + ', ' + block.getFieldValue('ETAT') + ')\n';
     };
     Blockly.Blocks['stopbit_eteindre'] = { init: function() {
         this.appendDummyInput().appendField("STOP:bit : éteindre les trois feux");
@@ -2640,12 +2764,16 @@ try {
     const COULEUR_LAMPBIT = '#6B7280';
     function piloteLampbit() {
         importerMicrobit();
+        const p = cablageKitronik('lampbit');
+        matriceKitronik(p);
         pilote('lampbit', [
+            '# Lampe ' + p[0].replace('pin', 'P') + ', capteur de lumiere ' + p[1].replace('pin', 'P') +
+                (modeCablageKitronik('lampbit') === 'auto' ? ' (cablage automatique)' : ''),
             'def _lampbit_lampe(etat):',
-            '    pin0.write_digital(1 if etat else 0)',
+            '    ' + p[0] + '.write_digital(1 if etat else 0)',
             '',
             'def _lampbit_lumiere():',
-            '    return pin1.read_analog()',
+            '    return ' + p[1] + '.read_analog()',
         ]);
     }
     Blockly.Blocks['lampbit_lampe'] = { init: function() {
@@ -2695,16 +2823,20 @@ try {
     function piloteAccessbit() {
         importerMicrobit();
         importerModule('music');
+        const [servo, buzzer] = cablageKitronik('accessbit');
+        matriceKitronik([servo, buzzer]);
         pilote('accessbit', [
+            '# Servomoteur ' + servo.replace('pin', 'P') + ', buzzer ' + buzzer.replace('pin', 'P') +
+                (modeCablageKitronik('accessbit') === 'auto' ? ' (cablage automatique)' : ''),
             'def _accessbit_barriere(angle):',
-            '    pin0.set_analog_period(20)',
-            '    pin0.write_analog(int((500 + angle * 2000 / 180) * 1023 / 20000))',
+            '    ' + servo + '.set_analog_period(20)',
+            '    ' + servo + '.write_analog(int((500 + angle * 2000 / 180) * 1023 / 20000))',
             '    sleep(1000)',
-            '    pin0.write_digital(0)',
+            '    ' + servo + '.write_digital(0)',
             '',
             'def _accessbit_bip(duree, nombre):',
             '    for _ in range(max(1, min(10, int(nombre)))):',
-            '        music.pitch(1025, duree, pin=pin1)',
+            '        music.pitch(1025, duree, pin=' + buzzer + ')',
             '        sleep(duree)',
         ]);
     }
@@ -4967,7 +5099,9 @@ try {
               { "kind": "label", "text": "Feu tricolore (rouge P0, orange P1, vert P2)", "web-class": "groupe-flyout" },
               { "kind": "block", "type": "stopbit_etat" },
               { "kind": "block", "type": "stopbit_led" },
-              { "kind": "block", "type": "stopbit_eteindre" }
+              { "kind": "block", "type": "stopbit_eteindre" },
+              { "kind": "label", "text": "Câblage par fils (avec la Motor:bit, par exemple)", "web-class": "groupe-flyout" },
+              { "kind": "block", "type": "stopbit_cablage" }
             ]
           },
           {
@@ -4977,7 +5111,9 @@ try {
               { "kind": "label", "text": "Lampadaire (lampe P0, capteur de lumière P1)", "web-class": "groupe-flyout" },
               { "kind": "block", "type": "lampbit_lampe" },
               { "kind": "block", "type": "lampbit_lumiere" },
-              { "kind": "block", "type": "lampbit_sombre", "inputs": { "SEUIL": { "shadow": { "type": "math_number", "fields": { "NUM": "350" } } } } }
+              { "kind": "block", "type": "lampbit_sombre", "inputs": { "SEUIL": { "shadow": { "type": "math_number", "fields": { "NUM": "350" } } } } },
+              { "kind": "label", "text": "Câblage par fils (avec la Motor:bit, par exemple)", "web-class": "groupe-flyout" },
+              { "kind": "block", "type": "lampbit_cablage" }
             ]
           },
           {
@@ -4986,7 +5122,9 @@ try {
             "contents": [
               { "kind": "label", "text": "Barrière (servo P0) et buzzer (P1)", "web-class": "groupe-flyout" },
               { "kind": "block", "type": "accessbit_barriere" },
-              { "kind": "block", "type": "accessbit_bip", "inputs": { "NOMBRE": { "shadow": { "type": "math_number", "fields": { "NUM": "2" } } } } }
+              { "kind": "block", "type": "accessbit_bip", "inputs": { "NOMBRE": { "shadow": { "type": "math_number", "fields": { "NUM": "2" } } } } },
+              { "kind": "label", "text": "Câblage par fils (avec la Motor:bit, par exemple)", "web-class": "groupe-flyout" },
+              { "kind": "block", "type": "accessbit_cablage" }
             ]
           },
           {
@@ -7752,6 +7890,13 @@ try {
         stopbit_led: "Allume ou éteint un seul feu de la STOP:bit (rouge sur P0, orange sur P1, vert sur P2) sans toucher aux " +
             "deux autres. Équivaut à écrire 1 ou 0 sur la broche du feu.",
         stopbit_eteindre: "Éteint les trois feux de la STOP:bit.",
+        stopbit_cablage: "Quand la STOP:bit est reliée par des fils (pinces crocodile ou cavaliers) au lieu d'être vissée sur la " +
+            "carte, choisit la broche de chaque feu. Indispensable pour l'utiliser avec la Motor:bit ou avec le LAMP:bit et " +
+            "l'ACCESS:bit, qui prennent aussi P0 à P2. Une broche de la matrice de LED (P3, P4, P6, P7, P9, P10) l'éteint.",
+        lampbit_cablage: "Quand le LAMP:bit est relié par des fils, choisit la broche de la lampe et celle du capteur de lumière " +
+            "(entrée analogique : P0, P1, P2, P3, P4 ou P10). Une broche de la matrice de LED l'éteint.",
+        accessbit_cablage: "Quand l'ACCESS:bit est reliée par des fils, choisit la broche du servomoteur de la barrière et celle " +
+            "du buzzer. Le servomoteur préfère une broche G-VCC-S de la Motor:bit (P13 à P16, sélecteur VCC sur 5 V).",
         lampbit_lampe: "Allume ou éteint la lampe du lampadaire Kitronik LAMP:bit (LED sur P0).",
         lampbit_lumiere: "Lumière mesurée par le capteur du LAMP:bit (P1), de 0 (noir) à 1023 (très éclairé). Dans le " +
             "simulateur, le curseur « Lumière ambiante » de la section LAMP:bit règle cette valeur.",
@@ -8165,6 +8310,19 @@ try {
         [exStart(exB('accessbit_barriere', { POSITION: '90' })),
          exWhen('lorsque_bouton', { BOUTON: 'a' }, exB('accessbit_bip', { DUREE: '200' }, { NOMBRE: exN(2) }), exB('accessbit_barriere', { POSITION: '0' }), exWait(3),
                    exB('accessbit_bip', { DUREE: '800' }, { NOMBRE: exN(1) }), exB('accessbit_barriere', { POSITION: '90' }))]);
+    exemple(['stopbit_cablage', 'lampbit_cablage', 'accessbit_cablage'], 'Trois cartes Kitronik sur la Motor:bit',
+        "Câblage par fils sur la Motor:bit, moteurs libres : barrière P13, buzzer P14, lampe P15, capteur de lumière P3, " +
+        "feu sur P4, P6, P7 (la matrice de LED s'éteint). Bouton A : le feu passe au vert, la barrière se lève 3 secondes, " +
+        "puis feu rouge et barrière baissée. La lampe s'allume quand il fait sombre.",
+        [exStart(exB('accessbit_cablage', { SERVO: 'pin13', BUZZER: 'pin14' }), exB('lampbit_cablage', { LAMPE: 'pin15', CAPTEUR: 'pin3' }),
+                 exB('stopbit_cablage', { ROUGE: 'pin4', ORANGE: 'pin6', VERT: 'pin7' }),
+                 exB('stopbit_etat', { ETAT: '1, 0, 0' }), exB('accessbit_barriere', { POSITION: '90' })),
+         exWhen('lorsque_bouton', { BOUTON: 'a' }, exB('stopbit_etat', { ETAT: '0, 0, 1' }), exB('accessbit_bip', { DUREE: '200' }, { NOMBRE: exN(2) }),
+                exB('accessbit_barriere', { POSITION: '0' }), exWait(3), exB('stopbit_etat', { ETAT: '0, 1, 0' }), exWait(1),
+                exB('stopbit_etat', { ETAT: '1, 0, 0' }), exB('accessbit_barriere', { POSITION: '90' })),
+         exLoop(Object.assign(exB('controls_if', null, { IF0: exV(exB('lampbit_sombre', null, { SEUIL: exN(350) })),
+                DO0: exDans(exB('lampbit_lampe', { ETAT: '1' })), ELSE: exDans(exB('lampbit_lampe', { ETAT: '0' })) }),
+                { extraState: { hasElse: true } }))]);
     exemple(['stopbit_led'], 'Orange clignotant', "Le feu orange clignote toutes les demi-secondes, comme un feu en panne.",
         [exLoop(exB('stopbit_led', { COULEUR: 'pin1', ETAT: '1' }), exWait(0.5),
                 exB('stopbit_led', { COULEUR: 'pin1', ETAT: '0' }), exWait(0.5))]);
@@ -10771,12 +10929,13 @@ try {
      * ferait un mur de pastilles éteintes.
      */
     // Feu Kitronik STOP:bit : rouge P0, orange P1, vert P2 (allume des que la broche n'est pas a 0, comme la vraie LED).
-    const FEUX_STOPBIT = [['rouge', '0', 'Rouge'], ['orange', '1', 'Orange'], ['vert', '2', 'Vert']];
+    const FEUX_STOPBIT = [['rouge', 0, 'Rouge'], ['orange', 1, 'Orange'], ['vert', 2, 'Vert']];
     function dessinerStopbit() {
         const svg = document.getElementById('grove-stopbit-visuel');
         if (!svg) return;
         const tr = t => (window.tr ? window.tr(t) : t);
-        const lignes = FEUX_STOPBIT.map(([classe, broche, nom]) => {
+        const lignes = FEUX_STOPBIT.map(([classe, i, nom]) => {
+            const broche = window.simu_kitronikBroche('stopbit', i);   // broche cablee (bloc « STOP:bit : cabler »)
             const allume = (etatLeds[broche] || 0) > 0;
             svg.querySelector('.stopbit-feu.' + classe).classList.toggle('allume', allume);
             return '<div><b>' + tr(nom) + '</b> (P' + broche + ') : ' + tr(allume ? 'allumé' : 'éteint') + '</div>';
@@ -10789,10 +10948,13 @@ try {
     function dessinerLampbit() {
         const svg = document.getElementById('grove-lampbit-visuel');
         if (!svg) return;
-        const allumee = (etatLeds['0'] || 0) > 0;
+        const brocheLampe = window.simu_kitronikBroche('lampbit', 0);
+        const capteur = document.getElementById('grove-lampbit-capteur');
+        if (capteur) capteur.textContent = 'P' + window.simu_kitronikBroche('lampbit', 1);
+        const allumee = (etatLeds[brocheLampe] || 0) > 0;
         svg.classList.toggle('allume', allumee);
         const zone = document.getElementById('grove-lampbit-etat');
-        if (zone) zone.textContent = (window.tr ? window.tr('Lampe') : 'Lampe') + ' (P0) : ' +
+        if (zone) zone.textContent = (window.tr ? window.tr('Lampe') : 'Lampe') + ' (P' + brocheLampe + ') : ' +
             (window.tr ? window.tr(allumee ? 'allumée' : 'éteinte') : (allumee ? 'allumée' : 'éteinte'));
     }
     const curseurLampbit = document.getElementById('grove-lampbit-lumiere');
@@ -10880,6 +11042,9 @@ try {
     ];
 
     function rafraichirPanneauGrove() {
+        // Legendes des cartes Kitronik : broches du bloc « cabler », a jour des qu'il change (sans attendre la simulation).
+        dessinerStopbit();
+        dessinerLampbit();
         const types = window.workspace.getAllBlocks(false).map(b => b.type);
         let auMoinsUne = false;
         for (const [id, motif] of SECTIONS_GROVE) {

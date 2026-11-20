@@ -66,7 +66,11 @@ const MODULES = [
     { motif: /^grove_scd30_/,                 nom: 'Capteur CO₂ SCD30',     i2c: true, picto: 'scd30', large: true },
     { motif: /^grove_scd41_/,                 nom: 'Capteur CO₂ SCD41',     i2c: true, picto: 'scd41' },
 ];
-const BLOC_EXTENSION = /^(grove_|servo_|dfr_|motorbit_|carte_|bitmaker_)/;
+// Cartes Kitronik reliees par des fils (bloc « cabler » ou cablage automatique, un.js : window.kitronikCables) ;
+// enfichees sur la micro:bit, elles n'ont pas de cable a dessiner.
+const KITRONIK_MONTAGE = { stopbit: { nom: 'STOP:bit', picto: 'stopbit' }, lampbit: { nom: 'LAMP:bit', picto: 'lampbit' },
+                           accessbit: { nom: 'ACCESS:bit', picto: 'accessbit' } };
+const BLOC_EXTENSION = /^(grove_|servo_|dfr_|motorbit_|carte_|bitmaker_|(stopbit|lampbit|accessbit)_cablage$)/;
 // Lecteur de l'etat en direct (majVivant) quand il differe du dessin : plusieurs capteurs partagent le dessin « puce ».
 const VIVANT = {
     'Capteur de pression': 'pression', 'Capteur COV': 'cov', 'Capteur de gestes': 'gestes', 'Température, humidité': 'th',
@@ -229,7 +233,8 @@ function lireMontage() {
     const motorbit = !dfr && (types.some(t => /^motorbit_/.test(t)) || (!parBloc && choixCarte() === 'motorbit'));
     const imposee = dfr ? 'dfr' : types.some(t => /^motorbit_/.test(t)) ? 'motorbit' : parBloc;
     const bitmaker = !dfr && !motorbit && (parBloc ? parBloc === 'bitmaker' : choixCarte() === 'bitmaker');
-    const utile = types.some(t => BLOC_EXTENSION.test(t));
+    const cables = window.kitronikCables ? window.kitronikCables() : [];
+    const utile = types.some(t => BLOC_EXTENSION.test(t)) || cables.length > 0;
     const modules = new Map();
     const ajouter = (cle, m) => { if (!modules.has(cle)) { m.id = cle; modules.set(cle, m); } };
 
@@ -305,6 +310,15 @@ function lireMontage() {
             nb: def.picto === 'ruban' ? Number(b.getFieldValue('NB')) || 16 : undefined },
             dfr ? branchementDfr(pins, def.servo) : motorbit ? branchementMotorbit(pins, def.servo) :
             bitmaker ? branchementBitmaker(pins) : branchementGrove(pins)));
+    }
+
+    for (const k of cables) {
+        const def = KITRONIK_MONTAGE[k.ext], pins = [...new Set(k.pins)];
+        const m = Object.assign({ nom: def.nom, picto: def.picto, large: true, pins, cle: 'P' + pins[0].slice(3) },
+            dfr ? branchementDfr(pins, false) : motorbit ? branchementMotorbit(pins, false) :
+            bitmaker ? branchementBitmaker(pins) : branchementGrove(pins));
+        if (k.mode === 'auto') m.note = m.note ? m.note + ', câblage automatique' : 'câblage automatique';
+        ajouter(def.nom, m);
     }
 
     // Deux modules sur le meme port (ou la meme broche) : possible dans le programme, pas sur la table.
@@ -742,6 +756,35 @@ function dessinCarteDfr() {
     return s;
 }
 
+/** Cartes Kitronik reliees par des fils : carte noire, pastilles 0 1 2 3V GND du cote de la micro:bit, et leur
+    element en petit (feu, lampadaire, barriere). Les classes mv-k* suivent la simulation (majVivant). */
+function dessinKitronik(m, cx, cy) {
+    const l = 150, h = 74;
+    let s = r(cx - l / 2, cy - h / 2, l, h, 'rx="6" fill="#26262b" stroke="#0d0d10"');
+    const pastilles = ['0', '1', '2', '3V', 'GND'];
+    pastilles.forEach((t, i) => {
+        const x = cx - 52 + i * 26, y = cy + h / 2 - 12;
+        s += cercle(x, y, 7, 'fill="#c9a54a" stroke="#8a6d22"') + cercle(x, y, 3, 'fill="#26262b"') +
+             texte(x, y - 10, t, 'class="montage-puce" text-anchor="middle" font-size="9"');
+    });
+    if (m.picto === 'stopbit') {
+        s += r(cx - 44, cy - 32, 88, 26, 'rx="10" fill="#111114"');
+        [['#ff3b30', '#4a1714', 'rouge'], ['#ffb000', '#4a3410', 'orange'], ['#2fd16a', '#133a22', 'vert']].forEach(([on, off, k], i) =>
+            { s += cercle(cx - 26 + i * 26, cy - 19, 9, `class="mv-kfeu" data-k="${k}" data-on="${on}" data-off="${off}" fill="${off}"`); });
+    } else if (m.picto === 'lampbit') {
+        s += r(cx - 50, cy - 34, 5, 28, 'fill="#8a8f98"') + `<path d="M${cx - 48} ${cy - 32} H${cx - 14}" stroke="#8a8f98" stroke-width="5"/>` +
+             `<path d="M${cx - 30} ${cy - 30} H${cx + 2} L${cx - 4} ${cy - 22} H${cx - 24} Z" fill="#6b7078"/>` +
+             `<ellipse class="mv-klampe" cx="${cx - 14}" cy="${cy - 21}" rx="8" ry="3" fill="#55524a"/>` +
+             cercle(cx + 34, cy - 20, 8, 'fill="#e8913a" stroke="#a65d18"');
+    } else {
+        s += r(cx - 52, cy - 34, 10, 26, 'rx="2" fill="#8a8f98"') +
+             `<g class="mv-kbras" style="transform-origin: ${cx - 47}px ${cy - 22}px">` + r(cx - 47, cy - 25, 92, 6, 'rx="2" fill="#f4f4f4"') +
+             [0, 1, 2].map(i => r(cx - 35 + i * 26, cy - 25, 10, 6, 'fill="#d62828"')).join('') + '</g>' +
+             cercle(cx + 38, cy - 8, 6, 'fill="#1e1e1e"');
+    }
+    return s;
+}
+
 /** Dessin d'un module, centre sur (cx, cy), connecteur tourne vers la carte. */
 function dessinModule(m, cx, cy) {
     const geo = geometrie(m);
@@ -760,6 +803,7 @@ function dessinModule(m, cx, cy) {
                `<g class="mv-palonnier" style="transform-origin: ${cx + 18}px ${cy}px">` +
                r(cx + 14, cy - 34, 8, 40, 'rx="4" fill="#f5f5f5" stroke="#bbb"') + '</g>' + cercle(cx + 18, cy, 4, 'fill="#bbb"');
     }
+    if (/^(stopbit|lampbit|accessbit)$/.test(m.picto)) return dessinKitronik(m, cx, cy);
     const l = largeurPcb(m), h = 74;
     let s = r(cx - l / 2, cy - h / 2, l, h, 'rx="6" fill="#3d8f4a" stroke="#2a6534"');
     s += cercle(cx - l / 2 + 9, cy - h / 2 + 9, 4, 'fill="#c9a54a"') + cercle(cx + l / 2 - 9, cy + h / 2 - 9, 4, 'fill="#c9a54a"');
@@ -1800,6 +1844,15 @@ function majVivant() {
         const t = g.querySelector('.montage-valeur');
         if (t && t.textContent !== valeur) t.textContent = valeur;
     }
+    // Cartes Kitronik cablees (nov. 2026) : feu, lampe et barriere recopies de « Peripheriques ».
+    for (const c of $$('#montage-svg-bas .mv-kfeu')) {
+        const feu = document.querySelector('#grove-stopbit-visuel .stopbit-feu.' + c.dataset.k);
+        c.setAttribute('fill', feu && feu.classList.contains('allume') ? c.dataset.on : c.dataset.off);
+    }
+    const lampe = $('grove-lampbit-visuel');
+    for (const c of $$('#montage-svg-bas .mv-klampe')) c.setAttribute('fill', lampe && lampe.classList.contains('allume') ? '#fff6d0' : '#55524a');
+    const bras = $('grove-accessbit-bras'), angle = bras ? /rotate\((-?[\d.]+)/.exec(bras.getAttribute('transform') || '') : null;
+    for (const g of $$('#montage-svg-bas .mv-kbras')) g.style.transform = 'rotate(' + (angle ? Number(angle[1]) : 0) + 'deg)';
 }
 
 // ---------- « Peripheriques » pendant le montage dans la colonne ----------
@@ -1808,8 +1861,9 @@ function majVivant() {
 // cachees restent a jour (un.js) : le montage les recopie.
 const SECTIONS_REGLAGES = ['grove-sec-ultrason', 'grove-sec-joystick', 'grove-sec-potentiometre', 'grove-sec-bouton',
     'grove-sec-lumiere', 'grove-sec-pir', 'grove-sec-pression', 'grove-sec-cov', 'grove-sec-gestes', 'grove-sec-th',
-    'grove-sec-co2', 'grove-sec-couleur', 'grove-sec-radio', 'grove-sec-stopbit', 'grove-sec-lampbit',
-    'grove-sec-accessbit'];
+    'grove-sec-co2', 'grove-sec-couleur', 'grove-sec-radio'];
+// Extensions Kitronik : hors du volet repliable, toujours visibles (index.html les place avant le volet).
+const SECTIONS_EXTENSIONS = ['grove-sec-stopbit', 'grove-sec-lampbit', 'grove-sec-accessbit'];
 const CLE_REGLAGES = 'montageReglagesReplies';
 let basculeReglages = null;
 function reglagesReplies() { try { return localStorage.getItem(CLE_REGLAGES) === '1'; } catch (erreur) { return false; } }
@@ -1833,11 +1887,14 @@ function majReglages() {
     const replie = reglagesReplies();
     liste.classList.toggle('reglages-replies', actif && replie);
     // Aucun capteur a regler (seulement des actionneurs) : la liste disparait.
-    const visibles = SECTIONS_REGLAGES.filter(id => { const e = $(id); return e && !e.classList.contains('replie'); });
-    liste.classList.toggle('reglages-vides', actif && !visibles.length);
-    basculeReglages.hidden = !actif;
+    const presente = id => { const e = $(id); return e && !e.classList.contains('replie'); };
+    const visibles = SECTIONS_REGLAGES.filter(presente);
+    const extensions = SECTIONS_EXTENSIONS.filter(presente);
+    liste.classList.toggle('reglages-vides', actif && !visibles.length && !extensions.length);
+    basculeReglages.hidden = !actif || !visibles.length;   // pas de capteur : pas de volet, les extensions restent
     basculeReglages.setAttribute('aria-expanded', String(!replie));
     basculeReglages.textContent = (replie ? '▸ ' : '▾ ') + 'Réglages des capteurs';
+    rangerBientot();   // extensions Kitronik a placer avant (ou a remettre dans) les colonnes
 }
 
 // ---------- Capture de la simulation agrandie (comme la version Arduino R4, capturerSimulation, nov. 2026) ----------
@@ -1932,8 +1989,12 @@ function rangerTableau() {
     const visible = p => getComputedStyle(p).display !== 'none';
     if (!largeur) { signatureTableau = ''; return; }   // tableau cache : rien a mesurer
     const n = Math.max(1, Math.floor((largeur + ECART_PANNEAUX) / (LARGEUR_PANNEAU + ECART_PANNEAUX)));
-    const pleins = ordrePanneaux.filter(visible);
-    const signature = n + '|' + pleins.map(p => p.id).join(',');
+    // Montage dans la colonne : les extensions Kitronik (feu, lampadaire, barriere) vont AU-DESSUS du volet « Reglages
+    // des capteurs », dans leur propre rangee, et non dans les colonnes que ce volet replie.
+    const aPart = liste.classList.contains('montage-reglages');
+    const estExtension = p => aPart && SECTIONS_EXTENSIONS.includes(p.id);
+    const pleins = ordrePanneaux.filter(p => visible(p) && !estExtension(p));
+    const signature = n + '|' + aPart + '|' + pleins.map(p => p.id).join(',');
     if (signature === signatureTableau && liste.querySelector(':scope > .tab-colonnes')) return;
     if (enSaisie(liste)) return;   // champ en cours de modification : on rangera quand il sera quitte (focusout)
     signatureTableau = signature;
@@ -1947,7 +2008,7 @@ function rangerTableau() {
     const rang = p => ordrePanneaux.indexOf(p);
     cols.forEach(c => c.panneaux.sort((a, b) => rang(a) - rang(b)));
     cols.sort((a, b) => (a.panneaux.length ? rang(a.panneaux[0]) : 1e6) - (b.panneaux.length ? rang(b.panneaux[0]) : 1e6));
-    ordrePanneaux.filter(p => !visible(p)).forEach(p => cols[0].panneaux.push(p));   // panneaux caches : premiere colonne
+    ordrePanneaux.filter(p => !visible(p) && !estExtension(p)).forEach(p => cols[0].panneaux.push(p));   // panneaux caches : premiere colonne
     const bloc = document.createElement('div');
     bloc.className = 'tab-colonnes';
     cols.forEach(c => {
@@ -1959,6 +2020,16 @@ function rangerTableau() {
     const ancien = liste.querySelector(':scope > .tab-colonnes');
     if (ancien) ancien.remove();
     liste.appendChild(bloc);
+    const ancienneRangee = liste.querySelector(':scope > .tab-extensions');
+    if (ancienneRangee) ancienneRangee.remove();
+    const extensions = ordrePanneaux.filter(estExtension);
+    if (extensions.length) {
+        const rangee = document.createElement('div');
+        rangee.className = 'tab-extensions';
+        extensions.forEach(p => rangee.appendChild(p));
+        const bascule = $('montage-reglages-bascule');
+        liste.insertBefore(rangee, bascule && bascule.parentNode === liste ? bascule : liste.firstChild);
+    }
 }
 // Minuterie courte (comme le modele) plutot que requestAnimationFrame, suspendu quand l'onglet n'est pas affiche.
 let minuterieTableau = null;

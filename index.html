@@ -1189,7 +1189,11 @@
     #grove-panneau.montage-reglages .grove-bloc:not(#grove-sec-ultrason):not(#grove-sec-joystick):not(#grove-sec-potentiometre):not(#grove-sec-bouton):not(#grove-sec-lumiere):not(#grove-sec-pir):not(#grove-sec-pression):not(#grove-sec-cov):not(#grove-sec-gestes):not(#grove-sec-th):not(#grove-sec-co2):not(#grove-sec-couleur):not(#grove-sec-radio):not(#grove-sec-stopbit):not(#grove-sec-lampbit):not(#grove-sec-accessbit) { display: none !important; }
     /* Bouton poussoir : il s'actionne dans le montage ; seule la case « maintenu enfonce » reste a regler. */
     #grove-panneau.montage-reglages #grove-bouton-appui { display: none; }
-    #grove-panneau.montage-reglages.reglages-replies .grove-bloc { display: none !important; }
+    #grove-panneau.montage-reglages.reglages-replies .grove-bloc:not(#grove-sec-stopbit):not(#grove-sec-lampbit):not(#grove-sec-accessbit) { display: none !important; }
+    /* Extensions Kitronik (feu, lampadaire, barriere) : toujours visibles, placees AVANT le volet « Reglages des
+       capteurs » (montage.js, rangerTableau : rangee .tab-extensions) ; le montage ne les dessine pas, les replier
+       les faisait disparaitre. */
+    #grove-panneau .tab-extensions { display: flex; flex-wrap: wrap; gap: 0 18px; }
     #grove-panneau.montage-reglages.reglages-vides { display: none !important; }
     .montage-appui { cursor: pointer; touch-action: none; }
     .montage-appui:focus { outline: none; }
@@ -1198,6 +1202,7 @@
     .mv-manette { transition: transform 0.15s ease-out; }
     .montage-4d { transform-origin: 0 0; display: flex; align-items: center; }
     .mv-palonnier { transform-box: view-box; transition: transform 0.25s ease-out; }
+    .mv-kbras { transform-box: view-box; transition: transform 1s ease-in-out; }   /* barriere ACCESS:bit cablee (montage.js) */
     .mv-palonnier.mv-tourne { animation: servo-tour var(--duree, 2s) linear infinite; transition: none; }
     .mv-palonnier.mv-tourne.inverse { animation-direction: reverse; }
     /* Servomoteur dessine d'apres le modele : roue du servo continu (meme vitesse que le cadran de « Peripheriques ») */
@@ -2398,7 +2403,7 @@
             </svg>
             <div class="stopbit-legende">
               <div id="grove-lampbit-etat" aria-live="polite">Lampe (P0) : éteinte</div>
-              <label for="grove-lampbit-lumiere">Lumière ambiante (P1) : <b id="grove-lampbit-lumiere-val">600</b></label>
+              <label for="grove-lampbit-lumiere"><span>Lumière ambiante</span> (<span id="grove-lampbit-capteur">P1</span>) : <b id="grove-lampbit-lumiere-val">600</b></label>
             </div>
           </div>
           <input type="range" id="grove-lampbit-lumiere" min="0" max="1023" value="600" aria-label="Lumière ambiante du LAMP:bit (0 à 1023)">
@@ -2994,6 +2999,10 @@
         def ticks_us(self): return 0
 
     class Display:
+        # display.off() / on() : ecrits par le cablage des cartes Kitronik (broche de la matrice) ; sans effet ici.
+        def off(self): pass
+        def on(self): pass
+        def is_on(self): return True
         def clear(self): 
             window.simu_effacerEcran()
             
@@ -3305,7 +3314,7 @@
         window.simu_groveSortie('buzzer', broche.id_pin, 0)
     def _grove_relais(broche, etat): window.simu_groveSortie('relais', broche.id_pin, 1 if etat else 0)
     # Extensions Kitronik (nov. 2026) : LAMP:bit (lampe P0, lumiere ambiante du curseur) et ACCESS:bit (barriere, bips)
-    def _lampbit_lampe(etat): window.simu_led('0', 1023 if etat else 0)
+    def _lampbit_lampe(etat): window.simu_led(window.simu_kitronikBroche('lampbit', 0), 1023 if etat else 0)
     def _lampbit_lumiere(): return int(window.simu_lampbitLumiere())
     def _accessbit_barriere(angle):
         window.simu_accessbit(int(angle))
@@ -3678,6 +3687,9 @@
             'pin_logo': PinMock('logo'), 'pin0': PinMock('0'), 'pin1': PinMock('1'), 'pin2': PinMock('2'),
             'pin8': PinMock('8'), 'pin12': PinMock('12'), 'pin13': PinMock('13'),
             'pin14': PinMock('14'), 'pin15': PinMock('15'), 'pin16': PinMock('16'),
+            # Broches de la matrice et P9 : cablage des cartes Kitronik (nov. 2026)
+            'pin3': PinMock('3'), 'pin4': PinMock('4'), 'pin6': PinMock('6'), 'pin7': PinMock('7'),
+            'pin9': PinMock('9'), 'pin10': PinMock('10'),
             'math': math,
             'random': random,
             # Grove : substituts des pilotes retires du code
