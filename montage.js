@@ -547,7 +547,8 @@ function hauteurModule(m, cote) {
 /** Largeur occupee par un module (au moins la case MODULE.l), pour le rangement. */
 function largeurModule(m, cote) {
     const def = dimensions(m);
-    if (!def) return MODULE.l;
+    // ACCESS:bit : la barriere deborde de la carte ; sa place la contient (sinon elle chevauchait le module voisin).
+    if (!def) return m.picto === 'accessbit' ? LARGEUR_ACCESSBIT : MODULE.l;
     const rot = rotationVers(def, cote || coteVoulu(m));
     return Math.max(MODULE.l, ((rot % 180 ? def.hauteur : def.largeur) + 2 * (def.deborde || 0)) * K_MODULE);
 }
@@ -793,15 +794,17 @@ const sensKitronik = m => (m.cote === 'g' ? -1 : 1);
 // o : { x0, y0 (coin haut gauche de la carte), k (echelle), miroir (barriere vers la droite), bras (longueur, en
 // unites de la scene), police (taille des inscriptions) }.
 const PASTILLES_ACCESSBIT_U = [23, 87, 160, 232, 295], PASTILLE_ACCESSBIT_V = 30;
+const CONTOUR_KITRONIK = '#7a7f87';   // contour des cartes noires (contraste avec le fond sombre du montage)
 function accessbitT(o) {
     const k = o.k, X = u => o.x0 + k * (o.miroir ? 325 - u : u), Y = v => o.y0 + k * v;
     const NOIR = '#1c1c1f', BLANC = '#f4f4f4', police = o.police || 10;
     const chemin = pts => 'M' + pts.map(([u, v]) => X(u).toFixed(1) + ' ' + Y(v).toFixed(1)).join(' L') + ' Z';
     const ecrit = (u, v, t, taille, couleur) => texte(X(u), Y(v), t,
-        `fill="${couleur || BLANC}" font-family="sans-serif" font-size="${taille || police}" text-anchor="middle"`);
+        `fill="${couleur || BLANC}" font-family="sans-serif" font-size="${taille || police}" font-weight="600" text-anchor="middle"`);
     const pads = PASTILLES_ACCESSBIT_U.map(u => ({ x: X(u), y: Y(PASTILLE_ACCESSBIT_V) }));
     const pivot = { x: X(40), y: Y(435) };
-    let svg = `<path d="${chemin([[0, 0], [325, 0], [325, 100], [240, 100], [240, 250], [325, 250], [325, 580], [100, 580], [100, 100], [0, 100]])}" fill="${NOIR}"/>`;
+    // Contour gris clair (audit ui-ux-pro-max, nov. 2026) : la carte noire se detache du fond sombre du montage.
+    let svg = `<path d="${chemin([[0, 0], [325, 0], [325, 100], [240, 100], [240, 250], [325, 250], [325, 580], [100, 580], [100, 100], [0, 100]])}" fill="${NOIR}" stroke="${CONTOUR_KITRONIK}" stroke-width="1.5" stroke-linejoin="round"/>`;
     // Profil en I cerclé de blanc sur la tige, et filet blanc sous la barre (barre allongee : les inscriptions des
     // pastilles restent visibles sous le bord de la micro:bit vissee).
     svg += `<path d="${chemin([[120, 106], [220, 106], [220, 570], [120, 570]])}" fill="none" stroke="${BLANC}" stroke-width="${Math.max(1, 2.5 * k)}"/>` +
@@ -810,8 +813,11 @@ function accessbitT(o) {
     // Grosses pastilles et inscriptions.
     svg += pads.map(p => cercle(p.x, p.y, 16 * k, `fill="#ffe14d" stroke="#c9a54a" stroke-width="${Math.max(1, 2 * k)}"`) +
                          cercle(p.x, p.y, 7 * k, `fill="${NOIR}"`)).join('') +
-           [['P0', 'BARRIER'], ['P1', 'BUZZER'], ['P2'], ['3V'], ['0V']].map(([a, b], i) =>
-               ecrit(PASTILLES_ACCESSBIT_U[i], 86, a) + (b ? ecrit(PASTILLES_ACCESSBIT_U[i], 86 + 0.95 * police / k, b, police * 0.85) : '')).join('');
+           // Deux lignes sous chaque pastille, la seconde finit avant le filet blanc (v 99) quelle que soit l'echelle.
+           [['P0', 'BARRIER'], ['P1', 'BUZZER'], ['P2'], ['3V'], ['0V']].map(([a, b], i) => {
+               const ecart = 0.95 * police / k, v1 = Math.min(86, 97.5 - ecart);
+               return ecrit(PASTILLES_ACCESSBIT_U[i], v1, a) + (b ? ecrit(PASTILLES_ACCESSBIT_U[i], v1 + ecart, b, police * 0.85) : '');
+           }).join('');
     // Petites pastilles, buzzer, interrupteur.
     svg += [140, 155, 170].map(u => cercle(X(u), Y(118), 5 * k, 'fill="#c9a54a"')).join('') +
            cercle(X(160), Y(190), 44 * k, `fill="#141416" stroke="#3a3a3e" stroke-width="${Math.max(1, 2 * k)}"`) + cercle(X(160), Y(190), 5 * k, 'fill="#5a5a5e"') +
@@ -839,11 +845,13 @@ function accessbitT(o) {
            '</g>' + cercle(pivot.x, pivot.y, 45 * k, 'fill="#e63a2c"') + cercle(pivot.x, pivot.y, 12 * k, 'fill="#c0c4c8" stroke="#7a7f85"');
     return { svg, pads, pivot, bas: Y(580) };
 }
-/** ACCESS:bit cablee par des fils, dans un module : carte en T a l'echelle du montage, barriere vers l'exterieur. */
-const ECHELLE_ACCESSBIT = 150 / 325;
+/** ACCESS:bit cablee par des fils, dans un module : carte en T a l'echelle du montage, barriere vers l'exterieur.
+    La place reservee (LARGEUR_ACCESSBIT) contient aussi la barriere : la carte est decalee du cote oppose au bras,
+    pour que rien ne deborde sur le module voisin. */
+const ECHELLE_ACCESSBIT = 150 / 325, LARGEUR_ACCESSBIT = 280;
 function accessbitModule(m, cx, cy) {
-    const haut = cy - MODULE.h / 2;
-    return accessbitT({ x0: cx - 75, y0: haut, k: ECHELLE_ACCESSBIT, miroir: m.cote === 'd', bras: 120, police: 7 });
+    const haut = cy - MODULE.h / 2, miroir = m.cote === 'd';
+    return accessbitT({ x0: cx - 75 + (miroir ? -50 : 50), y0: haut, k: ECHELLE_ACCESSBIT, miroir, bras: 115, police: 9 });
 }
 /** Pastilles d'une carte Kitronik : colonne le long du bord tourne vers la carte d'extension (ACCESS:bit : rangee en
     haut, comme sur la carte). */
@@ -865,12 +873,17 @@ function dessinKitronik(m, cx, cy) {
     const NOIR = '#1c1c1f', BLANC = '#f4f4f4';
     const ecrit = (dx, dy, t, taille, anc) => texte(X(dx), Y(dy), t,
         `fill="#e8e8e8" font-family="sans-serif" font-size="${taille || 7}" text-anchor="${anc === 'm' ? 'middle' : (k > 0) === (anc !== 'e') ? 'start' : 'end'}"`);
-    const pied = () => `<path d="M${X(-44)} ${Y(200)} L${X(-30)} ${Y(186)} H${X(30)} L${X(44)} ${Y(200)} Z" fill="${NOIR}"/>` +
+    const contour = `stroke="${CONTOUR_KITRONIK}" stroke-width="1.5"`;
+    const pied = () => `<path d="M${X(-44)} ${Y(200)} L${X(-30)} ${Y(186)} H${X(30)} L${X(44)} ${Y(200)} Z" fill="${NOIR}" ${contour}/>` +
                        ecrit(0, 197, 'Kitronik', 8, 'm');
     let s = '';
     if (m.picto === 'stopbit') {
-        s += r(cx - 15, Y(96), 30, 92, `fill="${NOIR}"`) + pied() +
+        s += r(cx - 15, Y(96), 30, 92, `fill="${NOIR}" ${contour}`) + pied() +
              r(cx - 34, Y(0), 68, 100, `rx="16" fill="#141416" stroke="${BLANC}" stroke-width="2"`);
+        // Halo plat (sans flou) autour de chaque feu, sur la tete, visible quand il est allume (majVivant).
+        ['#e2261f', '#ffc21a', '#25b356'].forEach((c, i) => {
+            s += cercle(cx, Y(24 + i * 26), 16, `class="mv-khalo-feu" data-k="${['rouge', 'orange', 'vert'][i]}" fill="${c}" opacity="0"`);
+        });
         [['#e2261f', '#4a1714', '#ffb3ad', 'rouge'], ['#ffc21a', '#4f4012', '#fff1b0', 'orange'], ['#25b356', '#123a22', '#a8f0c0', 'vert']]
             .forEach(([on, off, reflet, cle], i) => {
                 const y = Y(24 + i * 26);
@@ -881,7 +894,7 @@ function dessinKitronik(m, cx, cy) {
     } else if (m.picto === 'lampbit') {
         // Crosse : du haut du poteau vers l'exterieur, LED blanche pendue au bout (halo quand elle est allumee).
         s += `<ellipse class="mv-khalo" cx="${X(70)}" cy="${Y(56)}" rx="22" ry="12" fill="#fff3b0" opacity="0"/>` +
-             r(cx - 15, Y(24), 30, 164, `fill="${NOIR}"`) + pied() +
+             r(cx - 15, Y(24), 30, 164, `fill="${NOIR}" ${contour}`) + pied() +
              `<path d="M${X(10)} ${Y(30)} H${X(46)} L${X(60)} ${Y(20)} H${X(80)} V${Y(30)} H${X(64)} L${X(50)} ${Y(40)} H${X(10)} Z" fill="${NOIR}" stroke="${BLANC}" stroke-width="1.5"/>` +
              `<path class="mv-klampe" d="M${X(62)} ${Y(32)} H${X(78)} V${Y(40)} A8 8 0 0 1 ${X(62)} ${Y(40)} Z" fill="#cfcabd" stroke="#9c978a" stroke-width="0.8"/>` +
              r(cx - 6, Y(4), 12, 22, 'rx="6" fill="#d9dde0" opacity="0.85"') +
@@ -899,9 +912,10 @@ function dessinKitronik(m, cx, cy) {
     }
     // Pastilles et inscriptions de la carte (les fils s'y terminent, voir le trace des fils).
     pastillesKitronik(m, cx, cy).forEach(({ x, y }, i) => {
+        // Inscriptions agrandies (audit ui-ux-pro-max : 7 unites etaient illisibles une fois la scene reduite).
         s += cercle(x, y, 5, 'fill="#c9a54a" stroke="#8a6d22"') + cercle(x, y, 2, `fill="${NOIR}"`) +
-             texte(x + k * 9, y + 3, INSCRIPTIONS_KITRONIK[m.picto][i],
-                   `fill="#e8e8e8" font-family="sans-serif" font-size="7" text-anchor="${k > 0 ? 'start' : 'end'}"`);
+             texte(x + k * 9, y + 3.5, INSCRIPTIONS_KITRONIK[m.picto][i],
+                   `fill="#ffffff" font-family="sans-serif" font-size="10" font-weight="600" text-anchor="${k > 0 ? 'start' : 'end'}"`);
     });
     return s;
 }
@@ -1174,7 +1188,10 @@ function dessinerScene(etat) {
                 if (m.picto === 'accessbit') {
                     // Pastilles en rangee en haut de la carte : le fil passe au-dessus du module, puis descend sur sa pastille.
                     const yRang = m.y - 16 - i * 5;
-                    const passage = lateral ? [[cxK - k * (88 + i * 4), f.y], [cxK - k * (88 + i * 4), yRang], [p.x, yRang]] : [[f.x, yRang], [p.x, yRang]];
+                    // Couloir le long du bord de la carte tourne vers la carte d'extension (la carte est decalee dans sa place).
+                    const xs = pads.map(q => q.x), bord = k > 0 ? Math.min(...xs) - 23 * ECHELLE_ACCESSBIT : Math.max(...xs) + 30 * ECHELLE_ACCESSBIT;
+                    const xc = bord - k * (14 + i * 4);
+                    const passage = lateral ? [[xc, f.y], [xc, yRang], [p.x, yRang]] : [[f.x, yRang], [p.x, yRang]];
                     filsDessus += dessinFil(Object.assign({}, f, { passage }), { x: p.x, y: p.y, d: [0, 1] }, 0);
                 } else if (!lateral) {
                     const xc = cxK - k * (52 + i * 5), yRang = m.y - 18 - i * 5;
@@ -1454,18 +1471,26 @@ function dessinVissee(ext) {
         // rester sous la micro:bit une fois levee.
         const kV = (a[4].x - a[0].x) / (PASTILLES_ACCESSBIT_U[4] - PASTILLES_ACCESSBIT_U[0]);
         const t = accessbitT({ x0: a[0].x - PASTILLES_ACCESSBIT_U[0] * kV, y0: a[0].y - PASTILLE_ACCESSBIT_V * kV, k: kV, bras: 290, police: 11 });
-        s += t.svg + r(CARTE.x, CARTE.y, CARTE.l, CARTE.h, 'fill="none"');
-        return { bas: s, hauteur: t.bas + 30 };
+        // Etat ecrit sous la carte (« barriere levee »), comme la valeur des autres modules (majVivant).
+        s += t.svg + r(CARTE.x, CARTE.y, CARTE.l, CARTE.h, 'fill="none"') +
+             texte(CARTE.x + 140, t.bas + 30, '', 'class="montage-valeur mv-ketat" data-ext="accessbit" text-anchor="middle"');
+        return { bas: s, hauteur: t.bas + 50 };
     }
     // Poteau debout a gauche de la micro:bit tournee : sa moitie droite passe sous la carte, ses pastilles sous les anneaux.
     const px = a[0].x, gauche = px - 92, milieu = px - 64, haut = ext === 'stopbit' ? 120 : 40, bas = 412;
-    s += r(gauche, haut, 120, bas - haut, `fill="${NOIR}"`) + a.map(pastille).join('') +
-         `<path d="M${milieu - 62} ${bas + 20} L${milieu - 44} ${bas} H${milieu + 44} L${milieu + 62} ${bas + 20} Z" fill="${NOIR}"/>` +
-         ecrit(milieu, bas + 16, 'Kitronik', 12, 'middle');
+    const contour = `stroke="${CONTOUR_KITRONIK}" stroke-width="1.5"`;
+    s += r(gauche, haut, 120, bas - haut, `fill="${NOIR}" ${contour}`) + a.map(pastille).join('') +
+         `<path d="M${milieu - 62} ${bas + 20} L${milieu - 44} ${bas} H${milieu + 44} L${milieu + 62} ${bas + 20} Z" fill="${NOIR}" ${contour}/>` +
+         ecrit(milieu, bas + 16, 'Kitronik', 12, 'middle') +
+         texte(milieu + 60, bas + 48, '', `class="montage-valeur mv-ketat" data-ext="${ext}" text-anchor="middle"`);
     const inscriptions = ext === 'stopbit' ? ['RED', 'YLW', 'GRN', '3V', 'GND'] : ['LAMP', 'DETECT', '2', '3V', '0V'];
-    s += inscriptions.map((t, i) => ecrit(gauche + 8, a[i].y + 4, t, 11)).join('');
+    s += inscriptions.map((t, i) => texte(gauche + 8, a[i].y + 4.5, t,
+        'fill="#ffffff" font-family="sans-serif" font-size="12" font-weight="600"')).join('');
     if (ext === 'stopbit') {
         s += r(milieu - 46, 6, 92, 120, `rx="20" fill="#141416" stroke="${BLANC}" stroke-width="3"`);
+        ['#e2261f', '#ffc21a', '#25b356'].forEach((c, i) => {   // halo plat sur la tete, sous chaque feu
+            s += cercle(milieu, 32 + i * 28, 19, `class="mv-khalo-feu" data-k="${['rouge', 'orange', 'vert'][i]}" fill="${c}" opacity="0"`);
+        });
         [['#e2261f', '#4a1714', '#ffb3ad', 'rouge'], ['#ffc21a', '#4f4012', '#fff1b0', 'orange'], ['#25b356', '#123a22', '#a8f0c0', 'vert']]
             .forEach(([on, off, reflet, cle], i) => {
                 const y = 32 + i * 28;
@@ -1485,7 +1510,7 @@ function dessinVissee(ext) {
     // Place de la micro:bit tournee (pour le recadrage de la vue : la carte HTML n'est pas dans le dessin).
     const { l, t } = VISSEE_TOURNEE;
     s += r(l + 25, t - 25, 230, 280, 'fill="none"');
-    return { bas: s, hauteur: bas + 40 };
+    return { bas: s, hauteur: bas + 64 };
 }
 /** Vis argentees sur les anneaux (par-dessus la micro:bit). */
 function visVissee(ext) {
@@ -2168,6 +2193,27 @@ function installerAppuis() {
     });
 }
 
+/** Etat d'une carte Kitronik, lu dans « Peripheriques » : ecrit sous la carte dans le montage. */
+function etatKitronik(ext) {
+    if (ext === 'stopbit') {
+        const allumes = ['rouge', 'orange', 'vert'].filter(k => {
+            const feu = document.querySelector('#grove-stopbit-visuel .stopbit-feu.' + k);
+            return feu && feu.classList.contains('allume');
+        });
+        const texte = !allumes.length ? 'feux éteints' : allumes.length === 1 ? 'feu ' + allumes[0] : allumes.join(' et ');
+        return trTexte(texte);
+    }
+    if (ext === 'lampbit') {
+        const lampe = $('grove-lampbit-visuel');
+        return trTexte(lampe && lampe.classList.contains('allume') ? 'lampe allumée' : 'lampe éteinte');
+    }
+    // Angle du bras de « Peripheriques » (rotate(-90) = levee), independant de la langue de la legende.
+    const bras = $('grove-accessbit-bras'), a = bras ? /rotate\((-?[\d.]+)/.exec(bras.getAttribute('transform') || '') : null;
+    return trTexte(a && Number(a[1]) < -45 ? 'barrière levée' : 'barrière baissée');
+}
+// Cartes Kitronik cablees : leur etat s'ecrit sous le module, comme la valeur des autres modules (data-vivant).
+Object.assign(LECTEURS, { stopbit: () => etatKitronik('stopbit'), lampbit: () => etatKitronik('lampbit'), accessbit: () => etatKitronik('accessbit') });
+
 function majVivant() {
     if (mode === 'carte') return;
     for (const g of $$('#montage-svg-bas .montage-module[data-vivant]')) {
@@ -2182,6 +2228,15 @@ function majVivant() {
     for (const c of $$('#montage-svg-bas .mv-kfeu')) {
         const feu = document.querySelector('#grove-stopbit-visuel .stopbit-feu.' + c.dataset.k);
         c.setAttribute('fill', feu && feu.classList.contains('allume') ? c.dataset.on : c.dataset.off);
+    }
+    // Halo plat derriere le feu allume, et etat ecrit sous une carte vissee (pas la couleur seule : audit ui-ux-pro-max).
+    for (const c of $$('#montage-svg-bas .mv-khalo-feu')) {
+        const feu = document.querySelector('#grove-stopbit-visuel .stopbit-feu.' + c.dataset.k);
+        c.setAttribute('opacity', feu && feu.classList.contains('allume') ? '0.35' : '0');
+    }
+    for (const t of $$('#montage-svg-bas .mv-ketat')) {
+        const v = etatKitronik(t.dataset.ext);
+        if (t.textContent !== v) t.textContent = v;
     }
     const lampe = $('grove-lampbit-visuel');
     const allumee = !!(lampe && lampe.classList.contains('allume'));

@@ -2627,17 +2627,26 @@ try {
         const utilisees = exts.filter(e => types.some(t => t.startsWith(e + '_')));
         const auto = ignorerManuel || utilisees.length >= 2 || (utilisees.length >= 1 && blocsMotorbit);
         const occupees = new Set(['pin5', 'pin11']);
+        // Carte Grove Shield (carte du montage par defaut) : P0 / P14, P1 / P15 et P2 / P16 sortent sur le MEME port ;
+        // une broche prise reserve aussi sa partenaire (sinon deux cartes se retrouvaient sur un port partage).
+        const grove = !motorbit && choix !== 'bitmaker' && !types.some(t => /^dfr_/.test(t));
+        const PARTENAIRE_GROVE = { pin0: 'pin14', pin14: 'pin0', pin1: 'pin15', pin15: 'pin1', pin2: 'pin16', pin16: 'pin2' };
+        const occuper = p => { occupees.add(p); if (grove && PARTENAIRE_GROVE[p]) occupees.add(PARTENAIRE_GROVE[p]); };
         if (motorbit) RESERVEES_MOTORBIT_KITRONIK.forEach(p => occupees.add(p));
         // Broches des autres blocs (Grove, servos, entrees/sorties...) : tout champ dont la valeur est « pinN ».
         blocs.filter(b => !/^(stopbit|lampbit|accessbit)_/.test(b.type)).forEach(b => b.inputList.forEach(entree =>
-            entree.fieldRow.forEach(champ => { const v = champ.getValue && champ.getValue(); if (typeof v === 'string' && /^pin\d+$/.test(v)) occupees.add(v); })));
+            entree.fieldRow.forEach(champ => { const v = champ.getValue && champ.getValue(); if (typeof v === 'string' && /^pin\d+$/.test(v)) occuper(v); })));
         const res = {};
         exts.forEach(e => {
             const c = CABLAGE_KITRONIK[e];
             const bloc = !ignorerManuel && blocs.find(b => b.type === c.bloc);
-            if (bloc) { res[e] = { pins: c.champs.map(ch => bloc.getFieldValue(ch)), mode: 'manuel', utilisee: true }; res[e].pins.forEach(p => occupees.add(p)); }
+            if (bloc) { res[e] = { pins: c.champs.map(ch => bloc.getFieldValue(ch)), mode: 'manuel', utilisee: true }; res[e].pins.forEach(occuper); }
         });
-        const prendre = (liste, defaut) => { const p = liste.find(x => !occupees.has(x)) || defaut; occupees.add(p); return p; };
+        // Les broches d'une meme carte peuvent partager un port (elles vont au meme module) : on reserve les
+        // partenaires seulement une fois la carte entierement cablee.
+        let enCours = [];
+        const prendre = (liste, defaut) => { const p = liste.find(x => !occupees.has(x)) || defaut; occupees.add(p); enCours.push(p); return p; };
+        const finirCarte = () => { enCours.forEach(occuper); enCours = []; };
         // Ordre fixe : le plus contraint d'abord (capteur analogique), puis le servo (P13 a P16 de preference).
         ['lampbit', 'accessbit', 'stopbit'].forEach(e => {
             if (res[e]) return;
@@ -2646,6 +2655,7 @@ try {
             const pins = e === 'lampbit'
                 ? (() => { const capteur = prendre(ANALOGIQUES_AUTO_KITRONIK, 'pin1'); return [prendre(ORDRE_AUTO_KITRONIK, 'pin0'), capteur]; })()
                 : c.defaut.map(d => prendre(ORDRE_AUTO_KITRONIK, d));
+            finirCarte();
             res[e] = { pins, mode: 'auto', utilisee: true };
         });
         if (!ignorerManuel) cacheCablage = { cle, res };

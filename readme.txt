@@ -1673,3 +1673,22 @@ interdit", qui pivote sur l'axe du servo. Un seul dessin (montage.js : accessbit
 - cablee par fils : module de 150 x 272, barriere vers l'exterieur ; ses fils passent au-dessus du module et
   descendent sur la rangee de pastilles du haut (verifie : 18 fils sur 18 sur leurs pastilles, aucun ne traverse une
   carte).
+
+53. RENDU DES CARTES KITRONIK REVU AVEC LE SKILL UI-UX-PRO-MAX (nov. 2026)
+Audit (regles du skill : contraste 4,5:1 pour les textes, respect de "reduire les animations", style a plat sans
+lueur ni ombre, l'etat ne doit pas reposer sur la couleur seule) puis corrections :
+- inscriptions des pastilles agrandies et en gras (10 unites au lieu de 7, 12 sur une carte vissee ; ACCESS:bit 9) ;
+- contour gris clair (#7a7f87) autour des cartes noires : elles se detachaient a peine du fond sombre (1,2:1) ;
+- halo plat autour du feu allume (cercle de sa couleur, opacite 0,35, sans flou) ;
+- etat ecrit sous la carte, comme la valeur des autres modules : "feu rouge", "rouge et orange", "feux eteints",
+  "lampe allumee / eteinte", "barriere levee / baissee" (montage.js : etatKitronik, LECTEURS ; carte vissee :
+  .mv-ketat) ; traduit en anglais ;
+- "reduire les animations" demande par le systeme : la barriere prend sa position sans pivoter (index.html).
+Deux defauts de fonctionnement trouves pendant l'audit et corriges :
+- l'ACCESS:bit cablee chevauchait le module voisin : sa place fait 280 de large (barriere comprise), la carte y est
+  decalee du cote oppose au bras (montage.js : LARGEUR_ACCESSBIT, largeurModule) ;
+- le cablage automatique ignorait les ports de la Grove Shield (P0 / P14, P1 / P15, P2 / P16 sur le meme port) : il
+  pouvait mettre deux cartes sur un port partage. Une broche prise reserve maintenant sa partenaire, sauf entre
+  broches d'une meme carte (un.js : PARTENAIRE_GROVE, finirCarte).
+Verifie (trois cartes sur la Grove Shield) : aucun conflit, aucun chevauchement, 19 fils sur 19 sur leurs pastilles,
+aucun ne traverse une carte.
