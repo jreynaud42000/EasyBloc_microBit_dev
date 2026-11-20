@@ -1692,3 +1692,9 @@ Deux defauts de fonctionnement trouves pendant l'audit et corriges :
   broches d'une meme carte (un.js : PARTENAIRE_GROVE, finirCarte).
 Verifie (trois cartes sur la Grove Shield) : aucun conflit, aucun chevauchement, 19 fils sur 19 sur leurs pastilles,
 aucun ne traverse une carte.
+LAMP:bit redessine d'apres la photo du fabricant (nov. 2026, demande de l'utilisateur) : poteau etroit au sommet
+arrondi (capteur au bout), crosse effilee cerclee de blanc terminee par une tete arrondie qui porte la LED (halo dessous
+quand elle est allumee), "LAMP:bit" et ovale "Kitronik" sur le poteau, inscriptions courtes P0, P1, P2, 3V, 0V comme
+sur la carte, pied etroit. Vissee : 30 unites de poteau visibles a gauche de la micro:bit au lieu de 55 (les anneaux
+etant a 37 unites du bord de la micro:bit, le reste du poteau passe dessous) ; montage.js : dessinLampbitVisse.
+Cablee par fils : meme forme en petit (dessinKitronik). Les autres cartes ne changent pas.

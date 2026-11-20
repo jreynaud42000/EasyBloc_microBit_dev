@@ -780,7 +780,7 @@ const HAUTEUR_KITRONIK = 204;   // hauteur reservee dans le montage (au lieu de 
 const HAUTEUR_ACCESSBIT = 272;  // carte en T de l'ACCESS:bit (580 x 150 / 325)
 const INSCRIPTIONS_KITRONIK = {
     stopbit: ['0 RED', '1 YLW', '2 GRN', '3V', 'GND'],
-    lampbit: ['0 LAMP', '1 DETECT', '2', '3V', '0V'],
+    lampbit: ['P0', 'P1', 'P2', '3V', '0V'],   // comme sur la carte (photo)
     accessbit: ['0 SERVO', '1 BUZZ', '2', '3V', 'GND'],
 };
 const sensKitronik = m => (m.cote === 'g' ? -1 : 1);
@@ -892,13 +892,17 @@ function dessinKitronik(m, cx, cy) {
             });
         s += ecrit(0, 92, 'STOP:bit', 7, 'm');
     } else if (m.picto === 'lampbit') {
-        // Crosse : du haut du poteau vers l'exterieur, LED blanche pendue au bout (halo quand elle est allumee).
-        s += `<ellipse class="mv-khalo" cx="${X(70)}" cy="${Y(56)}" rx="22" ry="12" fill="#fff3b0" opacity="0"/>` +
-             r(cx - 15, Y(24), 30, 164, `fill="${NOIR}" ${contour}`) + pied() +
-             `<path d="M${X(10)} ${Y(30)} H${X(46)} L${X(60)} ${Y(20)} H${X(80)} V${Y(30)} H${X(64)} L${X(50)} ${Y(40)} H${X(10)} Z" fill="${NOIR}" stroke="${BLANC}" stroke-width="1.5"/>` +
-             `<path class="mv-klampe" d="M${X(62)} ${Y(32)} H${X(78)} V${Y(40)} A8 8 0 0 1 ${X(62)} ${Y(40)} Z" fill="#cfcabd" stroke="#9c978a" stroke-width="0.8"/>` +
-             r(cx - 6, Y(4), 12, 22, 'rx="6" fill="#d9dde0" opacity="0.85"') +
-             ecrit(0, 62, 'LAMP', 7, 'm') + ecrit(0, 71, ':bit', 7, 'm');
+        // D'apres la photo (nov. 2026) : poteau etroit au sommet arrondi (capteur au bout), crosse effilee cerclee de
+        // blanc vers l'exterieur, tete arrondie avec la LED (halo dessous quand elle est allumee), ovale « Kitronik ».
+        const P = (dx, dy) => X(dx) + ' ' + Y(dy), tete = { x: X(80), y: Y(44) };
+        s += `<ellipse class="mv-khalo" cx="${tete.x}" cy="${tete.y + 14}" rx="20" ry="10" fill="#fff3b0" opacity="0"/>` +
+             `<path d="M${P(-15, 188)} V${Y(24)} A15 15 0 0 ${k > 0 ? 1 : 0} ${X(15)} ${Y(24)} V${Y(188)} Z" fill="${NOIR}" ${contour}/>` + pied() +
+             `<path d="M${P(15, 30)} C${P(36, 34)} ${P(50, 26)} ${P(66, 25)} C${P(78, 24)} ${P(84, 30)} ${P(87, 38)} L${P(87, 42)} ` +
+             `C${P(80, 38)} ${P(74, 36)} ${P(66, 37)} C${P(48, 39)} ${P(34, 48)} ${P(15, 46)} Z" fill="${NOIR}" stroke="${BLANC}" stroke-width="1.5" stroke-linejoin="round"/>` +
+             `<ellipse class="mv-klampe" cx="${tete.x}" cy="${tete.y}" rx="7" ry="4.5" fill="#cfcabd" stroke="#9c978a" stroke-width="0.8"/>` +
+             r(cx - 4, Y(12), 8, 6, 'rx="1.5" fill="#f2efe6" stroke="#9c978a" stroke-width="0.6"') +
+             ecrit(0, 62, 'LAMP', 7, 'm') + ecrit(0, 71, ':bit', 7, 'm') +
+             `<ellipse cx="${cx}" cy="${Y(92)}" rx="12" ry="5" fill="none" stroke="${BLANC}" stroke-width="1"/>`;
     } else {
         // Carte de l'ACCESS:bit, buzzer en haut, servomoteur bleu en bas ; la barriere pivote sur l'axe du servo.
         const ax = X(4), ay = Y(150);
@@ -1476,6 +1480,7 @@ function dessinVissee(ext) {
              texte(CARTE.x + 140, t.bas + 30, '', 'class="montage-valeur mv-ketat" data-ext="accessbit" text-anchor="middle"');
         return { bas: s, hauteur: t.bas + 50 };
     }
+    if (ext === 'lampbit') return dessinLampbitVisse(a);
     // Poteau debout a gauche de la micro:bit tournee : sa moitie droite passe sous la carte, ses pastilles sous les anneaux.
     const px = a[0].x, gauche = px - 92, milieu = px - 64, haut = ext === 'stopbit' ? 120 : 40, bas = 412;
     const contour = `stroke="${CONTOUR_KITRONIK}" stroke-width="1.5"`;
@@ -1511,6 +1516,42 @@ function dessinVissee(ext) {
     const { l, t } = VISSEE_TOURNEE;
     s += r(l + 25, t - 25, 230, 280, 'fill="none"');
     return { bas: s, hauteur: bas + 64 };
+}
+/** LAMP:bit vissee, d'apres la photo du fabricant (nov. 2026, demande de l'utilisateur) : poteau etroit (30 unites
+    visibles a gauche de la micro:bit ; les anneaux etant a 37 unites du bord de la carte, le reste passe dessous) au
+    sommet arrondi, capteur au bout ; crosse effilee cerclee de blanc vers la gauche, terminee par une tete arrondie qui
+    porte la LED ; « LAMP:bit » et ovale « Kitronik » au-dessus de la micro:bit ; inscriptions courtes P0, P1, P2, 3V,
+    0V ; pied etroit. */
+function dessinLampbitVisse(a) {
+    const NOIR = '#1c1c1f', BLANC = '#f4f4f4', contour = `stroke="${CONTOUR_KITRONIK}" stroke-width="1.5"`;
+    const gauche = VISSEE_TOURNEE.l - 5, droite = a[0].x + 14, centre = (gauche + droite) / 2, rayon = (droite - gauche) / 2;
+    const haut = 52, bas = 412, visible = (gauche + VISSEE_TOURNEE.l + 25) / 2;   // milieu de la bande visible
+    let s = `<path d="M${gauche} ${bas} V${haut} A${rayon} ${rayon} 0 0 1 ${droite} ${haut} V${bas} Z" fill="${NOIR}" ${contour}/>` +
+            r(centre - 7, haut - rayon + 6, 14, 10, 'rx="2" fill="#f2efe6" stroke="#9c978a" stroke-width="0.8"') +
+            texte(centre, haut + 14, 'LAMP:bit', 'fill="#ffffff" font-family="sans-serif" font-size="11" font-weight="600" text-anchor="middle"') +
+            `<ellipse cx="${centre}" cy="${haut + 40}" rx="26" ry="9" fill="none" stroke="${BLANC}" stroke-width="1.5"/>` +
+            texte(centre, haut + 43.5, 'Kitronik', 'fill="#ffffff" font-family="sans-serif" font-size="9" font-weight="600" text-anchor="middle"');
+    // Crosse effilee (forme relevee sur la photo) et tete arrondie avec la LED ; halo sous la LED allumee (majVivant).
+    const x0 = gauche, y0 = haut + 2;
+    const P = (dx, dy) => (x0 + dx) + ' ' + (y0 + dy);
+    const tete = { x: x0 - 122, y: y0 + 10 };   // centre de la tete arrondie au bout de la crosse
+    s += `<ellipse class="mv-khalo" cx="${tete.x}" cy="${tete.y + 30}" rx="30" ry="15" fill="#fff3b0" opacity="0"/>` +
+         `<path d="M${P(0, 0)} C${P(-36, 8)} ${P(-58, -6)} ${P(-86, -8)} C${P(-104, -9)} ${P(-114, -4)} ${P(-120, 0)} L${P(-120, 20)} ` +
+         `C${P(-110, 14)} ${P(-100, 9)} ${P(-86, 10)} C${P(-54, 14)} ${P(-30, 30)} ${P(0, 26)} Z" fill="${NOIR}" stroke="${BLANC}" stroke-width="2" stroke-linejoin="round"/>` +
+         cercle(tete.x, tete.y, 14, `fill="${NOIR}" stroke="${BLANC}" stroke-width="2"`) +
+         `<path class="mv-klampe" d="M${tete.x - 10} ${tete.y + 8} A10 10 0 0 0 ${tete.x + 10} ${tete.y + 8} Z" fill="#cfcabd" stroke="#9c978a" stroke-width="1"/>`;
+    // Pastilles sous les anneaux, inscriptions dans la bande visible.
+    s += a.map(p => cercle(p.x, p.y, 13, 'fill="#c9a54a" stroke="#8a6d22" stroke-width="1.5"')).join('') +
+         ['P0', 'P1', 'P2', '3V', '0V'].map((t, i) => texte(visible, a[i].y + 4.5, t,
+             'fill="#ffffff" font-family="sans-serif" font-size="12" font-weight="600" text-anchor="middle"')).join('');
+    // Pied etroit avec son ovale « Kitronik », et l'etat ecrit dessous.
+    s += `<path d="M${centre - 40} ${bas + 22} L${centre - 28} ${bas} H${centre + 28} L${centre + 40} ${bas + 22} Z" fill="${NOIR}" ${contour}/>` +
+         `<ellipse cx="${centre}" cy="${bas + 12}" rx="22" ry="7" fill="none" stroke="${BLANC}" stroke-width="1.2"/>` +
+         texte(centre, bas + 15, 'Kitronik', 'fill="#ffffff" font-family="sans-serif" font-size="8" font-weight="600" text-anchor="middle"') +
+         texte(centre + 60, bas + 50, '', 'class="montage-valeur mv-ketat" data-ext="lampbit" text-anchor="middle"');
+    const { l, t } = VISSEE_TOURNEE;
+    s += r(l + 25, t - 25, 230, 280, 'fill="none"');
+    return { bas: s, hauteur: bas + 66 };
 }
 /** Vis argentees sur les anneaux (par-dessus la micro:bit). */
 function visVissee(ext) {
