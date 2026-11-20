@@ -479,6 +479,16 @@ Cote simulateur, la section "Radio : message a recevoir" apparait des qu'un bloc
 reception" : le dispatcher le classe et appelle le bon gestionnaire, exactement
 comme sur la carte. La force du signal simulee vaut -42.
 
+Extensions (nov. 2026, variante B choisie par l'utilisateur) : Fichier > Blocs > "Extensions..." ouvre une
+fenetre de cartes (Radio, Servos, Cartes d'extension, Grove, Graphique, IA). Un clic sur une carte ajoute ou retire
+la categorie de la colonne des categories (effet immediat). Tout est affiche au depart ; le choix est retenu sur le
+PC (localStorage, cle easybloc_ts_extensions_retirees), a part du panneau administrateur (une categorie masquee par
+l'administrateur reste masquee). Retirer une extension n'efface pas ses blocs poses ; un programme qui en utilise
+une (fichier ouvert, exemple, exercice, Annuler, programme restaure) la remet toute seule (un.js, "EXTENSIONS").
+Puis (meme jour, demande de l'utilisateur) : la liste EXTENSIONS est VIDE pour l'instant ; la fenetre affiche
+"Aucune extension pour l'instant" et servira a proposer des fonctionnalites futures. Le mecanisme reste en
+place : ajouter une entree { nom, desc } a EXTENSIONS (les six categories testees sont en commentaire dans un.js).
+
 Proposition du multi-editeur radio (oct. 2026) : quand l'eleve glisse un bloc
 Radio dans la zone de programmation, un bandeau propose d'ouvrir le
 multi-editeur radio (Fichier > Multi-editeur radio : deux editeurs vierges cote

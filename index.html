@@ -450,6 +450,36 @@
     :root[data-theme="light"][data-contrast="high"] .fen-pied { background: #fff; border-top-color: #000; }
     :root[data-theme="light"][data-contrast="high"] .fen-btn:not(.principal) { background: #fff; color: #000; border-color: #000; }
     :root[data-theme="light"][data-contrast="high"] .fen-exemple { color: #000; }
+    /* Fenetre « Extensions » (un.js) : une carte par categorie facultative ; carte cliquable = activer / retirer. */
+    .fen-boite.ext-boite { width: min(620px, calc(100vw - 32px)); }
+    .ext-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+    .ext-carte { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 96px; margin: 0; padding: 10px 12px;
+                 text-align: left; font: inherit; font-size: 13px; font-weight: normal; color: inherit; background: #f4f4f6;
+                 border: 2px solid #d8d8dc; border-radius: 8px; cursor: pointer; transition: border-color .15s, background .15s; }
+    .ext-carte:hover { background: #ececf0; }
+    .ext-carte:focus-visible { outline: 3px solid var(--couleur-bandeau); outline-offset: 2px; }
+    .ext-carte[aria-pressed="true"] { border-color: var(--couleur-bandeau); }
+    .ext-nom { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+    .ext-puce { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; }
+    .ext-desc { color: #555; line-height: 1.35; flex: 1 1 auto; }
+    .ext-etat { font-size: 12px; font-weight: 600; color: #777; display: inline-flex; align-items: center; gap: 4px; }
+    .ext-carte[aria-pressed="true"] .ext-etat { color: var(--couleur-bandeau); }
+    .ext-note { font-size: 12px; color: #666; }
+    :root:not([data-theme="light"]) .ext-carte { background: #3a3d42; border-color: #4a4d53; }
+    :root:not([data-theme="light"]) .ext-carte:hover { background: #44474d; }
+    :root:not([data-theme="light"]) .ext-carte[aria-pressed="true"] { border-color: #ff7a33; }
+    :root:not([data-theme="light"]) .ext-carte[aria-pressed="true"] .ext-etat { color: #ff9a5c; }
+    :root:not([data-theme="light"]) .ext-desc, :root:not([data-theme="light"]) .ext-note { color: #b8bbc2; }
+    :root:not([data-theme="light"]) .ext-etat { color: #a8abb2; }
+    :root[data-contrast="high"] .ext-carte { background: #000; color: #fff; border-color: #888; }
+    :root[data-contrast="high"] .ext-carte[aria-pressed="true"] { border: 3px solid #fff; }
+    :root[data-contrast="high"] .ext-desc, :root[data-contrast="high"] .ext-note, :root[data-contrast="high"] .ext-etat,
+    :root[data-contrast="high"] .ext-carte[aria-pressed="true"] .ext-etat { color: #fff; }
+    :root[data-theme="light"][data-contrast="high"] .ext-carte { background: #fff; color: #000; border-color: #777; }
+    :root[data-theme="light"][data-contrast="high"] .ext-carte[aria-pressed="true"] { border-color: #000; }
+    :root[data-theme="light"][data-contrast="high"] .ext-desc, :root[data-theme="light"][data-contrast="high"] .ext-note,
+    :root[data-theme="light"][data-contrast="high"] .ext-etat,
+    :root[data-theme="light"][data-contrast="high"] .ext-carte[aria-pressed="true"] .ext-etat { color: #000; }
 
     /* Fenetre d'aide d'un bloc : meme aspect (titre sur bandeau de couleur, fond clair ou sombre, boutons). Le bloc de regles
        d'origine plus bas fixe la mise en page ; ces regles « :root » l'emportent pour les couleurs. */
@@ -1973,6 +2003,10 @@
         <!-- Multi-editeur radio (multi.html) : deux editeurs cote a cote, leurs simulations communiquent par radio -->
         <div class="menu-titre">Radio</div>
         <button id="multi-editeur-btn" title="Ouvre deux éditeurs côte à côte dans un nouvel onglet : les deux cartes simulées communiquent par radio"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>Multi-éditeur radio (2 cartes)</button>
+        <!-- Extensions (nov. 2026, variante B choisie par l'utilisateur) : fenetre de cartes, VIDE pour l'instant ; elle
+             servira a proposer des fonctionnalites futures (un.js, « Extensions ») -->
+        <div class="menu-titre">Blocs</div>
+        <button id="extensions-btn" title="Extensions : fonctionnalités supplémentaires (aucune pour l'instant)"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.4 13a2 2 0 0 0 0-4H18V6a2 2 0 0 0-2-2h-3v1.5a2 2 0 0 1-4 0V4H6a2 2 0 0 0-2 2v3h1.5a2 2 0 0 1 0 4H4v3a2 2 0 0 0 2 2h3v-1.5a2 2 0 0 1 4 0V18h3a2 2 0 0 0 2-2v-3z"/></svg>Extensions…</button>
       </div>
     </div>
 

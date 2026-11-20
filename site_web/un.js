@@ -5164,19 +5164,149 @@ try {
         return { kind: 'category', name: nomAffiche, colour: couleurAffichee, contents: contenuFinal };
     }
 
+    // ------------------------------------------
+    // EXTENSIONS — categories facultatives (menu Fichier > Extensions…, variante B choisie par l'utilisateur, nov. 2026)
+    // ------------------------------------------
+    // Comme les extensions de MakeCode : l'utilisateur affiche ou masque Radio, Servos, Cartes d'extension, Grove,
+    // Graphique et IA pour alleger la colonne des categories. Tout est affiche au depart. Le choix est retenu sur ce PC
+    // (localStorage), a part des reglages du panneau administrateur (une categorie masquee par l'administrateur reste
+    // masquee). Retirer une extension n'efface pas ses blocs deja poses ; un programme qui en utilise une (fichier ouvert,
+    // exemple, exercice, Annuler) la reactive tout seul.
+    // Vide pour l'instant (demande de l'utilisateur, nov. 2026) : la fenetre servira a proposer des fonctionnalites
+    // futures. Pour en ajouter une : { nom: '<nom de la categorie>', desc: '<une phrase>' }. Liste testee avec Radio,
+    // Servos, Cartes d'extension, Grove, Graphique et IA :
+    // { nom: 'Radio', desc: 'Envoyer et recevoir des messages entre cartes micro:bit.' },
+    // { nom: 'Servos', desc: 'Piloter des servomoteurs 180° et 360°.' },
+    // { nom: 'Cartes d\'extension', desc: 'Cartes DFR0548, Grove Shield, BitMaker et Motor:bit : moteurs et prises.' },
+    // { nom: 'Grove', desc: 'Modules Grove : LED, écran, capteurs, moteurs et relais…' },
+    // { nom: 'Graphique', desc: 'Tracer des mesures en courbes dans la console.' },
+    // { nom: 'IA', desc: 'Reconnaître des images, des sons, des gestes ou des positions.' },
+    const EXTENSIONS = [];
+    const CLE_EXTENSIONS = 'easybloc_ts_extensions_retirees';
+    const extensionsRetirees = new Set();
+    try {
+        const lu = JSON.parse(localStorage.getItem(CLE_EXTENSIONS) || '[]');
+        if (Array.isArray(lu)) lu.forEach(n => { if (EXTENSIONS.some(e => e.nom === n)) extensionsRetirees.add(n); });
+    } catch (erreur) { /* stockage indisponible ou illisible : tout est affiche */ }
+    function memoriserExtensions() {
+        try { localStorage.setItem(CLE_EXTENSIONS, JSON.stringify([...extensionsRetirees])); }
+        catch (erreur) { /* stockage indisponible : le choix vaut pour la session */ }
+    }
+    // Type de bloc -> extension qui le propose (parcours de la boite a outils d'origine, sous-categories comprises).
+    const EXTENSION_DU_BLOC = new Map();
+    (function indexerBlocs() {
+        const parcourir = (contenu, nom) => (contenu || []).forEach(el => {
+            if (el.kind === 'block' && el.type && !EXTENSION_DU_BLOC.has(el.type)) EXTENSION_DU_BLOC.set(el.type, nom);
+            if (el.contents) parcourir(el.contents, nom);
+        });
+        TOOLBOX_ORIGINAL.filter(c => EXTENSIONS.some(e => e.nom === c.name)).forEach(c => parcourir(c.contents, c.name));
+    })();
+    // Programme qui utilise une extension retiree : on la remet (apres le chargement, en une seule mise a jour).
+    let reactivationPrevue = false;
+    function reactiverExtensionsUtilisees() {
+        reactivationPrevue = false;
+        if (!extensionsRetirees.size) return;
+        let change = false;
+        window.workspace.getAllBlocks(false).forEach(b => {
+            const nom = EXTENSION_DU_BLOC.get(b.type);
+            if (nom && extensionsRetirees.delete(nom)) change = true;
+        });
+        if (change) { memoriserExtensions(); appliquerToolbox(); majFenetreExtensions(); }
+    }
+    window.workspace.addChangeListener(e => {
+        if (e.type !== Blockly.Events.BLOCK_CREATE || !extensionsRetirees.size || reactivationPrevue) return;
+        reactivationPrevue = true;
+        setTimeout(reactiverExtensionsUtilisees, 0);
+    });
+
+    let voileExtensions = null;
+    function majFenetreExtensions() {
+        if (!voileExtensions) return;
+        voileExtensions.querySelectorAll('.ext-carte').forEach(carte => {
+            const active = !extensionsRetirees.has(carte.dataset.nom);
+            carte.setAttribute('aria-pressed', String(active));
+            carte.querySelector('.ext-etat').textContent = active ? window.tr('✓ Activée') : window.tr('+ Ajouter');
+            carte.title = active ? window.tr('Cliquez pour retirer cette catégorie de la colonne')
+                                 : window.tr('Cliquez pour ajouter cette catégorie à la colonne');
+        });
+    }
+    function fermerFenetreExtensions() {
+        if (!voileExtensions) return;
+        voileExtensions.remove();
+        voileExtensions = null;
+        document.removeEventListener('keydown', clavierExtensions, true);
+        const b = document.getElementById('menu-fichier-btn');
+        if (b) b.focus();
+    }
+    function clavierExtensions(e) { if (e.key === 'Escape') { e.stopPropagation(); fermerFenetreExtensions(); } }
+    function ouvrirFenetreExtensions() {
+        if (voileExtensions) return;
+        voileExtensions = document.createElement('div');
+        voileExtensions.className = 'fen-voile';
+        voileExtensions.id = 'extensions-voile';
+        const boite = document.createElement('div');
+        boite.className = 'fen-boite ext-boite';
+        boite.setAttribute('role', 'dialog'); boite.setAttribute('aria-modal', 'true'); boite.setAttribute('aria-labelledby', 'extensions-titre');
+        boite.innerHTML = '<h3 class="fen-titre" id="extensions-titre"></h3><div class="fen-corps"><p></p><div class="ext-grille"></div>' +
+            '<p class="ext-note"></p></div><div class="fen-pied"><button type="button" class="fen-btn principal"></button></div>';
+        boite.querySelector('h3').textContent = window.tr('Extensions');
+        boite.querySelector('.fen-corps > p').textContent = EXTENSIONS.length
+            ? window.tr('Choisissez les catégories de blocs à afficher dans la colonne de gauche. Cliquez sur une carte pour l\'ajouter ou la retirer.')
+            : window.tr('Aucune extension pour l\'instant. De nouvelles fonctionnalités seront proposées ici.');
+        boite.querySelector('.ext-note').textContent = EXTENSIONS.length
+            ? window.tr('Retirer une catégorie n\'efface pas les blocs déjà posés. Un programme qui l\'utilise la remet toute seule.') : '';
+        if (!EXTENSIONS.length) {   // aucune extension : message seul, fenetre de largeur ordinaire
+            boite.querySelector('.ext-grille').remove(); boite.querySelector('.ext-note').remove(); boite.classList.remove('ext-boite');
+        }
+        const grille = boite.querySelector('.ext-grille') || document.createElement('div');
+        EXTENSIONS.forEach(ext => {
+            const carte = document.createElement('button');
+            carte.type = 'button';
+            carte.className = 'ext-carte';
+            carte.dataset.nom = ext.nom;
+            const nomAffiche = (configAdmin.categories.labels && configAdmin.categories.labels[ext.nom]) || window.tr(ext.nom);
+            carte.innerHTML = '<span class="ext-nom"><span class="ext-puce" aria-hidden="true"></span><span></span></span>' +
+                '<span class="ext-desc"></span><span class="ext-etat"></span>';
+            carte.querySelector('.ext-puce').style.background = PALETTE_CATEGORIES[ext.nom] || '#888';
+            carte.querySelector('.ext-nom > span:last-child').textContent = nomAffiche;
+            carte.querySelector('.ext-desc').textContent = window.tr(ext.desc);
+            carte.addEventListener('click', () => {
+                if (extensionsRetirees.has(ext.nom)) extensionsRetirees.delete(ext.nom); else extensionsRetirees.add(ext.nom);
+                memoriserExtensions();
+                appliquerToolbox();
+                majFenetreExtensions();
+            });
+            grille.appendChild(carte);
+        });
+        const fermer = boite.querySelector('.principal');
+        fermer.textContent = window.tr('Fermer');
+        fermer.addEventListener('click', fermerFenetreExtensions);
+        voileExtensions.addEventListener('click', e => { if (e.target === voileExtensions) fermerFenetreExtensions(); });
+        voileExtensions.appendChild(boite);
+        document.body.appendChild(voileExtensions);
+        document.addEventListener('keydown', clavierExtensions, true);
+        majFenetreExtensions();
+        setTimeout(() => { (grille.querySelector('.ext-carte') || fermer).focus(); }, 30);
+    }
+    const btnExtensions = document.getElementById('extensions-btn');
+    if (btnExtensions) btnExtensions.addEventListener('click', ouvrirFenetreExtensions);
+    window.extensionsTest = { EXTENSIONS, extensionsRetirees, EXTENSION_DU_BLOC, ouvrirFenetreExtensions, reactiverExtensionsUtilisees };
+
     function construireToolbox() {
         const dispo = new Map(TOOLBOX_ORIGINAL.map(c => [c.name, c]));
         const ordre = configAdmin.categories.order.length
             ? configAdmin.categories.order : [...dispo.keys()];
         const resultat = [];
+        // Categorie absente : masquee par l'administrateur, ou extension retiree par l'utilisateur (fenetre « Extensions »).
+        const cachee = nom => configAdmin.categories.hidden.includes(nom) || extensionsRetirees.has(nom);
         for (const nom of ordre) {
             if (!dispo.has(nom)) continue;
             const cat = dispo.get(nom);
             dispo.delete(nom);
-            if (!configAdmin.categories.hidden.includes(nom)) resultat.push(construireCategorie(cat));
+            if (!cachee(nom)) resultat.push(construireCategorie(cat));
         }
         for (const [nom, cat] of dispo) {
-            if (!configAdmin.categories.hidden.includes(nom)) resultat.push(construireCategorie(cat));
+            if (!cachee(nom)) resultat.push(construireCategorie(cat));
         }
         return resultat;
     }
@@ -5190,6 +5320,7 @@ try {
     // sous-menus comme DHT11 sont masques par defaut (groupesConfDefaut) sans
     // que ca passe par configAdmin, l'injection Blockly seule ne le sait pas.
     appliquerToolbox();
+    reactiverExtensionsUtilisees();
 
     // --- Le panneau : construction commune (onglets) ---
 
