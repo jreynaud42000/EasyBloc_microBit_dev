@@ -1580,3 +1580,35 @@ P15 (cablage automatique)"), les legendes de "Peripheriques" donnent les broches
 avec leurs fils et la mention "cablage automatique" (un.js : calculerCablageKitronik, window.kitronikCables).
 Exemple, trois cartes + moteur Motor:bit : LAMP:bit lampe P13, capteur P3 ; ACCESS:bit servo P14, buzzer P15 ;
 STOP:bit P16, P4, P10 (matrice eteinte).
+"Cabler automatiquement" (nov. 2026) : un bloc "cabler" l'emporte sur le cablage automatique ; laisse sur ses broches
+par defaut (P0, P1, P2), il cree des conflits (meme broche, moteurs ou buzzer de la Motor:bit). Le bandeau rouge du
+montage propose alors le bouton "Cabler automatiquement", et le clic droit sur un bloc "cabler" l'entree "Cabler
+automatiquement (broches libres)" : tous les blocs "cabler" recoivent les broches que choisirait le cablage
+automatique (memes regles, sans tenir compte de leurs anciennes broches), en une seule action annulable (un.js :
+cablerKitronikAuto). Exemple : trois blocs "cabler" sur P0 a P2 avec la Motor:bit -> STOP:bit P16, P4, P10 ;
+LAMP:bit P13, P3 ; ACCESS:bit P14, P15.
+Fils sur les pastilles (nov. 2026, demande de l'utilisateur) : dans le montage, les pastilles 0, 1, 2, 3V et GND d'une
+carte Kitronik cablee sont dessinees sur le bord tourne vers la carte d'extension (colonne a gauche ou a droite, rangee
+en haut sinon) et chaque fil s'y termine, avec un point de sa couleur : signal de la 1re broche sur 0, puis 1 et 2,
+fil rouge sur 3V, fil noir sur GND (montage.js : pastillesKitronik, pastilleDuFil). Sur la vraie carte, ces pastilles
+sont le long du bord ou se visse la micro:bit.
+
+50. CABLAGE AUTOMATIQUE DE TOUT LE PROGRAMME (nov. 2026)
+Generalisation du "Cabler automatiquement" des cartes Kitronik (§49) a tous les modules a broches au choix : modules
+Grove, servomoteurs, cartes Kitronik cablees par un bloc "cabler". Deux acces :
+- le bouton "Cabler automatiquement" du bandeau rouge du montage, des qu'il y a un conflit (meme broche ou meme port)
+  ou un module mal place pour la carte d'extension (broche des moteurs ou du buzzer de la Motor:bit, P13 des LED de
+  la BitMaker, broche sans port...) ;
+- le clic droit sur un bloc qui a des broches : "Cabler automatiquement (tout le programme)".
+Fonctionnement (montage.js : cablerTout) : on lit le montage (memes regles que le dessin, fonctions branchement* de
+la carte choisie : Grove Shield, BitMaker, Motor:bit, DFR0548). Les modules bien places gardent leurs broches, dans
+l'ordre du programme (de deux modules en conflit, le premier reste). Les autres recoivent la combinaison de broches
+la moins couteuse parmi les choix des menus de LEURS blocs (un capteur analogique reste sur une entree analogique, un
+module a deux broches sur un port qui les porte), sans conflit ni alerte. Couts : pince crocodile hors port Grove +50,
+broche de la matrice de LED +100, sur la Motor:bit P13 a P16 d'abord, ordre des menus sinon. Tous les blocs d'un meme
+module changent ensemble (LED etat + luminosite sur la meme broche). Restent en place : modules I2C, moteurs, servos
+de la DFR0548, cartes Kitronik en cablage automatique, broches des autres blocs (entrees/sorties...), P5 et P11.
+Une seule action annulable. Module sans solution : bandeau "Pas de broche libre pour : ..." (exemple : servomoteur sur
+la Motor:bit, son menu ne propose que P0 a P2, prises par la carte).
+Verifie : Grove (LED, relais, capteur de lumiere sur P0 -> P0, P1, P2), BitMaker (LED sur P13 -> P0), Motor:bit
+(LED sur P1 et trois cartes Kitronik sur P0 a P2 -> broches libres).

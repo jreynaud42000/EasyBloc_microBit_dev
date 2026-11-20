@@ -68,8 +68,9 @@ const MODULES = [
 ];
 // Cartes Kitronik reliees par des fils (bloc « cabler » ou cablage automatique, un.js : window.kitronikCables) ;
 // enfichees sur la micro:bit, elles n'ont pas de cable a dessiner.
-const KITRONIK_MONTAGE = { stopbit: { nom: 'STOP:bit', picto: 'stopbit' }, lampbit: { nom: 'LAMP:bit', picto: 'lampbit' },
-                           accessbit: { nom: 'ACCESS:bit', picto: 'accessbit' } };
+const KITRONIK_MONTAGE = { stopbit: { nom: 'STOP:bit', picto: 'stopbit', champs: ['ROUGE', 'ORANGE', 'VERT'] },
+                           lampbit: { nom: 'LAMP:bit', picto: 'lampbit', champs: ['LAMPE', 'CAPTEUR'] },
+                           accessbit: { nom: 'ACCESS:bit', picto: 'accessbit', champs: ['SERVO', 'BUZZER'] } };
 const BLOC_EXTENSION = /^(grove_|servo_|dfr_|motorbit_|carte_|bitmaker_|(stopbit|lampbit|accessbit)_cablage$)/;
 // Lecteur de l'etat en direct (majVivant) quand il differe du dessin : plusieurs capteurs partagent le dessin « puce ».
 const VIVANT = {
@@ -305,9 +306,10 @@ function lireMontage() {
         const cle = def.nom + '|' + pins.join(',');
         // Servomoteur a rotation continue (bloc « servo continu ») : dessine avec sa roue (modele R4)
         const continu = !!def.servo && b.type === 'servo_continu';
-        if (modules.has(cle)) { if (continu) modules.get(cle).continu = true; continue; }
+        if (modules.has(cle)) { if (continu) modules.get(cle).continu = true; modules.get(cle).blocs.push(b); continue; }
         ajouter(cle, Object.assign({ nom: def.nom, picto: def.picto, large: def.large, pins, cle: 'P' + pins[0].slice(3), continu,
-            nb: def.picto === 'ruban' ? Number(b.getFieldValue('NB')) || 16 : undefined },
+            nb: def.picto === 'ruban' ? Number(b.getFieldValue('NB')) || 16 : undefined,
+            blocs: [b], champs: def.champs, servo: !!def.servo },
             dfr ? branchementDfr(pins, def.servo) : motorbit ? branchementMotorbit(pins, def.servo) :
             bitmaker ? branchementBitmaker(pins) : branchementGrove(pins)));
     }
@@ -318,6 +320,9 @@ function lireMontage() {
             dfr ? branchementDfr(pins, false) : motorbit ? branchementMotorbit(pins, false) :
             bitmaker ? branchementBitmaker(pins) : branchementGrove(pins));
         if (k.mode === 'auto') m.note = m.note ? m.note + ', câblage automatique' : 'câblage automatique';
+        // Cablage par un bloc « cabler » : module mobile pour le cablage automatique general.
+        const blocCablage = k.mode === 'manuel' && blocs.find(b => b.type === k.ext + '_cablage');
+        if (blocCablage) Object.assign(m, { blocs: [blocCablage], champs: def.champs });
         ajouter(def.nom, m);
     }
 
@@ -342,7 +347,9 @@ function lireMontage() {
 
     // Sans bloc d'extension : la micro:bit seule dans la scene (carte « aucune »), comme la simulation du modele.
     const carte = !utile ? 'aucune' : dfr ? 'dfr' : motorbit ? 'motorbit' : bitmaker ? 'bitmaker' : 'grove';
-    return { utile, imposee, carte, modules: liste, conflits: [...conflits.values()] };
+    const brancher = (pins, servo) => dfr ? branchementDfr(pins, servo) : motorbit ? branchementMotorbit(pins, servo) :
+                                      bitmaker ? branchementBitmaker(pins) : branchementGrove(pins);
+    return { utile, imposee, carte, modules: liste, conflits: [...conflits.values()], brancher };
 }
 
 /** Plusieurs modules I2C sur une carte a prises Grove (Grove Shield, BitMaker) : une prise ne prend qu'un cable, on
@@ -758,15 +765,35 @@ function dessinCarteDfr() {
 
 /** Cartes Kitronik reliees par des fils : carte noire, pastilles 0 1 2 3V GND du cote de la micro:bit, et leur
     element en petit (feu, lampadaire, barriere). Les classes mv-k* suivent la simulation (majVivant). */
+const PASTILLES_KITRONIK = ['0', '1', '2', '3V', 'GND'];
+/** Pastilles 0 1 2 3V GND d'une carte Kitronik, sur le bord tourne vers la carte d'extension (la ou arrivent les fils) :
+    colonne a gauche (module a droite de la carte, cote 'd'), a droite (cote 'g'), sinon rangee en haut. */
+function pastillesKitronik(m, cx, cy) {
+    const l = 150, h = 74;
+    if (m.cote === 'd' || m.cote === 'g') {
+        const x = m.cote === 'd' ? cx - l / 2 + 11 : cx + l / 2 - 11;
+        return PASTILLES_KITRONIK.map((t, i) => ({ t, x, y: cy - h / 2 + 11 + i * 13 }));
+    }
+    return PASTILLES_KITRONIK.map((t, i) => ({ t, x: cx - 52 + i * 26, y: cy - h / 2 + 11 }));
+}
+/** Pastille d'arrivee de chaque fil : rouge -> 3V, noir -> GND, signaux dans l'ordre -> 0, 1, 2. */
+function pastilleDuFil(m) {
+    let signal = 0;
+    return m.fils.map(f => (f.c === F.rouge ? 3 : f.c === F.noir ? 4 : Math.min(2, signal++)));
+}
 function dessinKitronik(m, cx, cy) {
     const l = 150, h = 74;
     let s = r(cx - l / 2, cy - h / 2, l, h, 'rx="6" fill="#26262b" stroke="#0d0d10"');
-    const pastilles = ['0', '1', '2', '3V', 'GND'];
-    pastilles.forEach((t, i) => {
-        const x = cx - 52 + i * 26, y = cy + h / 2 - 12;
-        s += cercle(x, y, 7, 'fill="#c9a54a" stroke="#8a6d22"') + cercle(x, y, 3, 'fill="#26262b"') +
-             texte(x, y - 10, t, 'class="montage-puce" text-anchor="middle" font-size="9"');
+    const lateral = m.cote === 'd' || m.cote === 'g';
+    pastillesKitronik(m, cx, cy).forEach(({ t, x, y }) => {
+        s += cercle(x, y, 5, 'fill="#c9a54a" stroke="#8a6d22"') + cercle(x, y, 2, 'fill="#26262b"') +
+             (lateral ? texte(x + (m.cote === 'd' ? 9 : -9), y + 3, t, `class="montage-puce" text-anchor="${m.cote === 'd' ? 'start' : 'end'}" font-size="8"`)
+                      : texte(x, y + 15, t, 'class="montage-puce" text-anchor="middle" font-size="8"'));
     });
+    // Element de la carte decale du cote oppose aux pastilles.
+    // (Les dessins ci-dessous sont faits pour le haut de la carte : on les recentre.)
+    cx += m.cote === 'd' ? 18 : m.cote === 'g' ? -18 : 0;
+    cy += lateral ? 20 : 40;
     if (m.picto === 'stopbit') {
         s += r(cx - 44, cy - 32, 88, 26, 'rx="10" fill="#111114"');
         [['#ff3b30', '#4a1714', 'rouge'], ['#ffb000', '#4a3410', 'orange'], ['#2fd16a', '#133a22', 'vert']].forEach(([on, off, k], i) =>
@@ -1040,6 +1067,16 @@ function dessinerScene(etat) {
             if (bordsFiche.filter(Boolean).length === n) fiches += dessinFiche(bordsFiche, fin.d);
             continue;
         }
+        // Cartes Kitronik cablees : chaque fil finit sur sa pastille (0, 1, 2, 3V, GND), par-dessus la carte, avec un point.
+        if (/^(stopbit|lampbit|accessbit)$/.test(m.picto)) {
+            const pads = pastillesKitronik(m, m.x + MODULE.l / 2, m.y + MODULE.h / 2), cibles = pastilleDuFil(m);
+            m.fils.forEach((f, i) => {
+                const p = pads[cibles[i]];
+                filsDessus += dessinFil(f, { x: p.x, y: p.y, d: fin.d }, 0);
+                points += cercle(p.x, p.y, 3, `fill="${f.c}" stroke="#333" stroke-width="0.8"`);
+            });
+            continue;
+        }
         m.fils.forEach((f, i) => { const fil = dessinFil(f, fin, (i - (n - 1) / 2) * 6); if (depuisHub) filsDessus += fil; else bas += fil; });
     }
     for (const m of etat.modules) {
@@ -1273,6 +1310,108 @@ function dessinerSvg(etat) {
     }
 }
 
+// ---------- Cablage automatique de tout le programme (nov. 2026) ----------
+// Bouton « Cabler automatiquement » du bandeau rouge, et clic droit sur un bloc qui a des broches. Les modules a
+// broches au choix (Grove, servos, cartes Kitronik cablees par un bloc « cabler ») qui sont en conflit (meme broche ou
+// meme port qu'un autre module) ou mal places (broche des moteurs ou du buzzer de la Motor:bit, broche sans port sur
+// la BitMaker, P13 de ses LED...) recoivent d'autres broches, choisies dans les menus de LEURS blocs : un capteur
+// analogique reste sur une entree analogique, un module a deux broches sur un port qui les porte. Regles de la carte
+// d'extension du montage (memes fonctions branchement* que le dessin). Les modules bien places ne bougent pas
+// (le premier de deux modules en conflit garde sa place) ; les modules fixes (I2C, moteurs, servos de la DFR0548,
+// cartes Kitronik en cablage automatique) et les broches des autres blocs (entrees/sorties...) sont evites, comme
+// P5 et P11 (boutons A et B). Entre deux solutions : la moins couteuse (sur un port Grove plutot qu'en pince
+// crocodile, hors matrice de LED, P13 a P16 d'abord sur la Motor:bit, ordre des menus sinon). Une seule annulation.
+const MATRICE_LED = ['pin3', 'pin4', 'pin6', 'pin7', 'pin9', 'pin10'];
+const produit = listes => listes.reduce((acc, l) => acc.flatMap(a => l.map(v => a.concat([v]))), [[]]);
+const valeursBroches = v => String(v).split(/\s*,\s*/).filter(Boolean);
+let messageCablage = '';
+function cablerTout() {
+    if (!window.workspace) return { deplaces: 0, impossibles: [] };
+    const etat = lireMontage();
+    const brancher = etat.brancher;
+    const mobiles = etat.modules.filter(m => m.blocs && m.blocs.length && m.champs && m.champs.length && !m.i2c);
+    const idsMobiles = new Set(mobiles.flatMap(m => m.blocs.map(b => b.id)));
+    const prisBroches = new Set(['pin5', 'pin11']), prisPlaces = new Set();
+    const prendre = (pins, occupe) => { pins.forEach(p => prisBroches.add(p)); (occupe || []).forEach(o => prisPlaces.add(o)); };
+    // Broches des autres blocs (hors cartes Kitronik, dont le champ COULEUR de « feu » n'est pas une broche).
+    window.workspace.getAllBlocks(false)
+        .filter(b => !idsMobiles.has(b.id) && !/^(stopbit|lampbit|accessbit)_/.test(b.type) && b.isEnabled())
+        .forEach(b => b.inputList.forEach(en => en.fieldRow.forEach(ch => {
+            const v = ch.getValue && ch.getValue();
+            if (typeof v === 'string' && /^pin\d+$/.test(v)) prisBroches.add(v);
+        })));
+    // Modules fixes : leurs broches et leurs places sont prises d'office.
+    etat.modules.filter(m => !mobiles.includes(m)).forEach(m => prendre(m.pins || [], m.occupe));
+    // Modules mobiles bien places : ils gardent leurs broches (dans l'ordre du programme).
+    const libre = (pins, occupe) => new Set(pins).size === pins.length && !pins.some(p => prisBroches.has(p)) &&
+                                    !(occupe || []).some(o => prisPlaces.has(o));
+    const aDeplacer = [];
+    for (const m of mobiles) {
+        // Alerte de la carte (broche des moteurs, sans port...) recalculee : « broche partagee » ne compte pas ici.
+        if (!brancher(m.pins, m.servo).alerte && libre(m.pins, m.occupe)) prendre(m.pins, m.occupe);
+        else aDeplacer.push(m);
+    }
+    const rang = (p, i) => {
+        const n = Number(p.slice(3));
+        return (MATRICE_LED.includes(p) ? 100 : 0) + (etat.carte === 'motorbit' && n >= 13 && n <= 16 ? 0 : 10) + i;
+    };
+    const impossibles = [];
+    let deplaces = 0;
+    Blockly.Events.setGroup(true);
+    try {
+        for (const m of aDeplacer) {
+            const bloc = m.blocs[0];
+            const menus = m.champs.map(ch => {
+                const champ = bloc.getField(ch);
+                const options = champ && champ.getOptions ? champ.getOptions(false).map(o => o[1]) : [];
+                return options.filter(v => typeof v === 'string' && valeursBroches(v).every(p => /^pin\d+$/.test(p)));
+            });
+            if (menus.some(l => !l.length)) { impossibles.push(m.nom); continue; }
+            let meilleur = null;
+            for (const choix of produit(menus)) {
+                const pins = [...new Set(choix.flatMap(valeursBroches))];
+                if (pins.length !== choix.flatMap(valeursBroches).length) continue;   // deux champs sur la meme broche
+                const res = brancher(pins, m.servo);
+                if (res.alerte || !libre(pins, res.occupe)) continue;
+                if (etat.carte === 'dfr' && res.fils.length === 0) continue;
+                let cout = (res.note ? 50 : 0);
+                choix.forEach((v, k) => valeursBroches(v).forEach(p => { cout += rang(p, menus[k].indexOf(v)); }));
+                if (!meilleur || cout < meilleur.cout) meilleur = { cout, choix, pins, occupe: res.occupe };
+            }
+            if (!meilleur) { impossibles.push(m.nom); continue; }
+            m.blocs.forEach(b => m.champs.forEach((ch, k) => { if (b.getField(ch)) b.setFieldValue(meilleur.choix[k], ch); }));
+            prendre(meilleur.pins, meilleur.occupe);
+            deplaces++;
+        }
+    } finally { Blockly.Events.setGroup(false); }
+    messageCablage = impossibles.length ? 'Pas de broche libre pour : ' + [...new Set(impossibles)].join(', ') : '';
+    clearTimeout(attente);
+    attente = setTimeout(redessiner, 150);
+    return { deplaces, impossibles };
+}
+window.cablerTout = cablerTout;
+/** Montage a corriger : conflit, ou module a broches au choix mal place (alerte). */
+function cablageAReparer(etat) {
+    return (etat.conflits || []).length > 0 ||
+        (etat.modules || []).some(m => m.alerte && m.blocs && m.champs && !m.i2c);
+}
+if (window.Blockly && Blockly.ContextMenuRegistry) {
+    Blockly.ContextMenuRegistry.registry.register({
+        id: 'cabler_automatiquement',
+        scopeType: Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+        displayText: () => trTexte('Câbler automatiquement (tout le programme)'),
+        preconditionFn: scope => {
+            const b = scope.block;
+            if (!b || b.isInFlyout) return 'hidden';
+            const aBroche = b.inputList.some(en => en.fieldRow.some(ch => { const v = ch.getValue && ch.getValue();
+                return typeof v === 'string' && /^pin\d+/.test(v); }));
+            return aBroche && (/_cablage$/.test(b.type) || MODULES.some(d => d.motif.test(b.type))) ? 'enabled' : 'hidden';
+        },
+        callback: () => cablerTout(),
+        weight: 2,
+    });
+}
+
 /** Bandeau rouge en haut du montage : deux modules (ou plus) sur la meme broche. */
 function majBandeauConflit(etat) {
     let bandeau = $('montage-alerte');
@@ -1288,8 +1427,20 @@ function majBandeauConflit(etat) {
         return en ? noms.join(', ') + ' and ' + fin + ' are on the same pin ' + c.port
                   : noms.join(', ') + ' et ' + fin + ' sont sur la même broche ' + c.port;
     });
+    // Conflit, ou module a broches au choix mal place : bouton « Cabler automatiquement » (cablerTout, tout le programme).
+    const aReparer = cablageAReparer(etat);
+    if (aReparer && !lignes.length) {
+        const m = etat.modules.find(x => x.alerte && x.blocs && x.champs && !x.i2c);
+        lignes.push(trTexte(m.nom) + (en ? ': ' : ' : ') + trTexte(m.alerte));
+    }
+    if (messageCablage) { lignes.push(messageCablage); messageCablage = ''; }
+    if (!bandeau.dataset.ecoute) {
+        bandeau.dataset.ecoute = '1';
+        bandeau.addEventListener('click', e => { if (e.target.closest('.montage-cabler-auto')) cablerTout(); });
+    }
     bandeau.hidden = !lignes.length;
-    bandeau.innerHTML = lignes.map(t => '<span>' + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' + echap(t) + '</span>').join('');
+    bandeau.innerHTML = lignes.map(t => '<span>' + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' + echap(t) + '</span>').join('') +
+        (aReparer ? '<button type="button" class="montage-cabler-auto">' + echap(trTexte('Câbler automatiquement')) + '</button>' : '');
 }
 
 function finirRedessin(etat) {
