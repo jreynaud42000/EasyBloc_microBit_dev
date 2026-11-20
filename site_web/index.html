@@ -1186,7 +1186,7 @@
     .montage-reglages-bascule[hidden] { display: none; }
     .montage-reglages-bascule:focus-visible { outline: 3px solid #4fc3d9; outline-offset: 2px; }
     #grove-panneau.montage-reglages > h4 { display: none; }
-    #grove-panneau.montage-reglages .grove-bloc:not(#grove-sec-ultrason):not(#grove-sec-joystick):not(#grove-sec-potentiometre):not(#grove-sec-bouton):not(#grove-sec-lumiere):not(#grove-sec-pir):not(#grove-sec-pression):not(#grove-sec-cov):not(#grove-sec-gestes):not(#grove-sec-th):not(#grove-sec-co2):not(#grove-sec-couleur):not(#grove-sec-radio):not(#grove-sec-stopbit) { display: none !important; }
+    #grove-panneau.montage-reglages .grove-bloc:not(#grove-sec-ultrason):not(#grove-sec-joystick):not(#grove-sec-potentiometre):not(#grove-sec-bouton):not(#grove-sec-lumiere):not(#grove-sec-pir):not(#grove-sec-pression):not(#grove-sec-cov):not(#grove-sec-gestes):not(#grove-sec-th):not(#grove-sec-co2):not(#grove-sec-couleur):not(#grove-sec-radio):not(#grove-sec-stopbit):not(#grove-sec-lampbit):not(#grove-sec-accessbit) { display: none !important; }
     /* Bouton poussoir : il s'actionne dans le montage ; seule la case « maintenu enfonce » reste a regler. */
     #grove-panneau.montage-reglages #grove-bouton-appui { display: none; }
     #grove-panneau.montage-reglages.reglages-replies .grove-bloc { display: none !important; }
@@ -1559,6 +1559,20 @@
     .stopbit-legende { font-size: 11px; line-height: 1.6; }
     .stopbit-legende b { font-weight: 600; }
     @media (prefers-reduced-motion: reduce) { .stopbit-feu { transition: none; } }
+    /* Extensions Kitronik LAMP:bit et ACCESS:bit (nov. 2026) : lampadaire et barriere dessines (un.js). */
+    .lampbit-poteau { fill: #8a8f98; }
+    .lampbit-tete { fill: #6b7078; stroke: #3a3d42; stroke-width: 1.5; }
+    .lampbit-ampoule { fill: #55524a; transition: fill .15s, filter .15s; }
+    .lampbit-halo { fill: #ffe9a8; opacity: 0; transition: opacity .15s; }
+    #grove-lampbit-visuel.allume .lampbit-ampoule { fill: #fff6d0; filter: drop-shadow(0 0 6px #ffd860); }
+    #grove-lampbit-visuel.allume .lampbit-halo { opacity: .35; }
+    #grove-sec-lampbit input[type=range] { width: 100%; }
+    .accessbit-poteau { fill: #8a8f98; }
+    .accessbit-bras-fond { fill: #f4f4f4; stroke: #18181b; stroke-width: 1; }
+    .accessbit-bande { fill: #d62828; }
+    .accessbit-pivot { fill: #9aa0a6; }
+    #grove-accessbit-bras { transition: transform 1s ease-in-out; }
+    @media (prefers-reduced-motion: reduce) { .lampbit-ampoule, .lampbit-halo, #grove-accessbit-bras { transition: none; } }
     .relais-module { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; }
     .relais-boitier { fill: #2f63c9; stroke: #1a3f86; stroke-width: 2; }
     .relais-marque { fill: #cfe0ff; font-size: 8px; font-family: sans-serif; }
@@ -2368,6 +2382,44 @@
         <div class="grove-bloc" id="grove-sec-relais">
           <span class="grove-titre">Relais</span>
           <div id="grove-relais"><span class="grove-vide">aucun</span></div>
+        </div>
+
+        <!-- Extension Kitronik LAMP:bit (nov. 2026) : un.js, dessinerLampbit (P0) et simu_lampbitLumiere (curseur) -->
+        <div class="grove-bloc" id="grove-sec-lampbit">
+          <span class="grove-titre">Lampadaire LAMP:bit</span>
+          <div class="stopbit-module">
+            <svg id="grove-lampbit-visuel" width="70" height="110" viewBox="0 0 70 110" role="img" aria-label="Lampadaire LAMP:bit">
+              <ellipse class="lampbit-halo" cx="44" cy="40" rx="24" ry="14"/>
+              <rect class="lampbit-poteau" x="10" y="20" width="6" height="84"/>
+              <rect class="lampbit-poteau" x="4" y="100" width="20" height="6" rx="2"/>
+              <path class="lampbit-poteau" d="M10 22 Q12 12 26 12 H44 V18 H26 Q16 18 16 26 Z"/>
+              <path class="lampbit-tete" d="M28 18 H62 L56 28 H34 Z"/>
+              <ellipse class="lampbit-ampoule" cx="45" cy="29" rx="10" ry="4"/>
+            </svg>
+            <div class="stopbit-legende">
+              <div id="grove-lampbit-etat" aria-live="polite">Lampe (P0) : éteinte</div>
+              <label for="grove-lampbit-lumiere">Lumière ambiante (P1) : <b id="grove-lampbit-lumiere-val">600</b></label>
+            </div>
+          </div>
+          <input type="range" id="grove-lampbit-lumiere" min="0" max="1023" value="600" aria-label="Lumière ambiante du LAMP:bit (0 à 1023)">
+        </div>
+
+        <!-- Extension Kitronik ACCESS:bit (nov. 2026) : un.js, dessinerAccessbit (action « accessbit » de la file) ; bip par simu_jouerNote -->
+        <div class="grove-bloc" id="grove-sec-accessbit">
+          <span class="grove-titre">Barrière ACCESS:bit</span>
+          <div class="stopbit-module">
+            <svg id="grove-accessbit-visuel" width="130" height="90" viewBox="0 0 130 90" role="img" aria-label="Barrière ACCESS:bit">
+              <rect class="accessbit-poteau" x="12" y="62" width="16" height="26" rx="2"/>
+              <g id="grove-accessbit-bras" transform="rotate(0 20 70)">
+                <rect class="accessbit-bras-fond" x="20" y="66" width="104" height="8" rx="3"/>
+                <rect class="accessbit-bande" x="36" y="66" width="12" height="8"/>
+                <rect class="accessbit-bande" x="64" y="66" width="12" height="8"/>
+                <rect class="accessbit-bande" x="92" y="66" width="12" height="8"/>
+              </g>
+              <circle class="accessbit-pivot" cx="20" cy="70" r="4"/>
+            </svg>
+            <div class="stopbit-legende" id="grove-accessbit-etat" aria-live="polite">Barrière : baissée</div>
+          </div>
         </div>
 
         <!-- Extension Kitronik STOP:bit (nov. 2026) : un.js, dessinerStopbit (etat de P0, P1, P2) -->
@@ -3252,6 +3304,16 @@
         sleep(int(duree))
         window.simu_groveSortie('buzzer', broche.id_pin, 0)
     def _grove_relais(broche, etat): window.simu_groveSortie('relais', broche.id_pin, 1 if etat else 0)
+    # Extensions Kitronik (nov. 2026) : LAMP:bit (lampe P0, lumiere ambiante du curseur) et ACCESS:bit (barriere, bips)
+    def _lampbit_lampe(etat): window.simu_led('0', 1023 if etat else 0)
+    def _lampbit_lumiere(): return int(window.simu_lampbitLumiere())
+    def _accessbit_barriere(angle):
+        window.simu_accessbit(int(angle))
+        sleep(1000)
+    def _accessbit_bip(duree, nombre):
+        for _ in range(max(1, min(10, int(nombre)))):
+            window.simu_jouerNote(1025, int(duree))
+            sleep(int(duree))
     # Lecteur MP3 Grove : etat montre dans « Peripheriques » (un.js, simu_mp3), pas de son
     def _mp3_ordre(rx, tx, ordre): window.simu_mp3('ordre', str(ordre), 0)
     def _mp3_piste(rx, tx, n): window.simu_mp3('piste', '', int(n))
@@ -3628,6 +3690,8 @@
             '_grove_bouton': _grove_bouton, '_grove_bouton_front': _grove_bouton_front,
             '_grove_lumiere': _grove_lumiere, '_grove_pir': _grove_pir,
             '_grove_buzzer': _grove_buzzer, '_grove_buzzer_bip': _grove_buzzer_bip, '_grove_relais': _grove_relais,
+            '_lampbit_lampe': _lampbit_lampe, '_lampbit_lumiere': _lampbit_lumiere,
+            '_accessbit_barriere': _accessbit_barriere, '_accessbit_bip': _accessbit_bip,
             '_mp3_ordre': _mp3_ordre, '_mp3_piste': _mp3_piste, '_mp3_volume': _mp3_volume, '_mp3_mode': _mp3_mode,
             '_EcranOLED': _EcranOLEDMock, '_grove_oled': _grove_oled,
             '_BarreLED': _BarreLEDMock, '_grove_barre': _grove_barre,

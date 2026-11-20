@@ -1523,3 +1523,21 @@ Simulateur : section "Feu STOP:bit" de "Peripheriques" (feu dessine, legende rou
 allumee d'apres l'etat des broches P0, P1, P2 (un.js : dessinerStopbit, appele par dessinerLeds) ; un bloc "ecrire sur
 la broche" allume donc le feu aussi, comme sur la vraie carte. Aide (clic droit), deux exemples (feu de circulation,
 orange clignotant) et reconstruction en blocs a l'import d'un .py. Non verifie sur une vraie carte STOP:bit.
+
+48. EXTENSIONS KITRONIK LAMP:BIT ET ACCESS:BIT (nov. 2026)
+Deux extensions de plus dans Fichier > Blocs > "Extensions...", absentes de la colonne au depart comme la STOP:bit
+(§47). Brochages des bibliotheques officielles pxt-kitronik-lampbit et pxt-kitronik-accessbit.
+LAMP:bit (lampadaire, ref. 5643) : lampe = P0 (allumee au niveau haut), capteur de lumiere = P1 en analogique,
+0 a 1023, valeur BASSE = sombre. Blocs : "LAMP:bit : lampe allumee / eteinte" (_lampbit_lampe), "niveau de lumiere"
+(_lampbit_lumiere), "il fait sombre (lumiere sous 350)" (seuil de l'exemple Kitronik). Les blocs "deadband" de
+Kitronik ne sont pas repris : aucune fonction de leur bibliotheque ne s'en sert.
+ACCESS:bit (barriere, ref. 5646) : servomoteur 180 deg = P0 (levee = 0 deg, baissee = 90 deg ; 1 s de mouvement puis
+P0 a 0, comme Kitronik), buzzer = P1, 1025 Hz. Blocs : "ACCESS:bit : lever / baisser la barriere"
+(_accessbit_barriere), "ACCESS:bit : bip court (200 ms) / long (800 ms) N fois", 1 a 10, silence de meme duree apres
+chaque bip (_accessbit_bip, music.pitch(..., pin=pin1)).
+Simulateur : le pilote est remplace (index.html : _lampbit_lampe -> simu_led('0'), _lampbit_lumiere -> curseur,
+_accessbit_barriere -> action "accessbit" de la file, _accessbit_bip -> simu_jouerNote). Sections "Lampadaire
+LAMP:bit" (lampadaire dessine, eclaire d'apres P0, curseur "Lumiere ambiante (P1)", 600 au depart) et "Barriere
+ACCESS:bit" (bras rouge et blanc qui pivote en 1 s ; baissee au depart et a la reinitialisation). Aide, exemples
+(lampadaire automatique, barriere de parking sur le bouton A), textes anglais, reconstruction depuis un .py.
+Non verifie sur les vraies cartes.

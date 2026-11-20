@@ -2630,6 +2630,113 @@ try {
         return '_stopbit_feu(0, 0, 0)\n';
     };
 
+    // ======================================================================
+    // EXTENSION KITRONIK LAMP:BIT (nov. 2026) : lampadaire a LED et capteur de lumiere.
+    // ======================================================================
+    // Brochage de pxt-kitronik-lampbit : LED de la lampe = P0 (allumee au niveau haut), capteur de lumiere
+    // (phototransistor) = P1 en entree analogique, 0 a 1023 ; une valeur BASSE veut dire qu'il fait sombre
+    // (exemple Kitronik : lampe allumee sous 350). Le simulateur remplace les deux fonctions du pilote (lampe
+    // dessinee, curseur « lumiere ambiante »).
+    const COULEUR_LAMPBIT = '#6B7280';
+    function piloteLampbit() {
+        importerMicrobit();
+        pilote('lampbit', [
+            'def _lampbit_lampe(etat):',
+            '    pin0.write_digital(1 if etat else 0)',
+            '',
+            'def _lampbit_lumiere():',
+            '    return pin1.read_analog()',
+        ]);
+    }
+    Blockly.Blocks['lampbit_lampe'] = { init: function() {
+        this.appendDummyInput().appendField("LAMP:bit : lampe")
+            .appendField(new Blockly.FieldDropdown([["allumée", "1"], ["éteinte", "0"]]), "ETAT");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COULEUR_LAMPBIT);
+        this.setTooltip("Allume ou éteint la lampe du lampadaire LAMP:bit (P0).");
+    }};
+    P.forBlock['lampbit_lampe'] = function(block) {
+        piloteLampbit();
+        return '_lampbit_lampe(' + block.getFieldValue('ETAT') + ')\n';
+    };
+    Blockly.Blocks['lampbit_lumiere'] = { init: function() {
+        this.appendDummyInput().appendField("LAMP:bit : niveau de lumière");
+        this.setOutput(true, "Number");
+        this.setColour(COULEUR_LAMPBIT);
+        this.setTooltip("Lumière mesurée par le capteur du LAMP:bit (P1), de 0 (noir) à 1023 (très éclairé).");
+    }};
+    P.forBlock['lampbit_lumiere'] = function() {
+        piloteLampbit();
+        return ['_lampbit_lumiere()', P.ORDER_FUNCTION_CALL];
+    };
+    Blockly.Blocks['lampbit_sombre'] = { init: function() {
+        this.appendValueInput("SEUIL").setCheck("Number").appendField("LAMP:bit : il fait sombre (lumière sous");
+        this.appendDummyInput().appendField(")");
+        this.setInputsInline(true);
+        this.setOutput(true, "Boolean");
+        this.setColour(COULEUR_LAMPBIT);
+        this.setTooltip("Vrai quand la lumière mesurée (0 à 1023) est inférieure au seuil. Kitronik propose 350.");
+    }};
+    P.forBlock['lampbit_sombre'] = function(block) {
+        piloteLampbit();
+        const seuil = P.valueToCode(block, 'SEUIL', P.ORDER_RELATIONAL) || '350';
+        return ['_lampbit_lumiere() < ' + seuil, P.ORDER_RELATIONAL];
+    };
+
+    // ======================================================================
+    // EXTENSION KITRONIK ACCESS:BIT (nov. 2026) : barriere d'acces et buzzer.
+    // ======================================================================
+    // Brochage de pxt-kitronik-accessbit : servomoteur 180 deg de la barriere = P0 (levee = 0 deg, baissee = 90 deg ;
+    // apres 1 s de mouvement, la broche repasse a 0 pour ne plus tenir le servo), buzzer = P1, note de 1025 Hz,
+    // bip court 200 ms ou long 800 ms suivi d'un silence de meme duree, 1 a 10 bips. Le simulateur remplace les deux
+    // fonctions du pilote (barriere dessinee, bip joue par le navigateur).
+    const COULEUR_ACCESSBIT = '#6B7280';
+    function piloteAccessbit() {
+        importerMicrobit();
+        importerModule('music');
+        pilote('accessbit', [
+            'def _accessbit_barriere(angle):',
+            '    pin0.set_analog_period(20)',
+            '    pin0.write_analog(int((500 + angle * 2000 / 180) * 1023 / 20000))',
+            '    sleep(1000)',
+            '    pin0.write_digital(0)',
+            '',
+            'def _accessbit_bip(duree, nombre):',
+            '    for _ in range(max(1, min(10, int(nombre)))):',
+            '        music.pitch(1025, duree, pin=pin1)',
+            '        sleep(duree)',
+        ]);
+    }
+    Blockly.Blocks['accessbit_barriere'] = { init: function() {
+        this.appendDummyInput().appendField("ACCESS:bit :")
+            .appendField(new Blockly.FieldDropdown([["lever", "0"], ["baisser", "90"]]), "POSITION")
+            .appendField("la barrière");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COULEUR_ACCESSBIT);
+        this.setTooltip("Lève (0°) ou baisse (90°) la barrière de l'ACCESS:bit (servomoteur sur P0). Le mouvement dure 1 seconde.");
+    }};
+    P.forBlock['accessbit_barriere'] = function(block) {
+        piloteAccessbit();
+        return '_accessbit_barriere(' + block.getFieldValue('POSITION') + ')\n';
+    };
+    Blockly.Blocks['accessbit_bip'] = { init: function() {
+        this.appendValueInput("NOMBRE").setCheck("Number").appendField("ACCESS:bit :")
+            .appendField(new Blockly.FieldDropdown([["bip court", "200"], ["bip long", "800"]]), "DUREE");
+        this.appendDummyInput().appendField("fois");
+        this.setInputsInline(true);
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COULEUR_ACCESSBIT);
+        this.setTooltip("Fait sonner le buzzer de l'ACCESS:bit (P1) de 1 à 10 fois : bip court (0,2 s) ou long (0,8 s).");
+    }};
+    P.forBlock['accessbit_bip'] = function(block) {
+        piloteAccessbit();
+        const nombre = P.valueToCode(block, 'NOMBRE', P.ORDER_NONE) || '1';
+        return '_accessbit_bip(' + block.getFieldValue('DUREE') + ', ' + nombre + ')\n';
+    };
+
     // --- Ecran OLED 0,96" 128x64 (Grove OLED Display 0.96", SSD1315 / SSD1306, I2C 0x3C) ---
     //
     // Mode texte, sans memoire d'image (la carte V1 n'a que 16 Ko) : chaque caractere est
@@ -4376,7 +4483,9 @@ try {
         'Fonctions': '#5F2BD4',
         'Listes': '#88009B',
         'Graphique': '#8E1B3A',   // bordeaux, variante A choisie par l'utilisateur (nov. 2026)
-        'STOP:bit': '#6B7280',    // gris moyen (l'anthracite de la carte disparaissait en theme sombre) (extension, nov. 2026)
+        'STOP:bit': '#6B7280',
+        'LAMP:bit': '#6B7280',
+        'ACCESS:bit': '#6B7280',    // gris moyen (l'anthracite de la carte disparaissait en theme sombre) (extension, nov. 2026)
     };
     // Texte des blocs : blanc par defaut ; fonce sur les couleurs claires, ou le blanc contraste a moins de 3:1 (seuil
     // WCAG, luminance relative) : Boucles, Temps, Capteurs, Servos, Logique, Maths. Regle CSS par couleur : « un bloc dont le fond a cette
@@ -4408,7 +4517,7 @@ try {
     // a la suite, dans leur ordre d'origine. « Communication » est renommee « Radio ». « Graphique » n'existe pas encore.
     // Graphique puis IA en dernier, apres Listes ; Logique juste apres Boucles ; Radio entre Actionneurs (Audio) et
     // Servos (demandes de l'utilisateur, nov. 2026).
-    const ORDRE_CATEGORIES = ['Boucles', 'Logique', 'Temps', 'Matrice LED', 'Entrées/Sorties', 'Capteurs', 'Actionneurs (Audio)', 'Radio', 'Servos', 'Cartes d\'extension', 'Grove', 'STOP:bit',
+    const ORDRE_CATEGORIES = ['Boucles', 'Logique', 'Temps', 'Matrice LED', 'Entrées/Sorties', 'Capteurs', 'Actionneurs (Audio)', 'Radio', 'Servos', 'Cartes d\'extension', 'Grove', 'STOP:bit', 'LAMP:bit', 'ACCESS:bit',
                               'Variables', 'Maths', 'Texte', 'Fonctions', 'Listes', 'Graphique', 'IA'];
     const CATEGORIE_LISTES = {
         "kind": "category", "name": "Listes", "colour": "260",
@@ -4862,6 +4971,25 @@ try {
             ]
           },
           {
+            // Extension Kitronik LAMP:bit (nov. 2026) : masquee tant qu'on ne l'ajoute pas (Fichier > Extensions)
+            "kind": "category", "name": "LAMP:bit", "colour": "#6B7280",
+            "contents": [
+              { "kind": "label", "text": "Lampadaire (lampe P0, capteur de lumière P1)", "web-class": "groupe-flyout" },
+              { "kind": "block", "type": "lampbit_lampe" },
+              { "kind": "block", "type": "lampbit_lumiere" },
+              { "kind": "block", "type": "lampbit_sombre", "inputs": { "SEUIL": { "shadow": { "type": "math_number", "fields": { "NUM": "350" } } } } }
+            ]
+          },
+          {
+            // Extension Kitronik ACCESS:bit (nov. 2026) : masquee tant qu'on ne l'ajoute pas (Fichier > Extensions)
+            "kind": "category", "name": "ACCESS:bit", "colour": "#6B7280",
+            "contents": [
+              { "kind": "label", "text": "Barrière (servo P0) et buzzer (P1)", "web-class": "groupe-flyout" },
+              { "kind": "block", "type": "accessbit_barriere" },
+              { "kind": "block", "type": "accessbit_bip", "inputs": { "NOMBRE": { "shadow": { "type": "math_number", "fields": { "NUM": "2" } } } } }
+            ]
+          },
+          {
             // 37 blocs dans un seul tiroir demandaient plus de deux ecrans de
             // defilement : les derniers etaient introuvables en pratique. Un
             // sous-menu par module, chacun tenant d'un coup d'oeil.
@@ -5260,6 +5388,8 @@ try {
     // (comme dans MakeCode). Son ajout est retenu sous une seconde cle (CLE_EXTENSIONS_AJOUTEES).
     const EXTENSIONS = [
         { nom: 'STOP:bit', desc: 'Feu tricolore Kitronik STOP:bit : rouge (P0), orange (P1) et vert (P2).', parDefaut: false },
+        { nom: 'LAMP:bit', desc: 'Lampadaire Kitronik LAMP:bit : lampe (P0) et capteur de lumière (P1).', parDefaut: false },
+        { nom: 'ACCESS:bit', desc: 'Barrière Kitronik ACCESS:bit : servomoteur (P0) et buzzer (P1).', parDefaut: false },
     ];
     const CLE_EXTENSIONS = 'easybloc_ts_extensions_retirees';
     const CLE_EXTENSIONS_AJOUTEES = 'easybloc_ts_extensions_ajoutees';
@@ -7622,6 +7752,15 @@ try {
         stopbit_led: "Allume ou éteint un seul feu de la STOP:bit (rouge sur P0, orange sur P1, vert sur P2) sans toucher aux " +
             "deux autres. Équivaut à écrire 1 ou 0 sur la broche du feu.",
         stopbit_eteindre: "Éteint les trois feux de la STOP:bit.",
+        lampbit_lampe: "Allume ou éteint la lampe du lampadaire Kitronik LAMP:bit (LED sur P0).",
+        lampbit_lumiere: "Lumière mesurée par le capteur du LAMP:bit (P1), de 0 (noir) à 1023 (très éclairé). Dans le " +
+            "simulateur, le curseur « Lumière ambiante » de la section LAMP:bit règle cette valeur.",
+        lampbit_sombre: "Vrai quand la lumière mesurée par le LAMP:bit est inférieure au seuil (Kitronik propose 350). " +
+            "Pratique pour allumer la lampe à la tombée de la nuit.",
+        accessbit_barriere: "Lève (0°) ou baisse (90°) la barrière de l'ACCESS:bit, actionnée par un servomoteur sur P0. " +
+            "Le bloc attend 1 seconde, le temps du mouvement, puis cesse de tenir le servo.",
+        accessbit_bip: "Fait sonner le buzzer de l'ACCESS:bit (P1, 1025 Hz) de 1 à 10 fois : bip court (0,2 s) ou long (0,8 s), " +
+            "avec un silence de même durée après chaque bip.",
         grove_relais: "Commande le relais Grove : fermé, l'appareil branché sur le relais (lampe, moteur, pompe…) fonctionne ; " +
             "ouvert, il s'arrête. Le relais permet de commander un circuit séparé de la carte. Dans le simulateur, le " +
             "contact dessiné se ferme ou s'ouvre.",
@@ -8016,6 +8155,16 @@ try {
         "Le feu passe au rouge 3 secondes, rouge et orange 1 seconde, vert 3 secondes, puis orange 1 seconde, et recommence.",
         [exLoop(exB('stopbit_etat', { ETAT: '1, 0, 0' }), exWait(3), exB('stopbit_etat', { ETAT: '1, 1, 0' }), exWait(1),
                 exB('stopbit_etat', { ETAT: '0, 0, 1' }), exWait(3), exB('stopbit_etat', { ETAT: '0, 1, 0' }), exWait(1))]);
+    exemple(['lampbit_lampe', 'lampbit_sombre', 'lampbit_lumiere'], 'Lampadaire automatique',
+        "La lampe s'allume quand il fait sombre (lumière sous 350) et s'éteint quand il fait jour.",
+        [exLoop(Object.assign(exB('controls_if', null, { IF0: exV(exB('lampbit_sombre', null, { SEUIL: exN(350) })),
+                DO0: exDans(exB('lampbit_lampe', { ETAT: '1' })), ELSE: exDans(exB('lampbit_lampe', { ETAT: '0' })) }),
+                { extraState: { hasElse: true } }))]);
+    exemple(['accessbit_barriere', 'accessbit_bip'], 'Barrière de parking',
+        "Appuyer sur A : deux bips courts, la barrière se lève, reste levée 3 secondes, puis un bip long et elle se baisse.",
+        [exStart(exB('accessbit_barriere', { POSITION: '90' })),
+         exWhen('lorsque_bouton', { BOUTON: 'a' }, exB('accessbit_bip', { DUREE: '200' }, { NOMBRE: exN(2) }), exB('accessbit_barriere', { POSITION: '0' }), exWait(3),
+                   exB('accessbit_bip', { DUREE: '800' }, { NOMBRE: exN(1) }), exB('accessbit_barriere', { POSITION: '90' }))]);
     exemple(['stopbit_led'], 'Orange clignotant', "Le feu orange clignote toutes les demi-secondes, comme un feu en panne.",
         [exLoop(exB('stopbit_led', { COULEUR: 'pin1', ETAT: '1' }), exWait(0.5),
                 exB('stopbit_led', { COULEUR: 'pin1', ETAT: '0' }), exWait(0.5))]);
@@ -9373,6 +9522,23 @@ try {
             }
         }
 
+        // ---- LAMP:bit : _lampbit_lampe(0 ou 1) ; ACCESS:bit : _accessbit_barriere(0 ou 90), _accessbit_bip(200 ou 800, n) ----
+        if (estAppel(appel, '_lampbit_lampe') && appel.args.length === 1) {
+            const etat = valeurConstante(appel.args[0]);
+            if (etat === 0 || etat === 1) return { bloc: { type: 'lampbit_lampe', fields: { ETAT: String(etat) } }, consommees: 1 };
+        }
+        if (estAppel(appel, '_accessbit_barriere') && appel.args.length === 1) {
+            const angle = valeurConstante(appel.args[0]);
+            if (angle === 0 || angle === 90) return { bloc: { type: 'accessbit_barriere', fields: { POSITION: String(angle) } }, consommees: 1 };
+        }
+        if (estAppel(appel, '_accessbit_bip') && appel.args.length === 2) {
+            const duree = valeurConstante(appel.args[0]);
+            if (duree === 200 || duree === 800) {
+                return { bloc: { type: 'accessbit_bip', fields: { DUREE: String(duree) },
+                                 inputs: { NOMBRE: { block: reconstruireExpression(appel.args[1]) } } }, consommees: 1 };
+            }
+        }
+
         // ---- Premier lot Grove : _grove_buzzer / _grove_relais(pinX, 0 ou 1), _grove_buzzer_bip(pinX, duree),
         // _grove_oled().texte(texte, x, y) et _grove_oled().effacer(). ----
         if (appel._type === 'Call' && appel.func._type === 'Attribute' && estAppel(appel.func.value, '_grove_oled')) {
@@ -10619,8 +10785,39 @@ try {
         if (zone) zone.innerHTML = lignes.join('');
     }
 
+    // LAMP:bit : lampe allumee d'apres P0 (_lampbit_lampe passe par simu_led), lumiere ambiante lue sur le curseur.
+    function dessinerLampbit() {
+        const svg = document.getElementById('grove-lampbit-visuel');
+        if (!svg) return;
+        const allumee = (etatLeds['0'] || 0) > 0;
+        svg.classList.toggle('allume', allumee);
+        const zone = document.getElementById('grove-lampbit-etat');
+        if (zone) zone.textContent = (window.tr ? window.tr('Lampe') : 'Lampe') + ' (P0) : ' +
+            (window.tr ? window.tr(allumee ? 'allumée' : 'éteinte') : (allumee ? 'allumée' : 'éteinte'));
+    }
+    const curseurLampbit = document.getElementById('grove-lampbit-lumiere');
+    function afficherLumiereLampbit() {
+        const v = document.getElementById('grove-lampbit-lumiere-val');
+        if (v && curseurLampbit) v.textContent = curseurLampbit.value;
+    }
+    if (curseurLampbit) { curseurLampbit.addEventListener('input', afficherLumiereLampbit); afficherLumiereLampbit(); }
+    window.simu_lampbitLumiere = () => (curseurLampbit ? Number(curseurLampbit.value) : 600);
+
+    // ACCESS:bit : barriere dessinee, baissee (90 deg) au depart comme apres l'initialisation de Kitronik.
+    let angleAccessbit = 90;
+    function dessinerAccessbit() {
+        const bras = document.getElementById('grove-accessbit-bras');
+        if (bras) bras.setAttribute('transform', 'rotate(' + (angleAccessbit - 90) + ' 20 70)');
+        const zone = document.getElementById('grove-accessbit-etat');
+        const levee = angleAccessbit < 45;
+        if (zone) zone.textContent = (window.tr ? window.tr('Barrière') : 'Barrière') + ' : ' +
+            (window.tr ? window.tr(levee ? 'levée' : 'baissée') : (levee ? 'levée' : 'baissée'));
+    }
+    window.simu_accessbit = function(angle) { window.simuQueue.push({ type: 'accessbit', angle: Number(angle) }); };
+
     function dessinerLeds() {
         dessinerStopbit();
+        dessinerLampbit();
         if (!zoneLeds) return;
         const broches = Object.keys(etatLeds);
         if (!broches.length) {
@@ -10661,6 +10858,8 @@ try {
         ['grove-sec-mp3',      /^grove_mp3_/],
         ['grove-sec-relais',   /^grove_relais$/],
         ['grove-sec-stopbit',  /^stopbit_/],
+        ['grove-sec-lampbit',  /^lampbit_/],
+        ['grove-sec-accessbit', /^accessbit_/],
         ['grove-sec-oled',     /^grove_oled_/],
         ['grove-sec-gestes',   /^grove_gestes_/],
         ['grove-sec-lcd',      /^grove_lcd(rgb)?_/],
@@ -10924,6 +11123,8 @@ try {
         dessinerMotorbit();
         etatLeds = {};
         dessinerLeds();
+        angleAccessbit = 90;
+        dessinerAccessbit();
         etatServos = {};
         dessinerServos();
         etatSortiesGrove = { buzzer: {}, relais: {} };
@@ -11336,6 +11537,11 @@ try {
         }
         else if (action.type === 'afficheur') {
             afficher7Segments(action.motifs, action.points);
+            window.simu_playQueue();
+        }
+        else if (action.type === 'accessbit') {
+            angleAccessbit = action.angle;
+            dessinerAccessbit();
             window.simu_playQueue();
         }
         else if (action.type === 'led') {
