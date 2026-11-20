@@ -1094,10 +1094,18 @@ function dessinerScene(etat) {
         }
         // Cartes Kitronik cablees : chaque fil finit sur sa pastille (0, 1, 2, 3V, GND), par-dessus la carte, avec un point.
         if (/^(stopbit|lampbit|accessbit)$/.test(m.picto)) {
-            const pads = pastillesKitronik(m, m.x + MODULE.l / 2, m.y + MODULE.h / 2), cibles = pastilleDuFil(m);
+            const cxK = m.x + MODULE.l / 2, pads = pastillesKitronik(m, cxK, m.y + MODULE.h / 2), cibles = pastilleDuFil(m);
+            const k = sensKitronik(m), lateral = m.cote === 'd' || m.cote === 'g';
             m.fils.forEach((f, i) => {
                 const p = pads[cibles[i]];
-                filsDessus += dessinFil(f, { x: p.x, y: p.y, d: fin.d }, 0);
+                // Module sous la carte : le fil ne traverse pas le module (tete du feu, carte de l'ACCESS:bit) ; il
+                // descend dans un couloir du cote des pastilles, hors du dessin (largeur 2 x 44), puis y entre a
+                // l'horizontale. Fils decales de 5 unites pour ne pas se superposer.
+                if (!lateral) {
+                    const xc = cxK - k * (52 + i * 5), yRang = m.y - 18 - i * 5;
+                    const route = Object.assign({}, f, { passage: [[f.x, yRang], [xc, yRang], [xc, p.y - 12]] });
+                    filsDessus += dessinFil(route, { x: p.x, y: p.y, d: [k, 0] }, 0);
+                } else filsDessus += dessinFil(f, { x: p.x, y: p.y, d: fin.d }, 0);
                 points += cercle(p.x, p.y, 3, `fill="${f.c}" stroke="#333" stroke-width="0.8"`);
             });
             continue;

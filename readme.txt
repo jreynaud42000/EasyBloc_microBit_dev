@@ -1627,3 +1627,9 @@ lieu de 74, montage.js : HAUTEUR_KITRONIK, hauteurModule), carte noire a inscrip
 Pastilles le long du bord tourne vers la carte d'extension ; module a gauche de la carte : dessin retourne (crosse et
 barriere vers l'exterieur, data-s), inscriptions toujours lisibles. Les fils finissent sur les pastilles (verifie :
 13 fils sur 13 avec la Motor:bit, 7 sur 7 a gauche de la Grove Shield).
+Fils qui contournent les cartes Kitronik (nov. 2026, demande de l'utilisateur) : une carte placee sous la carte
+d'extension recevait ses fils par le haut, a travers la tete du feu ou la carte de l'ACCESS:bit. Ses fils descendent
+maintenant dans un couloir du cote des pastilles, hors du dessin (montage.js : cxK - k * (52 + 5 i)), a des hauteurs
+decalees de 5 unites, puis entrent dans leur pastille a l'horizontale. Les cartes placees a gauche ou a droite gardent
+leur arrivee laterale directe. Verifie (Motor:bit, trois cartes) : aucun des 13 fils ne traverse une forme pleine
+d'une carte Kitronik (test isPointInFill sur le trace, hors les 16 dernieres unites qui entrent dans la pastille).
