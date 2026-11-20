@@ -1539,6 +1539,7 @@ window.DICO_EN = {
   "Câblage par fils (avec la Motor:bit, par exemple)": "Wiring with leads (with the Motor:bit, for example)",
   "Trois cartes Kitronik sur la Motor:bit": "Three Kitronik boards on the Motor:bit",
   "câblage automatique": "automatic wiring",
+  "Périphériques et réglages des capteurs": "Peripherals and sensor settings",
   "Câbler automatiquement": "Wire automatically",
   "Câbler automatiquement (broches libres)": "Wire automatically (free pins)",
   "Câbler automatiquement (tout le programme)": "Wire automatically (whole program)",

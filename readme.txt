@@ -1633,3 +1633,8 @@ maintenant dans un couloir du cote des pastilles, hors du dessin (montage.js : c
 decalees de 5 unites, puis entrent dans leur pastille a l'horizontale. Les cartes placees a gauche ou a droite gardent
 leur arrivee laterale directe. Verifie (Motor:bit, trois cartes) : aucun des 13 fils ne traverse une forme pleine
 d'une carte Kitronik (test isPointInFill sur le trace, hors les 16 dernieres unites qui entrent dans la pastille).
+Repli du tableau retabli (nov. 2026, demande de l'utilisateur) : le montage dessinant en direct les cartes Kitronik
+cablees, le bouton en tete du tableau sous le montage replie de nouveau TOUT le tableau, feu, lampadaire et barriere
+compris (choix memorise, cle montageReglagesReplies). Il apparait des qu'il y a une section a montrer, avec un titre
+selon le contenu : "Peripheriques" (cartes Kitronik seules), "Reglages des capteurs" (capteurs seuls), "Peripheriques
+et reglages des capteurs" (les deux). La rangee des cartes Kitronik est placee juste sous le bouton.

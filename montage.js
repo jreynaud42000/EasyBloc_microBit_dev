@@ -2078,9 +2078,13 @@ function majReglages() {
     const visibles = SECTIONS_REGLAGES.filter(presente);
     const extensions = SECTIONS_EXTENSIONS.filter(presente);
     liste.classList.toggle('reglages-vides', actif && !visibles.length && !extensions.length);
-    basculeReglages.hidden = !actif || !visibles.length;   // pas de capteur : pas de volet, les extensions restent
+    // Le bouton replie tout le tableau, cartes Kitronik comprises (nov. 2026, demande de l'utilisateur) : leur feu,
+    // lampadaire et barriere sont aussi dessines en direct dans le montage quand elles sont cablees.
+    basculeReglages.hidden = !actif || (!visibles.length && !extensions.length);
     basculeReglages.setAttribute('aria-expanded', String(!replie));
-    basculeReglages.textContent = (replie ? '▸ ' : '▾ ') + 'Réglages des capteurs';
+    const titre = visibles.length && extensions.length ? 'Périphériques et réglages des capteurs'
+                : extensions.length ? 'Périphériques' : 'Réglages des capteurs';
+    basculeReglages.textContent = (replie ? '▸ ' : '▾ ') + trTexte(titre);
     rangerBientot();   // extensions Kitronik a placer avant (ou a remettre dans) les colonnes
 }
 
@@ -2214,8 +2218,9 @@ function rangerTableau() {
         const rangee = document.createElement('div');
         rangee.className = 'tab-extensions';
         extensions.forEach(p => rangee.appendChild(p));
+        // Juste sous le bouton qui replie le tableau (il replie aussi cette rangee).
         const bascule = $('montage-reglages-bascule');
-        liste.insertBefore(rangee, bascule && bascule.parentNode === liste ? bascule : liste.firstChild);
+        liste.insertBefore(rangee, bascule && bascule.parentNode === liste ? bascule.nextSibling : liste.firstChild);
     }
 }
 // Minuterie courte (comme le modele) plutot que requestAnimationFrame, suspendu quand l'onglet n'est pas affiche.

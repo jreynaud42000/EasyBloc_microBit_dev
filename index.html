@@ -1189,7 +1189,7 @@
     #grove-panneau.montage-reglages .grove-bloc:not(#grove-sec-ultrason):not(#grove-sec-joystick):not(#grove-sec-potentiometre):not(#grove-sec-bouton):not(#grove-sec-lumiere):not(#grove-sec-pir):not(#grove-sec-pression):not(#grove-sec-cov):not(#grove-sec-gestes):not(#grove-sec-th):not(#grove-sec-co2):not(#grove-sec-couleur):not(#grove-sec-radio):not(#grove-sec-stopbit):not(#grove-sec-lampbit):not(#grove-sec-accessbit) { display: none !important; }
     /* Bouton poussoir : il s'actionne dans le montage ; seule la case « maintenu enfonce » reste a regler. */
     #grove-panneau.montage-reglages #grove-bouton-appui { display: none; }
-    #grove-panneau.montage-reglages.reglages-replies .grove-bloc:not(#grove-sec-stopbit):not(#grove-sec-lampbit):not(#grove-sec-accessbit) { display: none !important; }
+    #grove-panneau.montage-reglages.reglages-replies .grove-bloc { display: none !important; }
     /* Extensions Kitronik (feu, lampadaire, barriere) : toujours visibles, placees AVANT le volet « Reglages des
        capteurs » (montage.js, rangerTableau : rangee .tab-extensions) ; le montage ne les dessine pas, les replier
        les faisait disparaitre. */
