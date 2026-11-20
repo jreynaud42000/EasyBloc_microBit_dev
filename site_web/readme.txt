@@ -1662,3 +1662,14 @@ ACCESS:bit).
 Feu, lampe et barriere suivent la simulation. Deux cartes ou plus, ou une carte cablee par fils : montage habituel,
 micro:bit droite. Une carte vissee avec des modules Grove (carte d'extension) n'est pas dessinee.
 montage.js : dessinVissee, visVissee, anneauxVissee ; un.js : window.kitronikVissees.
+ACCESS:bit redessinee d'apres la photo du kit fournie par l'utilisateur (nov. 2026) : carte noire en T. Barre du
+haut : cinq grosses pastilles "P0 BARRIER", "P1 BUZZER", "P2", "3V", "0V" ; tige centrale cerclee de blanc (profil en
+I) avec trois petites pastilles, le buzzer rond et l'interrupteur ON ; etiquette a bandes noires et blanches
+"ACCESS:bit / Access barrier for BBC micro:bit" ; deux ecrous ; logo "Kitronik" ; la carte s'elargit a droite dans le
+bas. Servomoteur bleu vertical a gauche de la tige (fils orange et rouge) ; barriere rouge avec un disque "sens
+interdit", qui pivote sur l'axe du servo. Un seul dessin (montage.js : accessbitT, coordonnees mesurees sur la photo) :
+- vissee : sous la micro:bit droite, a l'echelle qui met les grosses pastilles sur les anneaux (ecart < 1 unite),
+  barriere vers la gauche ;
+- cablee par fils : module de 150 x 272, barriere vers l'exterieur ; ses fils passent au-dessus du module et
+  descendent sur la rangee de pastilles du haut (verifie : 18 fils sur 18 sur leurs pastilles, aucun ne traverse une
+  carte).

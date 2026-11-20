@@ -539,7 +539,7 @@ function dimensions(m) {
 /** Hauteur occupee par un module (au moins la case MODULE.h), pour le rangement et les libelles. */
 function hauteurModule(m, cote) {
     const def = dimensions(m);
-    if (!def) return /^(stopbit|lampbit|accessbit)$/.test(m.picto) ? HAUTEUR_KITRONIK : MODULE.h;
+    if (!def) return m.picto === 'accessbit' ? HAUTEUR_ACCESSBIT : /^(stopbit|lampbit)$/.test(m.picto) ? HAUTEUR_KITRONIK : MODULE.h;
     const rot = rotationVers(def, cote || coteVoulu(m));
     // deborde : ce qui depasse du circuit (oreilles, lentille du PIR), en mm de chaque cote, pour ne pas toucher les libelles
     return Math.max(MODULE.h, ((rot % 180 ? def.largeur : def.hauteur) + 2 * (def.deborde || 0)) * K_MODULE);
@@ -776,14 +776,79 @@ function dessinCarteDfr() {
 // le module est a droite de la carte, -1 a gauche) ; la crosse et la barriere partent de l'autre cote.
 const PASTILLES_KITRONIK = ['0', '1', '2', '3V', 'GND'];
 const HAUTEUR_KITRONIK = 204;   // hauteur reservee dans le montage (au lieu de MODULE.h)
+const HAUTEUR_ACCESSBIT = 272;  // carte en T de l'ACCESS:bit (580 x 150 / 325)
 const INSCRIPTIONS_KITRONIK = {
     stopbit: ['0 RED', '1 YLW', '2 GRN', '3V', 'GND'],
     lampbit: ['0 LAMP', '1 DETECT', '2', '3V', '0V'],
     accessbit: ['0 SERVO', '1 BUZZ', '2', '3V', 'GND'],
 };
 const sensKitronik = m => (m.cote === 'g' ? -1 : 1);
-/** Pastilles d'une carte Kitronik : colonne le long du bord tourne vers la carte d'extension. */
+// ACCESS:bit d'apres la photo du kit fournie par l'utilisateur (nov. 2026) : carte noire en T. Barre du haut : cinq
+// grosses pastilles « P0 BARRIER », « P1 BUZZER », « P2 », « 3V », « 0V » (vissees sous les anneaux de la micro:bit) ;
+// tige centrale cerclee de blanc (profil en I), trois petites pastilles, buzzer rond, interrupteur ON sur le bord droit,
+// etiquette a bandes « ACCESS:bit / Access barrier for BBC micro:bit », deux ecrous, logo « Kitronik » ; la carte
+// s'elargit a droite dans le bas. Servomoteur bleu vertical a gauche de la tige (fils orange, rouge, marron) ; barriere
+// rouge vers la gauche, avec un disque « sens interdit », qui pivote sur l'axe du servo.
+// Coordonnees locales (u, v) mesurees sur la photo (carte de 325 de large, barre allongee de 25 pour les inscriptions) ;
+// o : { x0, y0 (coin haut gauche de la carte), k (echelle), miroir (barriere vers la droite), bras (longueur, en
+// unites de la scene), police (taille des inscriptions) }.
+const PASTILLES_ACCESSBIT_U = [23, 87, 160, 232, 295], PASTILLE_ACCESSBIT_V = 30;
+function accessbitT(o) {
+    const k = o.k, X = u => o.x0 + k * (o.miroir ? 325 - u : u), Y = v => o.y0 + k * v;
+    const NOIR = '#1c1c1f', BLANC = '#f4f4f4', police = o.police || 10;
+    const chemin = pts => 'M' + pts.map(([u, v]) => X(u).toFixed(1) + ' ' + Y(v).toFixed(1)).join(' L') + ' Z';
+    const ecrit = (u, v, t, taille, couleur) => texte(X(u), Y(v), t,
+        `fill="${couleur || BLANC}" font-family="sans-serif" font-size="${taille || police}" text-anchor="middle"`);
+    const pads = PASTILLES_ACCESSBIT_U.map(u => ({ x: X(u), y: Y(PASTILLE_ACCESSBIT_V) }));
+    const pivot = { x: X(40), y: Y(435) };
+    let svg = `<path d="${chemin([[0, 0], [325, 0], [325, 100], [240, 100], [240, 250], [325, 250], [325, 580], [100, 580], [100, 100], [0, 100]])}" fill="${NOIR}"/>`;
+    // Profil en I cerclé de blanc sur la tige, et filet blanc sous la barre (barre allongee : les inscriptions des
+    // pastilles restent visibles sous le bord de la micro:bit vissee).
+    svg += `<path d="${chemin([[120, 106], [220, 106], [220, 570], [120, 570]])}" fill="none" stroke="${BLANC}" stroke-width="${Math.max(1, 2.5 * k)}"/>` +
+           `<path d="M${X(120)} ${Y(106)} L${X(100)} ${Y(100)} M${X(220)} ${Y(106)} L${X(240)} ${Y(100)} M${X(120)} ${Y(570)} L${X(100)} ${Y(576)} M${X(220)} ${Y(570)} L${X(240)} ${Y(576)}" stroke="${BLANC}" stroke-width="${Math.max(1, 2.5 * k)}"/>` +
+           r(Math.min(X(4), X(321)), Y(99), 317 * k, Math.max(1, 2 * k), `fill="${BLANC}"`);
+    // Grosses pastilles et inscriptions.
+    svg += pads.map(p => cercle(p.x, p.y, 16 * k, `fill="#ffe14d" stroke="#c9a54a" stroke-width="${Math.max(1, 2 * k)}"`) +
+                         cercle(p.x, p.y, 7 * k, `fill="${NOIR}"`)).join('') +
+           [['P0', 'BARRIER'], ['P1', 'BUZZER'], ['P2'], ['3V'], ['0V']].map(([a, b], i) =>
+               ecrit(PASTILLES_ACCESSBIT_U[i], 86, a) + (b ? ecrit(PASTILLES_ACCESSBIT_U[i], 86 + 0.95 * police / k, b, police * 0.85) : '')).join('');
+    // Petites pastilles, buzzer, interrupteur.
+    svg += [140, 155, 170].map(u => cercle(X(u), Y(118), 5 * k, 'fill="#c9a54a"')).join('') +
+           cercle(X(160), Y(190), 44 * k, `fill="#141416" stroke="#3a3a3e" stroke-width="${Math.max(1, 2 * k)}"`) + cercle(X(160), Y(190), 5 * k, 'fill="#5a5a5e"') +
+           `<path d="${chemin([[226, 118], [236, 118], [236, 162], [226, 162]])}" fill="#3a3a3e"/>` + ecrit(214, 142, 'ON', police * 0.8);
+    // Etiquette a bandes noires et blanches.
+    svg += `<path d="${chemin([[104, 285], [232, 285], [232, 360], [104, 360]])}" fill="#141416" stroke="${BLANC}" stroke-width="${Math.max(2, 7 * k)}" stroke-dasharray="${8 * k} ${7 * k}"/>` +
+           ecrit(168, 312, 'ACCESS:bit', police * 1.1, '#ffe14d') + ecrit(168, 332, 'Access barrier', police * 0.75) + ecrit(168, 348, 'for BBC micro:bit', police * 0.75);
+    // Ecrous et logo.
+    const ecrou = (u, v) => `<path d="${chemin([[u - 12, v - 7], [u, v - 14], [u + 12, v - 7], [u + 12, v + 7], [u, v + 14], [u - 12, v + 7]])}" fill="#c0c4c8" stroke="#7a7f85"/>` +
+                            cercle(X(u), Y(v), 5 * k, 'fill="#8a8f95"');
+    svg += ecrou(132, 420) + ecrou(280, 420) +
+           `<path d="${chemin([[105, 515], [235, 515], [235, 555], [105, 555]])}" fill="none" stroke="${BLANC}" stroke-width="${Math.max(1, 2 * k)}" stroke-linejoin="round"/>` +
+           ecrit(170, 542, 'Kitronik', police * 1.1);
+    // Servomoteur bleu vertical, ses fils, puis la barriere (groupe qui pivote) et le palonnier.
+    svg += `<path d="M${X(70)} ${Y(360)} C${X(40)} ${Y(330)} ${X(70)} ${Y(270)} ${X(105)} ${Y(290)}" fill="none" stroke="#e8902a" stroke-width="${Math.max(1.5, 4 * k)}"/>` +
+           `<path d="M${X(62)} ${Y(360)} C${X(30)} ${Y(325)} ${X(62)} ${Y(258)} ${X(105)} ${Y(278)}" fill="none" stroke="#c0392b" stroke-width="${Math.max(1.5, 4 * k)}"/>` +
+           `<path d="${chemin([[-10, 355], [85, 355], [85, 580], [-10, 580]])}" fill="#2f5fc4"/>` +
+           `<path d="${chemin([[-20, 372], [95, 372], [95, 390], [-20, 390]])}" fill="#2f5fc4"/>`;
+    const L = (o.bras || 300) / k, sens = o.miroir ? 1 : -1;
+    svg += `<g class="mv-kbras" data-s="${sens}" style="transform-origin: ${pivot.x}px ${pivot.y}px">` +
+           `<path d="${chemin([[40, 408], [40 - L, 408], [40 - L, 462], [40, 462]])}" fill="#e63a2c" stroke-linejoin="round"/>` +
+           cercle(X(40 - L), Y(435), 27 * k, 'fill="#e63a2c"') +
+           cercle(X(40 - L * 0.55), Y(435), 40 * k, `fill="#f06a5c" stroke="#ffffff" stroke-width="${Math.max(1, 1.5 * k)}"`) +
+           `<path d="${chemin([[40 - L * 0.55 - 22, 429], [40 - L * 0.55 + 22, 429], [40 - L * 0.55 + 22, 441], [40 - L * 0.55 - 22, 441]])}" fill="#ffffff"/>` +
+           '</g>' + cercle(pivot.x, pivot.y, 45 * k, 'fill="#e63a2c"') + cercle(pivot.x, pivot.y, 12 * k, 'fill="#c0c4c8" stroke="#7a7f85"');
+    return { svg, pads, pivot, bas: Y(580) };
+}
+/** ACCESS:bit cablee par des fils, dans un module : carte en T a l'echelle du montage, barriere vers l'exterieur. */
+const ECHELLE_ACCESSBIT = 150 / 325;
+function accessbitModule(m, cx, cy) {
+    const haut = cy - MODULE.h / 2;
+    return accessbitT({ x0: cx - 75, y0: haut, k: ECHELLE_ACCESSBIT, miroir: m.cote === 'd', bras: 120, police: 7 });
+}
+/** Pastilles d'une carte Kitronik : colonne le long du bord tourne vers la carte d'extension (ACCESS:bit : rangee en
+    haut, comme sur la carte). */
 function pastillesKitronik(m, cx, cy) {
+    if (m.picto === 'accessbit') return accessbitModule(m, cx, cy).pads.map((p, i) => Object.assign({ t: PASTILLES_KITRONIK[i] }, p));
     const haut = cy - MODULE.h / 2, k = sensKitronik(m);
     const [px, py] = m.picto === 'accessbit' ? [-26, 62] : [-8, 118];
     return PASTILLES_KITRONIK.map((t, i) => ({ t, x: cx + k * px, y: haut + py + i * 15 }));
@@ -794,6 +859,7 @@ function pastilleDuFil(m) {
     return m.fils.map(f => (f.c === F.rouge ? 3 : f.c === F.noir ? 4 : Math.min(2, signal++)));
 }
 function dessinKitronik(m, cx, cy) {
+    if (m.picto === 'accessbit') return accessbitModule(m, cx, cy).svg;   // inscriptions et pastilles comprises
     const haut = cy - MODULE.h / 2, k = sensKitronik(m);
     const X = dx => cx + k * dx, Y = dy => haut + dy;            // coordonnees locales : dx vers l'exterieur, dy depuis le haut
     const NOIR = '#1c1c1f', BLANC = '#f4f4f4';
@@ -1105,7 +1171,12 @@ function dessinerScene(etat) {
                 // Module sous la carte : le fil ne traverse pas le module (tete du feu, carte de l'ACCESS:bit) ; il
                 // descend dans un couloir du cote des pastilles, hors du dessin (largeur 2 x 44), puis y entre a
                 // l'horizontale. Fils decales de 5 unites pour ne pas se superposer.
-                if (!lateral) {
+                if (m.picto === 'accessbit') {
+                    // Pastilles en rangee en haut de la carte : le fil passe au-dessus du module, puis descend sur sa pastille.
+                    const yRang = m.y - 16 - i * 5;
+                    const passage = lateral ? [[cxK - k * (88 + i * 4), f.y], [cxK - k * (88 + i * 4), yRang], [p.x, yRang]] : [[f.x, yRang], [p.x, yRang]];
+                    filsDessus += dessinFil(Object.assign({}, f, { passage }), { x: p.x, y: p.y, d: [0, 1] }, 0);
+                } else if (!lateral) {
                     const xc = cxK - k * (52 + i * 5), yRang = m.y - 18 - i * 5;
                     const route = Object.assign({}, f, { passage: [[f.x, yRang], [xc, yRang], [xc, p.y - 12]] });
                     filsDessus += dessinFil(route, { x: p.x, y: p.y, d: [k, 0] }, 0);
@@ -1378,18 +1449,13 @@ function dessinVissee(ext) {
     const pastille = p => cercle(p.x, p.y, 13, 'fill="#c9a54a" stroke="#8a6d22" stroke-width="1.5"');
     let s = '';
     if (ext === 'accessbit') {
-        // Carte sous la micro:bit : pastilles sous les anneaux, buzzer, servomoteur bleu et barriere rouge (vers la gauche).
-        // Servo assez bas pour que la barriere levee (110 unites) reste sous la micro:bit.
-        const ax = CARTE.x + 46, ay = 385;
-        s += r(CARTE.x - 14, CARTE.y + 168, CARTE.l + 28, 255, `rx="10" fill="${NOIR}"`) + a.map(pastille).join('') +
-             ['0 SERVO', '1 BUZZ', '2', '3V', 'GND'].map((t, i) => ecrit(a[i].x, a[i].y + 54, t, 10, 'middle')).join('') +
-             cercle(CARTE.x + 220, 330, 30, 'fill="#0e0e10" stroke="#3a3a3e" stroke-width="3"') + cercle(CARTE.x + 220, 330, 5, 'fill="#3a3a3e"') +
-             r(ax - 26, ay - 22, 56, 50, 'rx="4" fill="#2f5fc4"') +
-             `<g class="mv-kbras" data-s="-1" style="transform-origin: ${ax}px ${ay}px">` + r(ax - 110, ay - 8, 114, 16, 'rx="8" fill="#e8402a"') +
-             texte(ax - 56, ay + 5, 'KITRONIK', 'fill="#ffffff" font-family="sans-serif" font-size="12" text-anchor="middle"') + '</g>' +
-             cercle(ax, ay, 9, `fill="${BLANC}"`) + ecrit(CARTE.x + 140, CARTE.y + 395, 'Kitronik', 13, 'middle') +
-             r(CARTE.x, CARTE.y, CARTE.l, CARTE.h, 'fill="none"');
-        return { bas: s, hauteur: CARTE.y + 440 };
+        // Carte en T sous la micro:bit (dessin d'apres la photo) : echelle et position choisies pour que ses grosses
+        // pastilles tombent sur les anneaux (ecart 0,7 unite au plus) ; barriere vers la gauche, assez courte pour
+        // rester sous la micro:bit une fois levee.
+        const kV = (a[4].x - a[0].x) / (PASTILLES_ACCESSBIT_U[4] - PASTILLES_ACCESSBIT_U[0]);
+        const t = accessbitT({ x0: a[0].x - PASTILLES_ACCESSBIT_U[0] * kV, y0: a[0].y - PASTILLE_ACCESSBIT_V * kV, k: kV, bras: 290, police: 11 });
+        s += t.svg + r(CARTE.x, CARTE.y, CARTE.l, CARTE.h, 'fill="none"');
+        return { bas: s, hauteur: t.bas + 30 };
     }
     // Poteau debout a gauche de la micro:bit tournee : sa moitie droite passe sous la carte, ses pastilles sous les anneaux.
     const px = a[0].x, gauche = px - 92, milieu = px - 64, haut = ext === 'stopbit' ? 120 : 40, bas = 412;
