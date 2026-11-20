@@ -1612,3 +1612,18 @@ Une seule action annulable. Module sans solution : bandeau "Pas de broche libre 
 la Motor:bit, son menu ne propose que P0 a P2, prises par la carte).
 Verifie : Grove (LED, relais, capteur de lumiere sur P0 -> P0, P1, P2), BitMaker (LED sur P13 -> P0), Motor:bit
 (LED sur P1 et trois cartes Kitronik sur P0 a P2 -> broches libres).
+
+51. DESSIN FIDELE DES CARTES KITRONIK DANS LE MONTAGE (nov. 2026, variante A choisie par l'utilisateur)
+Les cartes Kitronik cablees sont dessinees d'apres les photos du fabricant (icones des depots pxt-kitronik-* sur
+GitHub ; le site kitronik.co.uk impose une verification anti-robots) : silhouette en hauteur (204 unites reservees au
+lieu de 74, montage.js : HAUTEUR_KITRONIK, hauteurModule), carte noire a inscriptions blanches, pied en croix
+"Kitronik".
+- STOP:bit : tete cerclee de blanc, trois LED bombees (rouge, jaune, verte) avec reflet, poteau ; pastilles
+  "0 RED", "1 YLW", "2 GRN", "3V", "GND".
+- LAMP:bit : poteau, capteur de lumiere transparent en haut, crosse cerclee de blanc, LED blanche diffusante au bout
+  (laiteuse eteinte, eclairee avec un halo allumee) ; pastilles "0 LAMP", "1 DETECT", "2", "3V", "0V".
+- ACCESS:bit : buzzer rond noir, servomoteur bleu, barriere rouge "KITRONIK" qui pivote (baissee a l'horizontale,
+  levee a la verticale) ; pastilles "0 SERVO", "1 BUZZ", "2", "3V", "GND".
+Pastilles le long du bord tourne vers la carte d'extension ; module a gauche de la carte : dessin retourne (crosse et
+barriere vers l'exterieur, data-s), inscriptions toujours lisibles. Les fils finissent sur les pastilles (verifie :
+13 fils sur 13 avec la Motor:bit, 7 sur 7 a gauche de la Grove Shield).
