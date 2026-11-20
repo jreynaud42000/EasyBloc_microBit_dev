@@ -2594,8 +2594,8 @@ try {
         lampbit:   { bloc: 'lampbit_cablage',   champs: ['LAMPE', 'CAPTEUR'],        defaut: ['pin0', 'pin1'] },
         accessbit: { bloc: 'accessbit_cablage', champs: ['SERVO', 'BUZZER'],         defaut: ['pin0', 'pin1'] },
     };
-    // CABLAGE AUTOMATIQUE (nov. 2026) : des que deux ou trois cartes Kitronik sont utilisees, ou une seule avec la
-    // Motor:bit (blocs Motor:bit, ou carte choisie dans le menu du montage), chaque carte SANS bloc « cabler » recoit des
+    // CABLAGE AUTOMATIQUE (nov. 2026) : des que deux ou trois cartes Kitronik sont utilisees, ou une seule avec des
+    // blocs Motor:bit, chaque carte SANS bloc « cabler » recoit des
     // broches libres : ni celles des autres blocs du programme, ni celles d'un bloc « cabler », ni P0 / P1 / P2 / P8 /
     // P12 avec la Motor:bit (buzzer, moteurs), ni P5 / P11 (boutons A et B). Ordre de preference : P13 a P16 (G-VCC-S
     // de la Motor:bit, le servo en premier), P8, P12, P0 a P2, puis les broches de la matrice de LED en dernier recours
@@ -2615,13 +2615,17 @@ try {
         const types = blocs.map(b => b.type);
         let choix = '';
         try { choix = localStorage.getItem('montageCarte') || ''; } catch (erreur) { choix = ''; }
-        const motorbit = types.some(t => /^motorbit_/.test(t)) || choix === 'motorbit';
+        // Le choix du menu du montage (« Motor:bit V1.6 ») ne regle que l'affichage : il ne declenche pas le cablage
+        // automatique (une carte Kitronik seule reste vissee sur la micro:bit, P0 a P2) ; quand celui-ci est deja
+        // declenche (deux cartes), il fait seulement eviter les broches de la Motor:bit dessinee.
+        const blocsMotorbit = types.some(t => /^motorbit_/.test(t));
+        const motorbit = blocsMotorbit || choix === 'motorbit';
         // Cle du cache : blocs actifs et valeurs de leurs champs (une broche changee change le cablage).
         const cle = blocs.map(b => b.id + ':' + b.inputList.map(en => en.fieldRow.map(ch => (ch.getValue ? ch.getValue() : '')).join('/')).join('/')).join(',') + '|' + choix;
         if (!ignorerManuel && cacheCablage && cacheCablage.cle === cle) return cacheCablage.res;
         const exts = Object.keys(CABLAGE_KITRONIK);
         const utilisees = exts.filter(e => types.some(t => t.startsWith(e + '_')));
-        const auto = ignorerManuel || utilisees.length >= 2 || (utilisees.length >= 1 && motorbit);
+        const auto = ignorerManuel || utilisees.length >= 2 || (utilisees.length >= 1 && blocsMotorbit);
         const occupees = new Set(['pin5', 'pin11']);
         if (motorbit) RESERVEES_MOTORBIT_KITRONIK.forEach(p => occupees.add(p));
         // Broches des autres blocs (Grove, servos, entrees/sorties...) : tout champ dont la valeur est « pinN ».

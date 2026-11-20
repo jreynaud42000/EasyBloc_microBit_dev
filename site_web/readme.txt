@@ -1638,3 +1638,10 @@ cablees, le bouton en tete du tableau sous le montage replie de nouveau TOUT le 
 compris (choix memorise, cle montageReglagesReplies). Il apparait des qu'il y a une section a montrer, avec un titre
 selon le contenu : "Peripheriques" (cartes Kitronik seules), "Reglages des capteurs" (capteurs seuls), "Peripheriques
 et reglages des capteurs" (les deux). La rangee des cartes Kitronik est placee juste sous le bouton.
+Menu "Carte d'extension" et cablage automatique (nov. 2026, correctif) : le choix du menu du montage (memorise dans
+le navigateur, cle montageCarte) ne regle que l'affichage. Il ne declenche plus le cablage automatique : une carte
+Kitronik seule, sans bloc Motor:bit, reste vissee sur la micro:bit (P0 a P2, pas de fils ni de montage), meme si
+"Motor:bit V1.6" est choisi dans le menu. Le cablage automatique se declenche avec deux ou trois cartes Kitronik, ou
+une carte avec des blocs Motor:bit ; dans le premier cas, "Motor:bit V1.6" choisi dans le menu fait eviter les
+broches de ses moteurs et de son buzzer. (Remplace "ou une seule avec la Motor:bit (blocs Motor:bit, ou carte choisie
+dans le menu du montage)" plus haut.)
