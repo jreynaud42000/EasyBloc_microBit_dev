@@ -1506,3 +1506,20 @@ Demandes de l'utilisateur :
   seulement une fois zoome). montage.js : placerZoom().
 - Theme clair (essai B choisi par l'utilisateur) : meme bandeau Educatech qu'en sombre, et fonds gris doux au lieu
   du blanc (zone de blocs #f2f2ef, colonne du simulateur #ececea, cadre du montage #dadad5).
+
+47. EXTENSION KITRONIK STOP:BIT (nov. 2026)
+Premiere extension de la fenetre Fichier > Blocs > "Extensions..." (voir §8, fin). Feu tricolore Kitronik STOP:bit
+(ref. 5642) : rouge = P0, orange = P1, vert = P2, LED allumee au niveau haut (brochage de la bibliotheque officielle
+pxt-kitronik-stopbit). Contrairement aux categories ordinaires, la categorie "STOP:bit" est ABSENTE au depart
+(parDefaut: false dans EXTENSIONS, un.js) : un clic sur sa carte l'ajoute a la colonne ; ce choix est retenu sur le PC
+(localStorage, cle easybloc_ts_extensions_ajoutees). Un programme qui contient un bloc STOP:bit la remet toute seule.
+Blocs (couleur #6B7280) :
+- "STOP:bit : mettre le feu sur" Stop (rouge) / Pret a demarrer (rouge et orange) / Passez (vert) / Pret a s'arreter
+  (orange) - les quatre etats de Kitronik ; les autres feux s'eteignent. Code : _stopbit_feu(r, o, v).
+- "STOP:bit : feu" rouge / orange / vert, allume / eteint : un seul feu, les autres inchanges. Code : _stopbit_led(pinX, 0|1).
+- "STOP:bit : eteindre les trois feux" : _stopbit_feu(0, 0, 0).
+Le pilote "stopbit" est du Python pur (write_digital sur P0, P1, P2) : le simulateur le GARDE, comme le pilote "ia".
+Simulateur : section "Feu STOP:bit" de "Peripheriques" (feu dessine, legende rouge / orange / vert allume ou eteint),
+allumee d'apres l'etat des broches P0, P1, P2 (un.js : dessinerStopbit, appele par dessinerLeds) ; un bloc "ecrire sur
+la broche" allume donc le feu aussi, comme sur la vraie carte. Aide (clic droit), deux exemples (feu de circulation,
+orange clignotant) et reconstruction en blocs a l'import d'un .py. Non verifie sur une vraie carte STOP:bit.

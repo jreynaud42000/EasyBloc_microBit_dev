@@ -1186,7 +1186,7 @@
     .montage-reglages-bascule[hidden] { display: none; }
     .montage-reglages-bascule:focus-visible { outline: 3px solid #4fc3d9; outline-offset: 2px; }
     #grove-panneau.montage-reglages > h4 { display: none; }
-    #grove-panneau.montage-reglages .grove-bloc:not(#grove-sec-ultrason):not(#grove-sec-joystick):not(#grove-sec-potentiometre):not(#grove-sec-bouton):not(#grove-sec-lumiere):not(#grove-sec-pir):not(#grove-sec-pression):not(#grove-sec-cov):not(#grove-sec-gestes):not(#grove-sec-th):not(#grove-sec-co2):not(#grove-sec-couleur):not(#grove-sec-radio) { display: none !important; }
+    #grove-panneau.montage-reglages .grove-bloc:not(#grove-sec-ultrason):not(#grove-sec-joystick):not(#grove-sec-potentiometre):not(#grove-sec-bouton):not(#grove-sec-lumiere):not(#grove-sec-pir):not(#grove-sec-pression):not(#grove-sec-cov):not(#grove-sec-gestes):not(#grove-sec-th):not(#grove-sec-co2):not(#grove-sec-couleur):not(#grove-sec-radio):not(#grove-sec-stopbit) { display: none !important; }
     /* Bouton poussoir : il s'actionne dans le montage ; seule la case « maintenu enfonce » reste a regler. */
     #grove-panneau.montage-reglages #grove-bouton-appui { display: none; }
     #grove-panneau.montage-reglages.reglages-replies .grove-bloc { display: none !important; }
@@ -1543,6 +1543,22 @@
     .module-led { fill: #5a2a2a; transition: fill .15s; }
     .actif .module-led { fill: #ff3b30; }
     #grove-relais { display: flex; flex-wrap: wrap; gap: 8px; }
+    /* Extension Kitronik STOP:bit (nov. 2026) : feu tricolore dessine, allume d'apres P0 (rouge), P1 (orange), P2 (vert). */
+    .stopbit-module { display: flex; align-items: center; gap: 12px; }
+    #grove-stopbit-visuel { flex: 0 0 auto; }
+    .stopbit-carte { fill: #26262b; stroke: #0d0d10; stroke-width: 2; }
+    .stopbit-visiere { fill: #111114; }
+    .stopbit-feu { transition: fill .12s, filter .12s; }
+    .stopbit-feu.rouge { fill: #4a1714; }
+    .stopbit-feu.orange { fill: #4a3410; }
+    .stopbit-feu.vert { fill: #133a22; }
+    .stopbit-feu.rouge.allume { fill: #ff3b30; filter: drop-shadow(0 0 5px #ff3b30); }
+    .stopbit-feu.orange.allume { fill: #ffb000; filter: drop-shadow(0 0 5px #ffb000); }
+    .stopbit-feu.vert.allume { fill: #2fd16a; filter: drop-shadow(0 0 5px #2fd16a); }
+    .stopbit-marque { fill: #d0d0d6; font-size: 7px; font-family: sans-serif; font-weight: 600; }
+    .stopbit-legende { font-size: 11px; line-height: 1.6; }
+    .stopbit-legende b { font-weight: 600; }
+    @media (prefers-reduced-motion: reduce) { .stopbit-feu { transition: none; } }
     .relais-module { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; }
     .relais-boitier { fill: #2f63c9; stroke: #1a3f86; stroke-width: 2; }
     .relais-marque { fill: #cfe0ff; font-size: 8px; font-family: sans-serif; }
@@ -2006,7 +2022,7 @@
         <!-- Extensions (nov. 2026, variante B choisie par l'utilisateur) : fenetre de cartes, VIDE pour l'instant ; elle
              servira a proposer des fonctionnalites futures (un.js, « Extensions ») -->
         <div class="menu-titre">Blocs</div>
-        <button id="extensions-btn" title="Extensions : fonctionnalités supplémentaires (aucune pour l'instant)"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.4 13a2 2 0 0 0 0-4H18V6a2 2 0 0 0-2-2h-3v1.5a2 2 0 0 1-4 0V4H6a2 2 0 0 0-2 2v3h1.5a2 2 0 0 1 0 4H4v3a2 2 0 0 0 2 2h3v-1.5a2 2 0 0 1 4 0V18h3a2 2 0 0 0 2-2v-3z"/></svg>Extensions…</button>
+        <button id="extensions-btn" title="Extensions : catégories de blocs à ajouter ou retirer (STOP:bit…)"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.4 13a2 2 0 0 0 0-4H18V6a2 2 0 0 0-2-2h-3v1.5a2 2 0 0 1-4 0V4H6a2 2 0 0 0-2 2v3h1.5a2 2 0 0 1 0 4H4v3a2 2 0 0 0 2 2h3v-1.5a2 2 0 0 1 4 0V18h3a2 2 0 0 0 2-2v-3z"/></svg>Extensions…</button>
       </div>
     </div>
 
@@ -2352,6 +2368,24 @@
         <div class="grove-bloc" id="grove-sec-relais">
           <span class="grove-titre">Relais</span>
           <div id="grove-relais"><span class="grove-vide">aucun</span></div>
+        </div>
+
+        <!-- Extension Kitronik STOP:bit (nov. 2026) : un.js, dessinerStopbit (etat de P0, P1, P2) -->
+        <div class="grove-bloc" id="grove-sec-stopbit">
+          <span class="grove-titre">Feu STOP:bit</span>
+          <div class="stopbit-module">
+            <svg id="grove-stopbit-visuel" width="48" height="128" viewBox="0 0 48 128" role="img" aria-label="Feu tricolore STOP:bit">
+              <rect class="stopbit-carte" x="4" y="2" width="40" height="124" rx="10"/>
+              <path class="stopbit-visiere" d="M10 16 a14 14 0 0 1 28 0 z"/>
+              <path class="stopbit-visiere" d="M10 51 a14 14 0 0 1 28 0 z"/>
+              <path class="stopbit-visiere" d="M10 86 a14 14 0 0 1 28 0 z"/>
+              <circle class="stopbit-feu rouge" cx="24" cy="26" r="11"/>
+              <circle class="stopbit-feu orange" cx="24" cy="61" r="11"/>
+              <circle class="stopbit-feu vert" cx="24" cy="96" r="11"/>
+              <text class="stopbit-marque" x="24" y="119" text-anchor="middle">STOP:bit</text>
+            </svg>
+            <div class="stopbit-legende" id="grove-stopbit-etat" aria-live="polite"></div>
+          </div>
         </div>
 
         <!-- Deuxieme lot Grove (un.js : simu_barreLed, simu_rtc, simu_mesure('pression' | 'cov')) -->
@@ -3560,7 +3594,7 @@
         # Exception : le pilote "ia" (lecture des resultats de l'IA sur l'uart) est du
         # Python pur sans materiel — c'est lui qui doit tourner, avec le faux uart.
         code_nettoye = re.sub(r"# >>> pilote (\S+).*?# <<< pilote \S+",
-                              lambda m: m.group(0) if m.group(1) == "ia" else "", code, flags=re.S)
+                              lambda m: m.group(0) if m.group(1) in ("ia", "stopbit") else "", code, flags=re.S)
         # replace() sans compte remplace TOUTES les occurrences en Python : un
         # programme a deux boucles infinies ne fige donc plus l'onglet.
         for ligne in ["from microbit import *", "import audio", "import music",

@@ -1808,7 +1808,7 @@ function majVivant() {
 // cachees restent a jour (un.js) : le montage les recopie.
 const SECTIONS_REGLAGES = ['grove-sec-ultrason', 'grove-sec-joystick', 'grove-sec-potentiometre', 'grove-sec-bouton',
     'grove-sec-lumiere', 'grove-sec-pir', 'grove-sec-pression', 'grove-sec-cov', 'grove-sec-gestes', 'grove-sec-th',
-    'grove-sec-co2', 'grove-sec-couleur', 'grove-sec-radio'];
+    'grove-sec-co2', 'grove-sec-couleur', 'grove-sec-radio', 'grove-sec-stopbit'];
 const CLE_REGLAGES = 'montageReglagesReplies';
 let basculeReglages = null;
 function reglagesReplies() { try { return localStorage.getItem(CLE_REGLAGES) === '1'; } catch (erreur) { return false; } }

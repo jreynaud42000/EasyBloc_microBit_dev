@@ -2566,6 +2566,70 @@ try {
         return '_grove_relais(' + block.getFieldValue('BROCHE') + ', ' + block.getFieldValue('ETAT') + ')\n';
     };
 
+    // ======================================================================
+    // EXTENSION KITRONIK STOP:BIT (nov. 2026, menu Fichier > Extensions) : feu tricolore relie a la carte.
+    // ======================================================================
+    // Brochage de la bibliotheque Kitronik (pxt-kitronik-stopbit) : rouge = P0, orange = P1, vert = P2, LED allumee
+    // au niveau haut. Les quatre etats reprennent ceux de Kitronik (Stop, Get Ready, Go, Ready To Stop).
+    // Le pilote est du Python pur qui ecrit sur ces broches : le simulateur le GARDE (comme le pilote "ia") et dessine
+    // le feu d'apres l'etat de P0, P1 et P2 (dessinerStopbit) ; un bloc « ecrire sur la broche » allume donc le feu
+    // aussi, comme sur la vraie carte.
+    const COULEUR_STOPBIT = '#6B7280';
+    function piloteStopbit() {
+        importerMicrobit();
+        pilote('stopbit', [
+            'def _stopbit_feu(rouge, orange, vert):',
+            '    pin0.write_digital(rouge)',
+            '    pin1.write_digital(orange)',
+            '    pin2.write_digital(vert)',
+            '',
+            'def _stopbit_led(broche, etat):',
+            '    broche.write_digital(1 if etat else 0)',
+        ]);
+    }
+    const ETATS_STOPBIT = [
+        ["Stop (rouge)", "1, 0, 0"],
+        ["Prêt à démarrer (rouge et orange)", "1, 1, 0"],
+        ["Passez (vert)", "0, 0, 1"],
+        ["Prêt à s'arrêter (orange)", "0, 1, 0"],
+    ];
+    Blockly.Blocks['stopbit_etat'] = { init: function() {
+        this.appendDummyInput().appendField("STOP:bit : mettre le feu sur")
+            .appendField(new Blockly.FieldDropdown(ETATS_STOPBIT), "ETAT");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COULEUR_STOPBIT);
+        this.setTooltip("Allume les feux de la STOP:bit selon l'état choisi et éteint les autres (rouge P0, orange P1, vert P2).");
+    }};
+    P.forBlock['stopbit_etat'] = function(block) {
+        piloteStopbit();
+        return '_stopbit_feu(' + block.getFieldValue('ETAT') + ')\n';
+    };
+    Blockly.Blocks['stopbit_led'] = { init: function() {
+        this.appendDummyInput().appendField("STOP:bit : feu")
+            .appendField(new Blockly.FieldDropdown([["rouge", "pin0"], ["orange", "pin1"], ["vert", "pin2"]]), "COULEUR")
+            .appendField(new Blockly.FieldDropdown([["allumé", "1"], ["éteint", "0"]]), "ETAT");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COULEUR_STOPBIT);
+        this.setTooltip("Allume ou éteint un seul feu de la STOP:bit ; les deux autres ne changent pas.");
+    }};
+    P.forBlock['stopbit_led'] = function(block) {
+        piloteStopbit();
+        return '_stopbit_led(' + block.getFieldValue('COULEUR') + ', ' + block.getFieldValue('ETAT') + ')\n';
+    };
+    Blockly.Blocks['stopbit_eteindre'] = { init: function() {
+        this.appendDummyInput().appendField("STOP:bit : éteindre les trois feux");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour(COULEUR_STOPBIT);
+        this.setTooltip("Éteint le rouge, l'orange et le vert.");
+    }};
+    P.forBlock['stopbit_eteindre'] = function() {
+        piloteStopbit();
+        return '_stopbit_feu(0, 0, 0)\n';
+    };
+
     // --- Ecran OLED 0,96" 128x64 (Grove OLED Display 0.96", SSD1315 / SSD1306, I2C 0x3C) ---
     //
     // Mode texte, sans memoire d'image (la carte V1 n'a que 16 Ko) : chaque caractere est
@@ -4312,6 +4376,7 @@ try {
         'Fonctions': '#5F2BD4',
         'Listes': '#88009B',
         'Graphique': '#8E1B3A',   // bordeaux, variante A choisie par l'utilisateur (nov. 2026)
+        'STOP:bit': '#6B7280',    // gris moyen (l'anthracite de la carte disparaissait en theme sombre) (extension, nov. 2026)
     };
     // Texte des blocs : blanc par defaut ; fonce sur les couleurs claires, ou le blanc contraste a moins de 3:1 (seuil
     // WCAG, luminance relative) : Boucles, Temps, Capteurs, Servos, Logique, Maths. Regle CSS par couleur : « un bloc dont le fond a cette
@@ -4343,7 +4408,7 @@ try {
     // a la suite, dans leur ordre d'origine. « Communication » est renommee « Radio ». « Graphique » n'existe pas encore.
     // Graphique puis IA en dernier, apres Listes ; Logique juste apres Boucles ; Radio entre Actionneurs (Audio) et
     // Servos (demandes de l'utilisateur, nov. 2026).
-    const ORDRE_CATEGORIES = ['Boucles', 'Logique', 'Temps', 'Matrice LED', 'Entrées/Sorties', 'Capteurs', 'Actionneurs (Audio)', 'Radio', 'Servos', 'Cartes d\'extension', 'Grove',
+    const ORDRE_CATEGORIES = ['Boucles', 'Logique', 'Temps', 'Matrice LED', 'Entrées/Sorties', 'Capteurs', 'Actionneurs (Audio)', 'Radio', 'Servos', 'Cartes d\'extension', 'Grove', 'STOP:bit',
                               'Variables', 'Maths', 'Texte', 'Fonctions', 'Listes', 'Graphique', 'IA'];
     const CATEGORIE_LISTES = {
         "kind": "category", "name": "Listes", "colour": "260",
@@ -4787,6 +4852,16 @@ try {
             ]
           },
           {
+            // Extension Kitronik STOP:bit (nov. 2026) : masquee tant qu'on ne l'ajoute pas (Fichier > Extensions)
+            "kind": "category", "name": "STOP:bit", "colour": "#6B7280",
+            "contents": [
+              { "kind": "label", "text": "Feu tricolore (rouge P0, orange P1, vert P2)", "web-class": "groupe-flyout" },
+              { "kind": "block", "type": "stopbit_etat" },
+              { "kind": "block", "type": "stopbit_led" },
+              { "kind": "block", "type": "stopbit_eteindre" }
+            ]
+          },
+          {
             // 37 blocs dans un seul tiroir demandaient plus de deux ecrans de
             // defilement : les derniers etaient introuvables en pratique. Un
             // sous-menu par module, chacun tenant d'un coup d'oeil.
@@ -5181,15 +5256,28 @@ try {
     // { nom: 'Grove', desc: 'Modules Grove : LED, écran, capteurs, moteurs et relais…' },
     // { nom: 'Graphique', desc: 'Tracer des mesures en courbes dans la console.' },
     // { nom: 'IA', desc: 'Reconnaître des images, des sons, des gestes ou des positions.' },
-    const EXTENSIONS = [];
+    // « parDefaut: false » : extension de materiel, absente de la colonne tant que l'utilisateur ne l'a pas ajoutee
+    // (comme dans MakeCode). Son ajout est retenu sous une seconde cle (CLE_EXTENSIONS_AJOUTEES).
+    const EXTENSIONS = [
+        { nom: 'STOP:bit', desc: 'Feu tricolore Kitronik STOP:bit : rouge (P0), orange (P1) et vert (P2).', parDefaut: false },
+    ];
     const CLE_EXTENSIONS = 'easybloc_ts_extensions_retirees';
+    const CLE_EXTENSIONS_AJOUTEES = 'easybloc_ts_extensions_ajoutees';
     const extensionsRetirees = new Set();
+    const parDefaut = nom => { const e = EXTENSIONS.find(x => x.nom === nom); return !e || e.parDefaut !== false; };
+    EXTENSIONS.forEach(e => { if (e.parDefaut === false) extensionsRetirees.add(e.nom); });
     try {
         const lu = JSON.parse(localStorage.getItem(CLE_EXTENSIONS) || '[]');
         if (Array.isArray(lu)) lu.forEach(n => { if (EXTENSIONS.some(e => e.nom === n)) extensionsRetirees.add(n); });
-    } catch (erreur) { /* stockage indisponible ou illisible : tout est affiche */ }
+        const ajoutees = JSON.parse(localStorage.getItem(CLE_EXTENSIONS_AJOUTEES) || '[]');
+        if (Array.isArray(ajoutees)) ajoutees.forEach(n => { if (!parDefaut(n)) extensionsRetirees.delete(n); });
+    } catch (erreur) { /* stockage indisponible ou illisible : reglage d'origine */ }
     function memoriserExtensions() {
-        try { localStorage.setItem(CLE_EXTENSIONS, JSON.stringify([...extensionsRetirees])); }
+        try {
+            localStorage.setItem(CLE_EXTENSIONS, JSON.stringify([...extensionsRetirees].filter(parDefaut)));
+            localStorage.setItem(CLE_EXTENSIONS_AJOUTEES, JSON.stringify(
+                EXTENSIONS.filter(e => e.parDefaut === false && !extensionsRetirees.has(e.nom)).map(e => e.nom)));
+        }
         catch (erreur) { /* stockage indisponible : le choix vaut pour la session */ }
     }
     // Type de bloc -> extension qui le propose (parcours de la boite a outils d'origine, sous-categories comprises).
@@ -7528,6 +7616,12 @@ try {
             "pas. Dans le simulateur, une pastille orange vibre et un bip retentit.",
         grove_buzzer_bip: "Fait sonner le buzzer Grove pendant la durée indiquée en millisecondes (1000 ms = 1 s), puis " +
             "l'arrête. Le programme attend la fin du bip avant de continuer.",
+        stopbit_etat: "Met le feu tricolore Kitronik STOP:bit dans l'un des quatre états d'un feu de circulation : " +
+            "Stop (rouge), Prêt à démarrer (rouge et orange), Passez (vert), Prêt à s'arrêter (orange). Les feux qui ne " +
+            "font pas partie de l'état sont éteints. Rouge = P0, orange = P1, vert = P2.",
+        stopbit_led: "Allume ou éteint un seul feu de la STOP:bit (rouge sur P0, orange sur P1, vert sur P2) sans toucher aux " +
+            "deux autres. Équivaut à écrire 1 ou 0 sur la broche du feu.",
+        stopbit_eteindre: "Éteint les trois feux de la STOP:bit.",
         grove_relais: "Commande le relais Grove : fermé, l'appareil branché sur le relais (lampe, moteur, pompe…) fonctionne ; " +
             "ouvert, il s'arrête. Le relais permet de commander un circuit séparé de la carte. Dans le simulateur, le " +
             "contact dessiné se ferme ou s'ouvre.",
@@ -7918,6 +8012,13 @@ try {
     exemple(['grove_buzzer_etat'], 'Bip toutes les secondes', "Le buzzer (P0) sonne une seconde, se tait une seconde, et ainsi de suite.",
         [exLoop(exB('grove_buzzer_etat', { BROCHE: 'pin0', ETAT: '1' }), exWait(1),
                 exB('grove_buzzer_etat', { BROCHE: 'pin0', ETAT: '0' }), exWait(1))]);
+    exemple(['stopbit_etat', 'stopbit_eteindre'], 'Feu de circulation',
+        "Le feu passe au rouge 3 secondes, rouge et orange 1 seconde, vert 3 secondes, puis orange 1 seconde, et recommence.",
+        [exLoop(exB('stopbit_etat', { ETAT: '1, 0, 0' }), exWait(3), exB('stopbit_etat', { ETAT: '1, 1, 0' }), exWait(1),
+                exB('stopbit_etat', { ETAT: '0, 0, 1' }), exWait(3), exB('stopbit_etat', { ETAT: '0, 1, 0' }), exWait(1))]);
+    exemple(['stopbit_led'], 'Orange clignotant', "Le feu orange clignote toutes les demi-secondes, comme un feu en panne.",
+        [exLoop(exB('stopbit_led', { COULEUR: 'pin1', ETAT: '1' }), exWait(0.5),
+                exB('stopbit_led', { COULEUR: 'pin1', ETAT: '0' }), exWait(0.5))]);
     exemple(['grove_relais'], 'Lampe commandée', "Le relais (P0) allume la lampe 2 secondes, puis l'éteint 2 secondes.",
         [exLoop(exB('grove_relais', { BROCHE: 'pin0', ETAT: '1' }), exWait(2),
                 exB('grove_relais', { BROCHE: 'pin0', ETAT: '0' }), exWait(2))]);
@@ -9257,6 +9358,21 @@ try {
                 [mg[0] === 'angle' ? 'ANGLE' : 'VITESSE']: { block: reconstruireExpression(mg[1][1]) } } }, consommees: 1 };
         }
 
+        // ---- STOP:bit : _stopbit_feu(r, o, v) avec 0 ou 1, _stopbit_led(pin0 | pin1 | pin2, 0 ou 1) ----
+        if (estAppel(appel, '_stopbit_feu') && appel.args.length === 3) {
+            const etat = appel.args.map(valeurConstante).join(', ');
+            if (etat === '0, 0, 0') return { bloc: { type: 'stopbit_eteindre' }, consommees: 1 };
+            if (['1, 0, 0', '1, 1, 0', '0, 0, 1', '0, 1, 0'].includes(etat)) {
+                return { bloc: { type: 'stopbit_etat', fields: { ETAT: etat } }, consommees: 1 };
+            }
+        }
+        if (estAppel(appel, '_stopbit_led') && appel.args.length === 2) {
+            const broche = identifiantNom(appel.args[0]), etat = valeurConstante(appel.args[1]);
+            if (['pin0', 'pin1', 'pin2'].includes(broche) && (etat === 0 || etat === 1)) {
+                return { bloc: { type: 'stopbit_led', fields: { COULEUR: broche, ETAT: String(etat) } }, consommees: 1 };
+            }
+        }
+
         // ---- Premier lot Grove : _grove_buzzer / _grove_relais(pinX, 0 ou 1), _grove_buzzer_bip(pinX, duree),
         // _grove_oled().texte(texte, x, y) et _grove_oled().effacer(). ----
         if (appel._type === 'Call' && appel.func._type === 'Attribute' && estAppel(appel.func.value, '_grove_oled')) {
@@ -10488,7 +10604,23 @@ try {
      * d'avance sur quelle broche la LED est câblée, et montrer les neuf broches
      * ferait un mur de pastilles éteintes.
      */
+    // Feu Kitronik STOP:bit : rouge P0, orange P1, vert P2 (allume des que la broche n'est pas a 0, comme la vraie LED).
+    const FEUX_STOPBIT = [['rouge', '0', 'Rouge'], ['orange', '1', 'Orange'], ['vert', '2', 'Vert']];
+    function dessinerStopbit() {
+        const svg = document.getElementById('grove-stopbit-visuel');
+        if (!svg) return;
+        const tr = t => (window.tr ? window.tr(t) : t);
+        const lignes = FEUX_STOPBIT.map(([classe, broche, nom]) => {
+            const allume = (etatLeds[broche] || 0) > 0;
+            svg.querySelector('.stopbit-feu.' + classe).classList.toggle('allume', allume);
+            return '<div><b>' + tr(nom) + '</b> (P' + broche + ') : ' + tr(allume ? 'allumé' : 'éteint') + '</div>';
+        });
+        const zone = document.getElementById('grove-stopbit-etat');
+        if (zone) zone.innerHTML = lignes.join('');
+    }
+
     function dessinerLeds() {
+        dessinerStopbit();
         if (!zoneLeds) return;
         const broches = Object.keys(etatLeds);
         if (!broches.length) {
@@ -10528,6 +10660,7 @@ try {
         ['grove-sec-buzzer',   /^grove_buzzer_/],
         ['grove-sec-mp3',      /^grove_mp3_/],
         ['grove-sec-relais',   /^grove_relais$/],
+        ['grove-sec-stopbit',  /^stopbit_/],
         ['grove-sec-oled',     /^grove_oled_/],
         ['grove-sec-gestes',   /^grove_gestes_/],
         ['grove-sec-lcd',      /^grove_lcd(rgb)?_/],

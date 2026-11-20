@@ -8,6 +8,13 @@
       "port": 8017
     },
     {
+      "name": "easybloc_microbit_dev",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8023", "--bind", "127.0.0.1"],
+      "port": 8023,
+      "autoPort": false
+    },
+    {
       "name": "easybloc_fiches",
       "runtimeExecutable": "python",
       "runtimeArgs": ["outils/fiches/serveur-fiches.py", "8041"],
