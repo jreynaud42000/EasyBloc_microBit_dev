@@ -2696,7 +2696,8 @@ try {
     function matriceKitronik(broches) {
         if (broches.some(p => BROCHES_MATRICE.includes(p))) {
             importerMicrobit();
-            P.definitions_['kitronik_matrice'] = '# Une carte Kitronik utilise une broche de la matrice de LED : matrice eteinte\ndisplay.off()';
+            // Dans un pilote : l'import d'un .py le retire avec les autres (sinon il revenait en « code personnalise »).
+            pilote('matrice', ['# Une carte Kitronik utilise une broche de la matrice de LED : matrice eteinte', 'display.off()']);
         }
     }
     function blocCablage(type, titre, morceaux, aide) {
@@ -9714,9 +9715,11 @@ try {
             }
         }
         if (estAppel(appel, '_stopbit_led') && appel.args.length === 2) {
+            // Broche cablee -> couleur (rouge, orange, vert = rang 0, 1, 2 du cablage relu dans le pilote, P0 a P2 sinon).
             const broche = identifiantNom(appel.args[0]), etat = valeurConstante(appel.args[1]);
-            if (['pin0', 'pin1', 'pin2'].includes(broche) && (etat === 0 || etat === 1)) {
-                return { bloc: { type: 'stopbit_led', fields: { COULEUR: broche, ETAT: String(etat) } }, consommees: 1 };
+            const rang = cablageStopbitImport.indexOf(broche);
+            if (rang >= 0 && (etat === 0 || etat === 1)) {
+                return { bloc: { type: 'stopbit_led', fields: { COULEUR: 'pin' + rang, ETAT: String(etat) } }, consommees: 1 };
             }
         }
 
@@ -10101,7 +10104,37 @@ try {
         return code.replace(/# >>> pilote \S+\r?\n[\s\S]*?\r?\n# <<< pilote \S+\r?\n?/g, '');
     }
 
+    /**
+     * Cablage des cartes Kitronik relu dans les pilotes du fichier (nov. 2026) : le bloc « cabler » n'ecrit qu'un
+     * commentaire, perdu a l'analyse, mais les pilotes portent les vraies broches (_STOPBIT = (...), pinX.write_digital,
+     * pin=pinY...). Renvoie les blocs « cabler » a recreer : seulement si les broches different de celles de Kitronik
+     * et que le pilote n'est pas en « cablage automatique » (que l'appli retrouvera toute seule).
+     */
+    function cablagesDuCode(code) {
+        const pilotes = {};
+        code.replace(/# >>> pilote (\S+)\r?\n([\s\S]*?)\r?\n# <<< pilote \S+/g, (tout, nom, corps) => { pilotes[nom] = corps; return tout; });
+        const blocs = [];
+        const ajouter = (ext, champs, valeurs) => {
+            const corps = pilotes[ext], c = CABLAGE_KITRONIK[ext];
+            if (!corps || /cablage automatique/.test(corps) || valeurs.some(v => !v)) return;
+            if (valeurs.every((v, i) => v === c.defaut[i])) return;
+            const fields = {};
+            champs.forEach((ch, i) => { fields[ch] = valeurs[i]; });
+            blocs.push({ type: c.bloc, fields });
+        };
+        const lire = (ext, motif) => { const m = pilotes[ext] && motif.exec(pilotes[ext]); return m ? m.slice(1) : []; };
+        ajouter('stopbit', ['ROUGE', 'ORANGE', 'VERT'], lire('stopbit', /_STOPBIT = \((pin\d+), (pin\d+), (pin\d+)\)/));
+        ajouter('lampbit', ['LAMPE', 'CAPTEUR'], [lire('lampbit', /(pin\d+)\.write_digital/)[0], lire('lampbit', /return (pin\d+)\.read_analog/)[0]]);
+        ajouter('accessbit', ['SERVO', 'BUZZER'], [lire('accessbit', /(pin\d+)\.set_analog_period/)[0], lire('accessbit', /pin=(pin\d+)/)[0]]);
+        return blocs;
+    }
+
+    // Broches de la STOP:bit pendant une reconstruction (reconstruction de « feu ... allume / eteint »).
+    let cablageStopbitImport = ['pin0', 'pin1', 'pin2'];
     function reconstruireDepuisCode(code) {
+        const cablages = cablagesDuCode(code);
+        const feu = /_STOPBIT = \((pin\d+), (pin\d+), (pin\d+)\)/.exec(code);
+        cablageStopbitImport = feu ? feu.slice(1) : ['pin0', 'pin1', 'pin2'];
         const resultatJson = window.analyserCodePython(retirerPilotes(code));
         const resultat = JSON.parse(resultatJson);
         if (!resultat.ok) return null;
@@ -10179,6 +10212,15 @@ try {
             if (corps) bloc.inputs = { DO: { block: corps } };
             blocsPrincipaux.push(bloc);
         });
+
+        // Blocs « cabler » des cartes Kitronik en tete de « au demarrage » (cablagesDuCode).
+        const demarrageReconstruit = blocsPrincipaux.find(b => b.type === 'au_demarrage');
+        if (cablages.length && demarrageReconstruit) {
+            const premier = demarrageReconstruit.inputs && demarrageReconstruit.inputs.DO && demarrageReconstruit.inputs.DO.block;
+            cablages.forEach((b, i) => { if (cablages[i + 1]) b.next = { block: cablages[i + 1] }; });
+            if (premier) cablages[cablages.length - 1].next = { block: premier };
+            demarrageReconstruit.inputs = Object.assign(demarrageReconstruit.inputs || {}, { DO: { block: cablages[0] } });
+        }
 
         return { blocks: { languageVersion: 0, blocks: blocsPrincipaux } };
     }

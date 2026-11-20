@@ -1698,3 +1698,15 @@ quand elle est allumee), "LAMP:bit" et ovale "Kitronik" sur le poteau, inscripti
 sur la carte, pied etroit. Vissee : 30 unites de poteau visibles a gauche de la micro:bit au lieu de 55 (les anneaux
 etant a 37 unites du bord de la micro:bit, le reste du poteau passe dessous) ; montage.js : dessinLampbitVisse.
 Cablee par fils : meme forme en petit (dessinKitronik). Les autres cartes ne changent pas.
+Ameliorations suivantes (nov. 2026, points 1 a 4 retenus par l'utilisateur) :
+1. Import d'un .py : le cablage des cartes Kitronik n'est plus perdu. Les blocs "cabler" n'ecrivent qu'un commentaire,
+   mais les pilotes du fichier portent les vraies broches ; un.js (cablagesDuCode) les relit avant de retirer les
+   pilotes et recree les blocs "cabler" en tete de "au demarrage" (seulement si les broches different de celles de
+   Kitronik et que le pilote n'est pas en "cablage automatique", que l'appli retrouve seule). "Feu ... allume / eteint"
+   retrouve sa couleur d'apres ce cablage. Le display.off() des broches de la matrice est maintenant dans un pilote
+   ("matrice") : il ne revient plus en "code personnalise". Verifie : cablage manuel, automatique et carte vissee.
+2. Montage : les mentions sous un module (alerte, "hors port Grove", "cablage automatique"...) sont ecrites une par
+   ligne, l'alerte seule en rouge ; sur une ligne, elles debordaient sous le module voisin. Inscriptions de l'ACCESS:bit
+   cablee (BARRIER / BUZZER, etiquette) espacees. Verifie : aucun texte ne se chevauche (trois cartes, cartes vissees).
+3. STOP:bit vissee : poteau etroit comme le LAMP:bit (30 unites visibles), tete du feu et pied centres sur le poteau.
+4. "Pas de broche libre pour : ..." traduit en anglais (phrase et noms des modules traduits a part).

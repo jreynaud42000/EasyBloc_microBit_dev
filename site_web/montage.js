@@ -815,8 +815,9 @@ function accessbitT(o) {
                          cercle(p.x, p.y, 7 * k, `fill="${NOIR}"`)).join('') +
            // Deux lignes sous chaque pastille, la seconde finit avant le filet blanc (v 99) quelle que soit l'echelle.
            [['P0', 'BARRIER'], ['P1', 'BUZZER'], ['P2'], ['3V'], ['0V']].map(([a, b], i) => {
-               const ecart = 0.95 * police / k, v1 = Math.min(86, 97.5 - ecart);
-               return ecrit(PASTILLES_ACCESSBIT_U[i], v1, a) + (b ? ecrit(PASTILLES_ACCESSBIT_U[i], v1 + ecart, b, police * 0.85) : '');
+               // Interligne de 1,15 police et seconde ligne plus petite : « BARRIER » et « BUZZER » ne se touchent plus.
+               const ecart = 1.15 * police / k, v1 = Math.min(86, 97.5 - ecart);
+               return ecrit(PASTILLES_ACCESSBIT_U[i], v1, a) + (b ? ecrit(PASTILLES_ACCESSBIT_U[i], v1 + ecart, b, police * 0.72) : '');
            }).join('');
     // Petites pastilles, buzzer, interrupteur.
     svg += [140, 155, 170].map(u => cercle(X(u), Y(118), 5 * k, 'fill="#c9a54a"')).join('') +
@@ -824,7 +825,7 @@ function accessbitT(o) {
            `<path d="${chemin([[226, 118], [236, 118], [236, 162], [226, 162]])}" fill="#3a3a3e"/>` + ecrit(214, 142, 'ON', police * 0.8);
     // Etiquette a bandes noires et blanches.
     svg += `<path d="${chemin([[104, 285], [232, 285], [232, 360], [104, 360]])}" fill="#141416" stroke="${BLANC}" stroke-width="${Math.max(2, 7 * k)}" stroke-dasharray="${8 * k} ${7 * k}"/>` +
-           ecrit(168, 312, 'ACCESS:bit', police * 1.1, '#ffe14d') + ecrit(168, 332, 'Access barrier', police * 0.75) + ecrit(168, 348, 'for BBC micro:bit', police * 0.75);
+           ecrit(168, 310, 'ACCESS:bit', police * 1.1, '#ffe14d') + ecrit(168, 330, 'Access barrier', police * 0.7) + ecrit(168, 350, 'for BBC micro:bit', police * 0.7);
     // Ecrous et logo.
     const ecrou = (u, v) => `<path d="${chemin([[u - 12, v - 7], [u, v - 14], [u + 12, v - 7], [u + 12, v + 7], [u, v + 14], [u - 12, v + 7]])}" fill="#c0c4c8" stroke="#7a7f85"/>` +
                             cercle(X(u), Y(v), 5 * k, 'fill="#8a8f95"');
@@ -1241,8 +1242,14 @@ function dessinerScene(etat) {
             bas += r(x0 - 8, y0 - 8, l + 16, h + 16, 'rx="10" class="montage-conflit"');
         }
         bas += texte(cx, yLib + 62, '', 'class="montage-valeur" text-anchor="middle"');
-        const note = [m.alerte, m.note].filter(Boolean).join(' · ');
-        if (note) bas += texte(cx, yLib + 82, echap(note), `class="montage-note${m.alerte ? ' alerte' : ''}${m.conflit ? ' conflit' : ''}" text-anchor="middle"`);
+        // Une mention par ligne (nov. 2026) : sur une seule ligne, « hors port Grove, câblage automatique » debordait
+        // sous le module voisin et les deux textes se superposaient.
+        const morceaux = (t, alerte) => (t ? String(t).split(/\s*(?:,|·)\s*/).filter(Boolean).map(x => ({ x, alerte })) : []);
+        const mentions = morceaux(m.alerte, true).concat(morceaux(m.note, false));
+        mentions.forEach(({ x: t, alerte }, i) => {
+            bas += texte(cx, yLib + 82 + i * 18, echap(t), `class="montage-note${alerte ? ' alerte' : ''}${alerte && m.conflit ? ' conflit' : ''}" text-anchor="middle"`);
+        });
+        if (mentions.length > 1) hauteur = Math.max(hauteur, yLib + 82 + mentions.length * 18 + 10);
         bas += '</g>';
     }
     bas += filsDessus + fiches + points;
@@ -1482,17 +1489,20 @@ function dessinVissee(ext) {
     }
     if (ext === 'lampbit') return dessinLampbitVisse(a);
     // Poteau debout a gauche de la micro:bit tournee : sa moitie droite passe sous la carte, ses pastilles sous les anneaux.
-    const px = a[0].x, gauche = px - 92, milieu = px - 64, haut = ext === 'stopbit' ? 120 : 40, bas = 412;
+    // Poteau etroit comme celui du LAMP:bit (nov. 2026) : 30 unites visibles a gauche de la micro:bit, tete du feu et
+    // pied centres sur le poteau, inscriptions centrees dans la bande visible.
+    const px = a[0].x, gauche = VISSEE_TOURNEE.l - 5, droite = px + 14, milieu = (gauche + droite) / 2, haut = 120, bas = 412;
+    const visible = (gauche + VISSEE_TOURNEE.l + 25) / 2;
     const contour = `stroke="${CONTOUR_KITRONIK}" stroke-width="1.5"`;
-    s += r(gauche, haut, 120, bas - haut, `fill="${NOIR}" ${contour}`) + a.map(pastille).join('') +
-         `<path d="M${milieu - 62} ${bas + 20} L${milieu - 44} ${bas} H${milieu + 44} L${milieu + 62} ${bas + 20} Z" fill="${NOIR}" ${contour}/>` +
-         ecrit(milieu, bas + 16, 'Kitronik', 12, 'middle') +
-         texte(milieu + 60, bas + 48, '', `class="montage-valeur mv-ketat" data-ext="${ext}" text-anchor="middle"`);
-    const inscriptions = ext === 'stopbit' ? ['RED', 'YLW', 'GRN', '3V', 'GND'] : ['LAMP', 'DETECT', '2', '3V', '0V'];
-    s += inscriptions.map((t, i) => texte(gauche + 8, a[i].y + 4.5, t,
-        'fill="#ffffff" font-family="sans-serif" font-size="12" font-weight="600"')).join('');
+    s += r(gauche, haut, droite - gauche, bas - haut, `fill="${NOIR}" ${contour}`) + a.map(pastille).join('') +
+         `<path d="M${milieu - 40} ${bas + 22} L${milieu - 28} ${bas} H${milieu + 28} L${milieu + 40} ${bas + 22} Z" fill="${NOIR}" ${contour}/>` +
+         `<ellipse cx="${milieu}" cy="${bas + 12}" rx="22" ry="7" fill="none" stroke="${BLANC}" stroke-width="1.2"/>` +
+         texte(milieu, bas + 15, 'Kitronik', 'fill="#ffffff" font-family="sans-serif" font-size="8" font-weight="600" text-anchor="middle"') +
+         texte(milieu + 60, bas + 50, '', `class="montage-valeur mv-ketat" data-ext="${ext}" text-anchor="middle"`);
+    s += ['RED', 'YLW', 'GRN', '3V', 'GND'].map((t, i) => texte(visible, a[i].y + 4, t,
+        'fill="#ffffff" font-family="sans-serif" font-size="11" font-weight="600" text-anchor="middle"')).join('');
     if (ext === 'stopbit') {
-        s += r(milieu - 46, 6, 92, 120, `rx="20" fill="#141416" stroke="${BLANC}" stroke-width="3"`);
+        s += r(milieu - 46, 6, 92, 112, `rx="20" fill="#141416" stroke="${BLANC}" stroke-width="3"`);   // finit au-dessus de la micro:bit
         ['#e2261f', '#ffc21a', '#25b356'].forEach((c, i) => {   // halo plat sur la tete, sous chaque feu
             s += cercle(milieu, 32 + i * 28, 19, `class="mv-khalo-feu" data-k="${['rouge', 'orange', 'vert'][i]}" fill="${c}" opacity="0"`);
         });
@@ -1502,7 +1512,7 @@ function dessinVissee(ext) {
                 s += cercle(milieu, y, 14, `class="mv-kfeu" data-k="${cle}" data-on="${on}" data-off="${off}" fill="${off}"`) +
                      `<path d="M${milieu - 9} ${y - 4} a11 11 0 0 1 9 -7" stroke="${reflet}" stroke-width="3" fill="none" opacity="0.7"/>`;
             });
-        s += ecrit(milieu, 116, 'STOP:bit', 9, 'middle');   // dans la tete, sous les LED
+        s += ecrit(milieu, 110, 'STOP:bit', 9, 'middle');   // dans la tete, sous les LED
     } else {
         // LAMP:bit : capteur transparent en haut du poteau, crosse vers la gauche (hors de la micro:bit), LED au bout.
         const lx = milieu - 104;
@@ -1633,7 +1643,9 @@ function cablerTout() {
             deplaces++;
         }
     } finally { Blockly.Events.setGroup(false); }
-    messageCablage = impossibles.length ? 'Pas de broche libre pour : ' + [...new Set(impossibles)].join(', ') : '';
+    // Traduit morceau par morceau (la ligne entiere ne correspond a aucune cle du dictionnaire anglais).
+    messageCablage = impossibles.length
+        ? trTexte('Pas de broche libre pour :') + ' ' + [...new Set(impossibles)].map(trTexte).join(', ') : '';
     clearTimeout(attente);
     attente = setTimeout(redessiner, 150);
     return { deplaces, impossibles };
