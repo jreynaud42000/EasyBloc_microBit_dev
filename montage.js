@@ -220,6 +220,25 @@ function broches(bloc, champs) {
 }
 
 /** Modules a dessiner, chacun avec ses fils : [{ nom, picto, large, etiquette, note, fils: [{x, y, d, c}] }]. */
+/** Regles de la carte d'extension du montage, sans lire les modules (nov. 2026) : le cablage automatique des cartes
+    Kitronik (un.js) s'en sert pour respecter les ports et broches de la carte choisie (BitMaker, Grove, Motor:bit,
+    DFR0548), comme le dessin et « Cabler automatiquement ». Meme choix de carte que lireMontage. */
+window.montageRegles = () => {
+    const types = (window.workspace ? window.workspace.getAllBlocks(false) : [])
+        .filter(b => b.isEnabled() && !(b.getInheritedDisabled && b.getInheritedDisabled())).map(b => b.type);
+    const dfr = types.some(t => /^dfr_/.test(t));
+    const parBloc = types.some(t => t === 'carte_bitmaker' || /^bitmaker_/.test(t)) ? 'bitmaker'
+                  : types.includes('carte_grove_shield') ? 'grove' : '';
+    const motorbit = !dfr && (types.some(t => /^motorbit_/.test(t)) || (!parBloc && choixCarte() === 'motorbit'));
+    const bitmaker = !dfr && !motorbit && (parBloc ? parBloc === 'bitmaker' : choixCarte() === 'bitmaker');
+    const carte = dfr ? 'dfr' : motorbit ? 'motorbit' : bitmaker ? 'bitmaker' : 'grove';
+    const brancher = pins => dfr ? branchementDfr(pins, false) : motorbit ? branchementMotorbit(pins, false) :
+                             bitmaker ? branchementBitmaker(pins) : branchementGrove(pins);
+    // DFR0548 : seules ses rangees de broches existent (une autre broche n'aurait pas de fil).
+    const valide = pins => !dfr || pins.every(p => GPIO_DFR['P' + p.slice(3)] !== undefined);
+    return { carte, brancher, valide };
+};
+
 function lireMontage() {
     // Blocs desactives (hachures), ou poses dans un bloc desactive : ignores, comme dans le programme envoye a la carte.
     const blocs = (window.workspace ? window.workspace.getAllBlocks(false) : [])

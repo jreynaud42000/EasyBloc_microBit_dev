@@ -1742,3 +1742,12 @@ micro:bit" et les bandes epaisses la rendaient illisible), les inscriptions des 
 P2, 3V, 0V ; "BARRIER" / "BUZZER" n'y tiennent pas), les trois petites pastilles et le texte "ON" disparaissent, et le
 servomoteur, plus etroit, est colle a la tige a droite de l'axe : la barriere part nettement du palonnier
 (montage.js : accessbitT, option simplifie). La version vissee sous la micro:bit garde tous ses details.
+Cablage automatique Kitronik selon la carte d'extension (nov. 2026, correctif) : il ne connaissait que les ports de la
+Grove Shield ; sur la BitMaker, il pouvait mettre deux cartes sur le port P8 et une broche sans port (P3). Il applique
+maintenant les regles de la carte du montage (montage.js : window.montageRegles, memes fonctions branchement* que le
+dessin et "Cabler automatiquement") : pour chaque carte Kitronik, la combinaison de broches la moins couteuse sans
+alerte (broche sans port, moteur, LED de la BitMaker...) ni port deja pris, sur un port plutot qu'en pince crocodile,
+matrice de LED en dernier (un.js : calculerCablageKitronik, choisir). Sans montage, ancienne attribution simple.
+Verifie avec les trois cartes, sans conflit ni alerte : BitMaker (LAMP:bit P14, P0 ; ACCESS:bit P15, P16 ; STOP:bit
+P12, P1, P2), Grove Shield (P14, P0 ; P15, P16 ; P13, P8, P12 : la matrice reste allumee), Motor:bit avec moteur
+(P13, P3 ; P14, P15 ; P16, P4, P10 : matrice eteinte, pas d'autre solution), DFR0548 (P13, P0 ; P14, P15 ; P16, P8, P12).

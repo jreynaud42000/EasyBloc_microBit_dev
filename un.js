@@ -2644,15 +2644,48 @@ try {
         let enCours = [];
         const prendre = (liste, defaut) => { const p = liste.find(x => !occupees.has(x)) || defaut; occupees.add(p); enCours.push(p); return p; };
         const finirCarte = () => { enCours.forEach(occuper); enCours = []; };
+        // Regles de la carte d'extension du montage (nov. 2026, montage.js : window.montageRegles) : ports et broches de
+        // la BitMaker, de la Grove Shield, de la Motor:bit ou de la DFR0548, comme le dessin. Places (ports) deja prises
+        // par les autres blocs et par les cartes cablees a la main.
+        const regles = window.montageRegles ? window.montageRegles() : null;
+        const places = new Set();
+        if (regles) [...occupees].filter(p => /^pin\d+$/.test(p) && p !== 'pin5' && p !== 'pin11')
+            .forEach(p => (regles.brancher([p]).occupe || []).forEach(o => places.add(o)));
+        const produit = listes => listes.reduce((acc, l) => acc.flatMap(a => l.map(v => a.concat([v]))), [[]]);
+        /** Meilleure combinaison pour une carte : broches libres et distinctes, sans alerte de la carte d'extension
+            (broche sans port, moteur, LED de la BitMaker...) ni port deja pris ; la moins couteuse (sur un port
+            plutot qu'en pince crocodile, puis l'ordre de preference, matrice de LED en dernier). */
+        const choisir = listes => {
+            let meilleur = null;
+            for (const choix of produit(listes)) {
+                if (new Set(choix).size !== choix.length || choix.some(p => occupees.has(p))) continue;
+                const r = regles.brancher(choix);
+                if (r.alerte || !regles.valide(choix) || (r.occupe || []).some(o => places.has(o))) continue;
+                let cout = r.note ? 50 : 0;
+                choix.forEach((p, k) => { cout += listes[k].indexOf(p); });
+                if (!meilleur || cout < meilleur.cout) meilleur = { cout, choix, occupe: r.occupe || [] };
+            }
+            return meilleur;
+        };
         // Ordre fixe : le plus contraint d'abord (capteur analogique), puis le servo (P13 a P16 de preference).
         ['lampbit', 'accessbit', 'stopbit'].forEach(e => {
             if (res[e]) return;
             const c = CABLAGE_KITRONIK[e];
             if (!auto || !utilisees.includes(e)) { res[e] = { pins: c.defaut.slice(), mode: 'kitronik', utilisee: utilisees.includes(e) }; return; }
-            const pins = e === 'lampbit'
-                ? (() => { const capteur = prendre(ANALOGIQUES_AUTO_KITRONIK, 'pin1'); return [prendre(ORDRE_AUTO_KITRONIK, 'pin0'), capteur]; })()
-                : c.defaut.map(d => prendre(ORDRE_AUTO_KITRONIK, d));
-            finirCarte();
+            const listes = e === 'lampbit' ? [ORDRE_AUTO_KITRONIK, ANALOGIQUES_AUTO_KITRONIK] : c.defaut.map(() => ORDRE_AUTO_KITRONIK);
+            const meilleur = regles && choisir(listes);
+            let pins;
+            if (meilleur) {
+                pins = meilleur.choix;
+                pins.forEach(p => occupees.add(p));
+                meilleur.occupe.forEach(o => places.add(o));
+            } else {
+                // Sans montage (ou sans solution) : attribution simple dans l'ordre de preference.
+                pins = e === 'lampbit'
+                    ? (() => { const capteur = prendre(ANALOGIQUES_AUTO_KITRONIK, 'pin1'); return [prendre(ORDRE_AUTO_KITRONIK, 'pin0'), capteur]; })()
+                    : c.defaut.map(d => prendre(ORDRE_AUTO_KITRONIK, d));
+                finirCarte();
+            }
             res[e] = { pins, mode: 'auto', utilisee: true };
         });
         cacheCablage = { cle, res };
