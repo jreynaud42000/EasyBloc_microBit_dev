@@ -1736,3 +1736,9 @@ Ameliorations suivantes (nov. 2026, points 1 a 4 retenus par l'utilisateur) :
      micro:bit (P0, P1, P2) : non dessinee").
    Verifie (STOP:bit + LED Grove sur P8) : A, 5 fils sur les pastilles, aucun a travers un module ; B, mention sous
    la carte ; le choix est retenu. Textes traduits en anglais.
+ACCESS:bit cablee par fils, version reduite plus lisible (nov. 2026, demande de l'utilisateur) : a l'echelle du module
+(150 de large), l'etiquette ne garde que "ACCESS:bit" dans un fin liseré (les deux lignes "Access barrier / for BBC
+micro:bit" et les bandes epaisses la rendaient illisible), les inscriptions des pastilles tiennent sur une ligne (P0, P1,
+P2, 3V, 0V ; "BARRIER" / "BUZZER" n'y tiennent pas), les trois petites pastilles et le texte "ON" disparaissent, et le
+servomoteur, plus etroit, est colle a la tige a droite de l'axe : la barriere part nettement du palonnier
+(montage.js : accessbitT, option simplifie). La version vissee sous la micro:bit garde tous ses details.

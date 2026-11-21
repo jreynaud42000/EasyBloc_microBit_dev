@@ -846,17 +846,23 @@ function accessbitT(o) {
                          cercle(p.x, p.y, 7 * k, `fill="${NOIR}"`)).join('') +
            // Deux lignes sous chaque pastille, la seconde finit avant le filet blanc (v 99) quelle que soit l'echelle.
            [['P0', 'BARRIER'], ['P1', 'BUZZER'], ['P2'], ['3V'], ['0V']].map(([a, b], i) => {
+               // Version simplifiee (carte cablee, petite) : une seule ligne, « BARRIER » et « BUZZER » n'y tiennent pas.
+               if (o.simplifie) return ecrit(PASTILLES_ACCESSBIT_U[i], 82, a);
                // Interligne de 1,15 police et seconde ligne plus petite : « BARRIER » et « BUZZER » ne se touchent plus.
                const ecart = 1.15 * police / k, v1 = Math.min(86, 97.5 - ecart);
                return ecrit(PASTILLES_ACCESSBIT_U[i], v1, a) + (b ? ecrit(PASTILLES_ACCESSBIT_U[i], v1 + ecart, b, police * 0.72) : '');
            }).join('');
-    // Petites pastilles, buzzer, interrupteur.
-    svg += [140, 155, 170].map(u => cercle(X(u), Y(118), 5 * k, 'fill="#c9a54a"')).join('') +
-           cercle(X(160), Y(190), 44 * k, `fill="#141416" stroke="#3a3a3e" stroke-width="${Math.max(1, 2 * k)}"`) + cercle(X(160), Y(190), 5 * k, 'fill="#5a5a5e"') +
-           `<path d="${chemin([[226, 118], [236, 118], [236, 162], [226, 162]])}" fill="#3a3a3e"/>` + ecrit(214, 142, 'ON', police * 0.8);
-    // Etiquette a bandes noires et blanches.
-    svg += `<path d="${chemin([[104, 285], [232, 285], [232, 360], [104, 360]])}" fill="#141416" stroke="${BLANC}" stroke-width="${Math.max(2, 7 * k)}" stroke-dasharray="${8 * k} ${7 * k}"/>` +
-           ecrit(168, 310, 'ACCESS:bit', police * 1.1, '#ffe14d') + ecrit(168, 330, 'Access barrier', police * 0.7) + ecrit(168, 350, 'for BBC micro:bit', police * 0.7);
+    // Petites pastilles (trop petites une fois reduites : version complete seulement), buzzer, interrupteur.
+    if (!o.simplifie) svg += [140, 155, 170].map(u => cercle(X(u), Y(118), 5 * k, 'fill="#c9a54a"')).join('');
+    svg += cercle(X(160), Y(190), 44 * k, `fill="#141416" stroke="#3a3a3e" stroke-width="${Math.max(1, 2 * k)}"`) + cercle(X(160), Y(190), 5 * k, 'fill="#5a5a5e"') +
+           `<path d="${chemin([[226, 118], [236, 118], [236, 162], [226, 162]])}" fill="#3a3a3e"/>` + (o.simplifie ? '' : ecrit(214, 142, 'ON', police * 0.8));
+    // Etiquette a bandes noires et blanches ; reduite, seulement « ACCESS:bit » dans un fin liseré (les deux lignes et
+    // les bandes epaisses la rendaient illisible).
+    svg += o.simplifie
+        ? `<path d="${chemin([[104, 290], [232, 290], [232, 346], [104, 346]])}" fill="#141416" stroke="${BLANC}" stroke-width="1.5" stroke-dasharray="3 2"/>` +
+          ecrit(168, 318 + 0.35 * police / k, 'ACCESS:bit', police, '#ffe14d')
+        : `<path d="${chemin([[104, 285], [232, 285], [232, 360], [104, 360]])}" fill="#141416" stroke="${BLANC}" stroke-width="${Math.max(2, 7 * k)}" stroke-dasharray="${8 * k} ${7 * k}"/>` +
+          ecrit(168, 310, 'ACCESS:bit', police * 1.1, '#ffe14d') + ecrit(168, 330, 'Access barrier', police * 0.7) + ecrit(168, 350, 'for BBC micro:bit', police * 0.7);
     // Ecrous et logo.
     const ecrou = (u, v) => `<path d="${chemin([[u - 12, v - 7], [u, v - 14], [u + 12, v - 7], [u + 12, v + 7], [u, v + 14], [u - 12, v + 7]])}" fill="#c0c4c8" stroke="#7a7f85"/>` +
                             cercle(X(u), Y(v), 5 * k, 'fill="#8a8f95"');
@@ -866,8 +872,12 @@ function accessbitT(o) {
     // Servomoteur bleu vertical, ses fils, puis la barriere (groupe qui pivote) et le palonnier.
     svg += `<path d="M${X(70)} ${Y(360)} C${X(40)} ${Y(330)} ${X(70)} ${Y(270)} ${X(105)} ${Y(290)}" fill="none" stroke="#e8902a" stroke-width="${Math.max(1.5, 4 * k)}"/>` +
            `<path d="M${X(62)} ${Y(360)} C${X(30)} ${Y(325)} ${X(62)} ${Y(258)} ${X(105)} ${Y(278)}" fill="none" stroke="#c0392b" stroke-width="${Math.max(1.5, 4 * k)}"/>` +
-           `<path d="${chemin([[-10, 355], [85, 355], [85, 580], [-10, 580]])}" fill="#2f5fc4"/>` +
-           `<path d="${chemin([[-20, 372], [95, 372], [95, 390], [-20, 390]])}" fill="#2f5fc4"/>`;
+           // Reduit : servo etroit, a droite de l'axe et colle a la tige : la barriere part nettement du palonnier.
+           (o.simplifie
+               ? `<path d="${chemin([[40, 360], [100, 360], [100, 560], [40, 560]])}" fill="#2f5fc4"/>` +
+                 `<path d="${chemin([[30, 376], [108, 376], [108, 394], [30, 394]])}" fill="#2f5fc4"/>`
+               : `<path d="${chemin([[-10, 355], [85, 355], [85, 580], [-10, 580]])}" fill="#2f5fc4"/>` +
+                 `<path d="${chemin([[-20, 372], [95, 372], [95, 390], [-20, 390]])}" fill="#2f5fc4"/>`);
     const L = (o.bras || 300) / k, sens = o.miroir ? 1 : -1;
     svg += `<g class="mv-kbras" data-s="${sens}" style="transform-origin: ${pivot.x}px ${pivot.y}px">` +
            `<path d="${chemin([[40, 408], [40 - L, 408], [40 - L, 462], [40, 462]])}" fill="#e63a2c" stroke-linejoin="round"/>` +
@@ -883,7 +893,7 @@ function accessbitT(o) {
 const ECHELLE_ACCESSBIT = 150 / 325, LARGEUR_ACCESSBIT = 280;
 function accessbitModule(m, cx, cy) {
     const haut = cy - MODULE.h / 2, miroir = m.cote === 'd';
-    return accessbitT({ x0: cx - 75 + (miroir ? -50 : 50), y0: haut, k: ECHELLE_ACCESSBIT, miroir, bras: 115, police: 9 });
+    return accessbitT({ x0: cx - 75 + (miroir ? -50 : 50), y0: haut, k: ECHELLE_ACCESSBIT, miroir, bras: 115, police: 10, simplifie: true });
 }
 /** Pastilles d'une carte Kitronik : colonne le long du bord tourne vers la carte d'extension (ACCESS:bit : rangee en
     haut, comme sur la carte). */
