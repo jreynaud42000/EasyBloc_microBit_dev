@@ -2606,10 +2606,7 @@ try {
     const ANALOGIQUES_AUTO_KITRONIK = ['0', '1', '2', '3', '4', '10'].map(n => 'pin' + n);
     const RESERVEES_MOTORBIT_KITRONIK = ['pin0', 'pin1', 'pin2', 'pin8', 'pin12'];
     let cacheCablage = null;
-    function calculerCablageKitronik(options) {
-        // options.ignorerManuel : calcul pour « Cabler automatiquement » (les blocs « cabler » ne comptent pas, toutes
-        // les cartes utilisees sont cablees automatiquement) ; jamais mis en cache.
-        const ignorerManuel = !!(options && options.ignorerManuel);
+    function calculerCablageKitronik() {
         const blocs = (window.workspace ? window.workspace.getAllBlocks(false) : [])
             .filter(b => b.isEnabled() && !(b.getInheritedDisabled && b.getInheritedDisabled()));
         const types = blocs.map(b => b.type);
@@ -2622,10 +2619,10 @@ try {
         const motorbit = blocsMotorbit || choix === 'motorbit';
         // Cle du cache : blocs actifs et valeurs de leurs champs (une broche changee change le cablage).
         const cle = blocs.map(b => b.id + ':' + b.inputList.map(en => en.fieldRow.map(ch => (ch.getValue ? ch.getValue() : '')).join('/')).join('/')).join(',') + '|' + choix;
-        if (!ignorerManuel && cacheCablage && cacheCablage.cle === cle) return cacheCablage.res;
+        if (cacheCablage && cacheCablage.cle === cle) return cacheCablage.res;
         const exts = Object.keys(CABLAGE_KITRONIK);
         const utilisees = exts.filter(e => types.some(t => t.startsWith(e + '_')));
-        const auto = ignorerManuel || utilisees.length >= 2 || (utilisees.length >= 1 && blocsMotorbit);
+        const auto = utilisees.length >= 2 || (utilisees.length >= 1 && blocsMotorbit);
         const occupees = new Set(['pin5', 'pin11']);
         // Carte Grove Shield (carte du montage par defaut) : P0 / P14, P1 / P15 et P2 / P16 sortent sur le MEME port ;
         // une broche prise reserve aussi sa partenaire (sinon deux cartes se retrouvaient sur un port partage).
@@ -2639,7 +2636,7 @@ try {
         const res = {};
         exts.forEach(e => {
             const c = CABLAGE_KITRONIK[e];
-            const bloc = !ignorerManuel && blocs.find(b => b.type === c.bloc);
+            const bloc = blocs.find(b => b.type === c.bloc);
             if (bloc) { res[e] = { pins: c.champs.map(ch => bloc.getFieldValue(ch)), mode: 'manuel', utilisee: true }; res[e].pins.forEach(occuper); }
         });
         // Les broches d'une meme carte peuvent partager un port (elles vont au meme module) : on reserve les
@@ -2658,25 +2655,10 @@ try {
             finirCarte();
             res[e] = { pins, mode: 'auto', utilisee: true };
         });
-        if (!ignorerManuel) cacheCablage = { cle, res };
+        cacheCablage = { cle, res };
         return res;
     }
-    /** « Cabler automatiquement » : les blocs « cabler » recoivent des broches libres (une seule annulation). */
-    function cablerKitronikAuto() {
-        const res = calculerCablageKitronik({ ignorerManuel: true });
-        const blocs = window.workspace.getAllBlocks(false).filter(b => /^(stopbit|lampbit|accessbit)_cablage$/.test(b.type));
-        if (!blocs.length) return 0;
-        Blockly.Events.setGroup(true);
-        try {
-            blocs.forEach(b => {
-                const ext = b.type.replace('_cablage', ''), c = CABLAGE_KITRONIK[ext];
-                c.champs.forEach((ch, i) => b.setFieldValue(res[ext].pins[i], ch));
-            });
-        } finally { Blockly.Events.setGroup(false); }
-        cacheCablage = null;
-        return blocs.length;
-    }
-    window.cablerKitronikAuto = cablerKitronikAuto;
+    // (« Cabler automatiquement » : montage.js, cablerTout, pour tous les modules, cartes Kitronik comprises.)
     /** Broches d'une carte Kitronik : bloc « cabler », sinon cablage automatique, sinon celles de Kitronik. */
     function cablageKitronik(ext) { return calculerCablageKitronik()[ext].pins.slice(); }
     function modeCablageKitronik(ext) { return calculerCablageKitronik()[ext].mode; }

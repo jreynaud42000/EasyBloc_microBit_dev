@@ -1401,6 +1401,9 @@
     #grove-panneau h4 { margin: 0 0 10px 0; color: #b39ddb; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
     .grove-bloc { margin-bottom: 12px; font-size: 12px; color: var(--texte-chrome); }
     .grove-titre { display: block; margin-bottom: 4px; color: #b8b8b8; }
+    /* Theme clair (nov. 2026) : le gris #b8b8b8 du theme sombre ne contrastait qu'a 1,85:1 sur le fond clair. */
+    :root[data-theme="light"] .grove-titre { color: #4a4d55; }
+    :root[data-theme="light"][data-contrast="high"] .grove-titre { color: #000; }
     .grove-bloc label { display: block; margin: 3px 0; }
     .grove-bloc input[type="range"] { width: 100%; vertical-align: middle; }
     .grove-case { display: flex !important; align-items: center; gap: 6px; }
@@ -2220,6 +2223,12 @@
             <button type="button" data-carte="bitmaker">BitMaker V2</button>
             <button type="button" data-carte="motorbit">Motor:bit V1.6</button>
             <p id="montage-choix-auto" class="montage-choix-auto" hidden>Carte DFR0548 : choisie car le programme utilise ses blocs.</p>
+            <!-- Carte Kitronik vissee sur la micro:bit ET carte d'extension (montage.js, choixVissee) : A ou B, au choix -->
+            <div id="sim-kitronik" hidden>
+              <div class="menu-titre">Carte Kitronik vissée</div>
+              <button type="button" data-vissee="pinces">Reliée par pinces crocodile</button>
+              <button type="button" data-vissee="mention">Simple mention</button>
+            </div>
           </div>
         </div>
         <button type="button" id="sim-reinit" class="sim-btn" title="Réinitialiser : arrêter puis relancer la simulation" aria-label="Réinitialiser la simulation"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span class="sim-lib">Réinitialiser</span></button>

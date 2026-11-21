@@ -1710,3 +1710,29 @@ Ameliorations suivantes (nov. 2026, points 1 a 4 retenus par l'utilisateur) :
    cablee (BARRIER / BUZZER, etiquette) espacees. Verifie : aucun texte ne se chevauche (trois cartes, cartes vissees).
 3. STOP:bit vissee : poteau etroit comme le LAMP:bit (30 unites visibles), tete du feu et pied centres sur le poteau.
 4. "Pas de broche libre pour : ..." traduit en anglais (phrase et noms des modules traduits a part).
+
+54. VERIFICATIONS ET CORRECTIONS DE FIN (nov. 2026, points 5 a 10 retenus par l'utilisateur)
+5. Theme clair : montage lisible (cartes noires sur fond clair, textes fonces, etat ecrit en bleu-vert fonce).
+   Corrige : les titres des sections de "Peripheriques" (.grove-titre, gris #b8b8b8 du theme sombre) n'atteignaient
+   que 1,85:1 sur le fond clair ; #4a4d55 en theme clair (7,9:1), noir en contraste eleve. Concerne toutes les
+   sections, pas seulement les cartes Kitronik.
+6. "Cabler automatiquement" avec la DFR0548 : verifie (LED, relais, capteur de lumiere et STOP:bit sur P0 -> LED P0,
+   relais P1, capteur P2, STOP:bit P8 + P12 + P13 ; 5 fils sur les pastilles, aucun a travers la carte).
+7. Annulation : verifiee. "Cabler automatiquement" sur 4 modules = 5 modifications dans UN groupe ; un seul
+   "Annuler" remet toutes les broches. (Dans le volet de test masque, les evenements de Blockly partent avec
+   retard : il faut attendre quelques dizaines de secondes avant de lire la pile d'annulation.)
+8. Montage : un fil qui sort vers le bas d'une broche a gauche de la Motor:bit (P3 a P11) vers une carte Kitronik
+   placee sur le cote descend sous la carte d'extension, la longe par le bas et remonte le long du poteau, au lieu
+   de la traverser en diagonale (montage.js : parDessous). Verifie : 0 fil des broches de gauche sur la carte.
+10. Code inutile retire : ancien dessin de l'ACCESS:bit (dessinKitronik), cas [-26, 62] de pastillesKitronik,
+   cablerKitronikAuto et l'option ignorerManuel de calculerCablageKitronik (remplaces par cablerTout, §50).
+9. Carte Kitronik vissee (une seule, brochage d'origine) ET carte d'extension (modules Grove...) : deux variantes au
+   choix de l'utilisateur, dans le menu "Carte d'extension" du montage, rubrique "Carte Kitronik vissee" (visible
+   seulement dans ce cas ; choix memorise, cle montageKitronikVissee ; A par defaut) :
+   A "Reliee par pinces crocodile" : la carte est dessinee a cote, reliee par pinces crocodile aux pastilles P0, P1,
+     P2 et 3V3 de la Grove Shield, le fil GND passant sous la carte (montage.js : branchementPincesGrove) ; sur les
+     autres cartes, fils vers leurs broches. Mention "pinces crocodile" sous le module.
+   B "Simple mention" : rien n'est dessine, une ligne sous la carte d'extension le signale ("STOP:bit vissee sur la
+     micro:bit (P0, P1, P2) : non dessinee").
+   Verifie (STOP:bit + LED Grove sur P8) : A, 5 fils sur les pastilles, aucun a travers un module ; B, mention sous
+   la carte ; le choix est retenu. Textes traduits en anglais.

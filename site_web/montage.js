@@ -326,6 +326,24 @@ function lireMontage() {
         ajouter(def.nom, m);
     }
 
+    // Carte Kitronik vissee (brochage d'origine) ET carte d'extension (modules Grove...) : selon le choix du menu
+    // « Carte d'extension » (nov. 2026, l'utilisateur veut pouvoir choisir) : A « pinces » = la carte Kitronik est
+    // dessinee a cote, reliee par pinces crocodile aux pastilles P0, P1, P2, 3V3 et GND de la Grove Shield (fils vers
+    // ses broches sur les autres cartes) ; B « mention » = une ligne sous le montage, rien n'est dessine.
+    const visseesAvecCarte = utile && window.kitronikVissees ? window.kitronikVissees() : [];
+    const visseeAvecCarte = visseesAvecCarte.length === 1 ? visseesAvecCarte[0] : '';
+    let mentionVissee = '';
+    if (visseeAvecCarte && choixVissee() === 'mention') mentionVissee = visseeAvecCarte;
+    else if (visseeAvecCarte) {
+        const def = KITRONIK_MONTAGE[visseeAvecCarte], pins = [...new Set(window.cablageKitronik(visseeAvecCarte))];
+        const grove = !dfr && !motorbit && !bitmaker;
+        const m = Object.assign({ nom: def.nom, picto: def.picto, large: true, pins, cle: 'P' + pins[0].slice(3) },
+            dfr ? branchementDfr(pins, false) : motorbit ? branchementMotorbit(pins, false) :
+            bitmaker ? branchementBitmaker(pins) : branchementPincesGrove(pins));
+        if (grove) m.note = 'pinces crocodile';
+        ajouter(def.nom, m);
+    }
+
     // Deux modules sur le meme port (ou la meme broche) : possible dans le programme, pas sur la table.
     const parPort = {};
     for (const m of modules.values()) for (const k of new Set(m.occupe || [])) (parPort[k] = parPort[k] || []).push(m);
@@ -352,7 +370,7 @@ function lireMontage() {
     const vissee = vissees.length === 1 ? vissees[0] : '';
     const brancher = (pins, servo) => dfr ? branchementDfr(pins, servo) : motorbit ? branchementMotorbit(pins, servo) :
                                       bitmaker ? branchementBitmaker(pins) : branchementGrove(pins);
-    return { utile, imposee, carte, modules: liste, conflits: [...conflits.values()], brancher, vissee };
+    return { utile, imposee, carte, modules: liste, conflits: [...conflits.values()], brancher, vissee, visseeAvecCarte, mentionVissee };
 }
 
 /** Plusieurs modules I2C sur une carte a prises Grove (Grove Shield, BitMaker) : une prise ne prend qu'un cable, on
@@ -441,6 +459,19 @@ function branchementGrove(pins) {
     }
     const occupe = [...new Set(pins.map(p => PORT_DE_BROCHE[p] || 'P' + p.slice(3)))];
     return { fils, etiquette: etiquettes.join(' + '), note: horsGrove ? 'hors port Grove' : '', occupe };
+}
+
+/** Carte Kitronik vissee sur la micro:bit, la micro:bit etant dans la Grove Shield : pinces crocodile sur les
+    pastilles du bord de la Grove Shield (P0, P1, P2 et 3V3 a droite, GND a gauche ; son fil passe sous la carte). */
+function branchementPincesGrove(pins) {
+    const pince = nom => Object.assign({ pince: true }, PASTILLES_GROVE[nom]);
+    const fils = pins.filter(p => PASTILLES_GROVE['P' + p.slice(3)])
+        .map((p, i) => Object.assign(pince('P' + p.slice(3)), { c: i ? F.blanc : F.jaune }));
+    const gnd = PASTILLES_GROVE.GND;
+    fils.push(Object.assign(pince('3V3'), { c: F.rouge }),
+              Object.assign(pince('GND'), { c: F.noir, passage: [[gnd.x - 30, gnd.y], [gnd.x - 30, Y_SOUS_GROVE], [GROVE_PCB.x + GROVE_PCB.l + 30, Y_SOUS_GROVE]] }));
+    return { fils, etiquette: pins.map(p => 'P' + p.slice(3)).join(' + '),
+             occupe: [...new Set(pins.map(p => PORT_DE_BROCHE[p] || 'P' + p.slice(3)))] };
 }
 
 function branchementDfr(pins, servo) {
@@ -859,8 +890,7 @@ function accessbitModule(m, cx, cy) {
 function pastillesKitronik(m, cx, cy) {
     if (m.picto === 'accessbit') return accessbitModule(m, cx, cy).pads.map((p, i) => Object.assign({ t: PASTILLES_KITRONIK[i] }, p));
     const haut = cy - MODULE.h / 2, k = sensKitronik(m);
-    const [px, py] = m.picto === 'accessbit' ? [-26, 62] : [-8, 118];
-    return PASTILLES_KITRONIK.map((t, i) => ({ t, x: cx + k * px, y: haut + py + i * 15 }));
+    return PASTILLES_KITRONIK.map((t, i) => ({ t, x: cx - k * 8, y: haut + 118 + i * 15 }));
 }
 /** Pastille d'arrivee de chaque fil : rouge -> 3V, noir -> GND, signaux dans l'ordre -> 0, 1, 2. */
 function pastilleDuFil(m) {
@@ -904,17 +934,8 @@ function dessinKitronik(m, cx, cy) {
              r(cx - 4, Y(12), 8, 6, 'rx="1.5" fill="#f2efe6" stroke="#9c978a" stroke-width="0.6"') +
              ecrit(0, 62, 'LAMP', 7, 'm') + ecrit(0, 71, ':bit', 7, 'm') +
              `<ellipse cx="${cx}" cy="${Y(92)}" rx="12" ry="5" fill="none" stroke="${BLANC}" stroke-width="1"/>`;
-    } else {
-        // Carte de l'ACCESS:bit, buzzer en haut, servomoteur bleu en bas ; la barriere pivote sur l'axe du servo.
-        const ax = X(4), ay = Y(150);
-        s += r(cx - 34, Y(8), 68, 182, `rx="6" fill="${NOIR}"`) +
-             cercle(X(14), Y(36), 15, 'fill="#0e0e10" stroke="#3a3a3e" stroke-width="2"') + cercle(X(14), Y(36), 3, 'fill="#3a3a3e"') +
-             r(Math.min(X(-12), X(20)), Y(140), 32, 40, 'rx="3" fill="#2f5fc4"') +
-             `<g class="mv-kbras" data-s="${k}" style="transform-origin: ${ax}px ${ay}px">` +
-             r(Math.min(ax, X(82)), ay - 5, 78, 10, 'rx="5" fill="#e8402a"') +
-             texte(X(46), ay + 3, 'KITRONIK', 'fill="#ffffff" font-family="sans-serif" font-size="7" text-anchor="middle"') + '</g>' +
-             cercle(ax, ay, 6, `fill="${BLANC}"`) + ecrit(0, 184, 'Kitronik', 7, 'm');
     }
+    // (ACCESS:bit : dessinee par accessbitModule, retour en tete de fonction.)
     // Pastilles et inscriptions de la carte (les fils s'y terminent, voir le trace des fils).
     pastillesKitronik(m, cx, cy).forEach(({ x, y }, i) => {
         // Inscriptions agrandies (audit ui-ux-pro-max : 7 unites etaient illisibles une fois la scene reduite).
@@ -1187,6 +1208,11 @@ function dessinerScene(etat) {
             const k = sensKitronik(m), lateral = m.cote === 'd' || m.cote === 'g';
             m.fils.forEach((f, i) => {
                 const p = pads[cibles[i]];
+                // Fil qui sort VERS LE BAS (broches P3 a P11 a gauche de la Motor:bit) vers une carte placee sur le cote :
+                // il descend sous la carte d'extension, la longe par le bas, puis remonte (nov. 2026) ; tout droit, il
+                // traversait la carte en diagonale.
+                const yDessous = basCarte + 16 + i * 5;
+                const parDessous = lateral && f.d[1] > 0 ? x => [[f.x, yDessous], [x, yDessous]] : () => [];
                 // Module sous la carte : le fil ne traverse pas le module (tete du feu, carte de l'ACCESS:bit) ; il
                 // descend dans un couloir du cote des pastilles, hors du dessin (largeur 2 x 44), puis y entre a
                 // l'horizontale. Fils decales de 5 unites pour ne pas se superposer.
@@ -1196,12 +1222,17 @@ function dessinerScene(etat) {
                     // Couloir le long du bord de la carte tourne vers la carte d'extension (la carte est decalee dans sa place).
                     const xs = pads.map(q => q.x), bord = k > 0 ? Math.min(...xs) - 23 * ECHELLE_ACCESSBIT : Math.max(...xs) + 30 * ECHELLE_ACCESSBIT;
                     const xc = bord - k * (14 + i * 4);
-                    const passage = lateral ? [[xc, f.y], [xc, yRang], [p.x, yRang]] : [[f.x, yRang], [p.x, yRang]];
+                    const passage = lateral ? (f.d[1] > 0 ? parDessous(xc) : [[xc, f.y]]).concat([[xc, yRang], [p.x, yRang]])
+                                            : [[f.x, yRang], [p.x, yRang]];
                     filsDessus += dessinFil(Object.assign({}, f, { passage }), { x: p.x, y: p.y, d: [0, 1] }, 0);
                 } else if (!lateral) {
                     const xc = cxK - k * (52 + i * 5), yRang = m.y - 18 - i * 5;
                     const route = Object.assign({}, f, { passage: [[f.x, yRang], [xc, yRang], [xc, p.y - 12]] });
                     filsDessus += dessinFil(route, { x: p.x, y: p.y, d: [k, 0] }, 0);
+                } else if (f.d[1] > 0) {
+                    // Couloir le long du poteau, du cote des pastilles, puis entree a l'horizontale dans la pastille.
+                    const xc = cxK - k * (30 + i * 4);
+                    filsDessus += dessinFil(Object.assign({}, f, { passage: parDessous(xc).concat([[xc, p.y]]) }), { x: p.x, y: p.y, d: [k, 0] }, 0);
                 } else filsDessus += dessinFil(f, { x: p.x, y: p.y, d: fin.d }, 0);
                 points += cercle(p.x, p.y, 3, `fill="${f.c}" stroke="#333" stroke-width="0.8"`);
             });
@@ -1253,6 +1284,14 @@ function dessinerScene(etat) {
         bas += '</g>';
     }
     bas += filsDessus + fiches + points;
+    // Variante B (menu « Carte d'extension ») : la carte Kitronik vissee est seulement signalee sous le montage.
+    if (etat.mentionVissee) {
+        const def = KITRONIK_MONTAGE[etat.mentionVissee], pins = window.cablageKitronik(etat.mentionVissee).map(p => 'P' + p.slice(3)).join(', ');
+        const yMention = Math.max(hauteur, basCarte + 60);   // toujours sous la carte d'extension et ses fils
+        bas += texte(LARGEUR / 2, yMention, echap(def.nom + ' ' + trTexte('vissée sur la micro:bit') + ' (' + pins + ') : ' + trTexte('non dessinée')),
+                     'class="montage-note" text-anchor="middle"');
+        hauteur = yMention + 26;
+    }
     return { bas, hauteur };
 }
 
@@ -1280,6 +1319,11 @@ let mode = 'carte', grandDemande = false, utile = false, hauteurScene = 600, emp
 const CLE_CARTE = 'montageCarte';
 function choixCarte() {
     try { const c = localStorage.getItem(CLE_CARTE); return c === 'bitmaker' || c === 'motorbit' ? c : 'grove'; } catch (erreur) { return 'grove'; }
+}
+// Carte Kitronik vissee avec une carte d'extension : « pinces » (variante A, par defaut) ou « mention » (variante B).
+const CLE_VISSEE = 'montageKitronikVissee';
+function choixVissee() {
+    try { return localStorage.getItem(CLE_VISSEE) === 'mention' ? 'mention' : 'pinces'; } catch (erreur) { return 'pinces'; }
 }
 
 // ---------- Vue de la simulation : un espace de travail, comme la zone des blocs ----------
@@ -1715,6 +1759,13 @@ function finirRedessin(etat) {
             b.classList.toggle('choisi', b.dataset.carte === etat.carte);
             b.disabled = !!etat.imposee && b.dataset.carte !== etat.carte;
         });
+        // Rubrique « Carte Kitronik vissee » : seulement si une carte vissee cotoie une carte d'extension.
+        const rubrique = $('sim-kitronik');
+        if (rubrique) {
+            rubrique.hidden = !etat.visseeAvecCarte;
+            const actuel = choixVissee();
+            rubrique.querySelectorAll('[data-vissee]').forEach(b => b.classList.toggle('choisi', b.dataset.vissee === actuel));
+        }
     }
     if (choixAuto) {
         choixAuto.hidden = !etat.imposee;
@@ -2556,6 +2607,10 @@ function installer() {
     if (choix) {
         choix.querySelectorAll('[data-carte]').forEach(b => b.addEventListener('click', () => {
             try { localStorage.setItem(CLE_CARTE, b.dataset.carte); } catch (erreur) { /* choix oublie au rechargement */ }
+            redessiner();
+        }));
+        choix.querySelectorAll('[data-vissee]').forEach(b => b.addEventListener('click', () => {
+            try { localStorage.setItem(CLE_VISSEE, b.dataset.vissee); } catch (erreur) { /* choix oublie au rechargement */ }
             redessiner();
         }));
     }
