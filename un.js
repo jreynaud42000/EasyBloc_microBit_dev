@@ -6561,14 +6561,54 @@ try {
     });
 
     // Themes de saison (menu Affichage > Saison, bandeau.js) : variantes du sombre en contraste normal.
-    const THEME_HALLOWEEN = Blockly.Theme.defineTheme('halloweenMicrobitV2', {
+    const THEME_PRINTEMPS = Blockly.Theme.defineTheme('printempsMicrobitV2', {
         base: THEME_SOMBRE_NORMAL,
         fontStyle: POLICE_BLOCS,
         componentStyles: {
-            workspaceBackgroundColour: '#141414',
-            toolboxBackgroundColour: '#0f0d12',
-            flyoutBackgroundColour: '#1f1a24',
-            scrollbarColour: '#6b4a80'
+            workspaceBackgroundColour: '#0f1d15',
+            toolboxBackgroundColour: '#0b1610',
+            flyoutBackgroundColour: '#14261b',
+            scrollbarColour: '#3d7a52'
+        }
+    });
+    const THEME_ETE = Blockly.Theme.defineTheme('eteMicrobitV2', {
+        base: THEME_SOMBRE_NORMAL,
+        fontStyle: POLICE_BLOCS,
+        componentStyles: {
+            workspaceBackgroundColour: '#0a1d2b',
+            toolboxBackgroundColour: '#071824',
+            flyoutBackgroundColour: '#0d2738',
+            scrollbarColour: '#2f7fae'
+        }
+    });
+    const THEME_AUTOMNE = Blockly.Theme.defineTheme('automneMicrobitV2', {
+        base: THEME_SOMBRE_NORMAL,
+        fontStyle: POLICE_BLOCS,
+        componentStyles: {
+            workspaceBackgroundColour: '#1a1009',
+            toolboxBackgroundColour: '#140c06',
+            flyoutBackgroundColour: '#24160c',
+            scrollbarColour: '#9a5a2a'
+        }
+    });
+    const THEME_MICROBIT = Blockly.Theme.defineTheme('microbitMicrobitV2', {
+        base: THEME_SOMBRE_NORMAL,
+        fontStyle: POLICE_BLOCS,
+        componentStyles: {
+            workspaceBackgroundColour: '#0c141c',
+            toolboxBackgroundColour: '#0a1118',
+            flyoutBackgroundColour: '#111c27',
+            scrollbarColour: '#3a6b8a'
+        }
+    });
+    const THEME_METEO = Blockly.Theme.defineTheme('meteoMicrobitV2', {
+        base: THEME_SOMBRE_NORMAL,
+        fontStyle: POLICE_BLOCS,
+        componentStyles: {
+            workspaceBackgroundColour: '#0e151d',
+            toolboxBackgroundColour: '#0a1017',
+            flyoutBackgroundColour: '#142130',
+            scrollbarColour: '#4a6a8a'
         }
     });
     const THEME_NOEL = Blockly.Theme.defineTheme('noelMicrobitV2', {
@@ -6601,7 +6641,8 @@ try {
     }
     function appliquerThemeBlockly() {
         const clair = themeClairActif(), eleve = contrasteEleveActif();
-        const saison = { halloween: THEME_HALLOWEEN, noel: THEME_NOEL, salon: THEME_SALON }[document.documentElement.dataset.saison];
+        const saison = { printemps: THEME_PRINTEMPS, ete: THEME_ETE, automne: THEME_AUTOMNE, noel: THEME_NOEL, microbit: THEME_MICROBIT,
+                         meteo: THEME_METEO, salon: THEME_SALON }[document.documentElement.dataset.saison];
         const theme = clair
             ? (eleve ? THEME_CLAIR_ELEVE : THEME_CLAIR_NORMAL)
             // Sombre sans theme de saison : fonds de la version Arduino R4 (nov. 2026) ; la charte Educatech reste le theme « Salon ».

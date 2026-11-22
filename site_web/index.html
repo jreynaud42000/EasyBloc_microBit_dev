@@ -15,7 +15,7 @@
       if (ed !== '1' && ed !== '2') return;
       document.documentElement.dataset.editeur = ed;
       var COMMUNES = ['themeApp', 'contrasteApp', 'saisonApp', 'easybloc_ts_config_admin', 'blockly_ts_config_admin', 'tuto-accueil-masque',
-                      'console_hauteur_v1', 'ia_onglets_teachable_v1', 'code_enseignant_v1'];
+                      'meteoAccord', 'meteoReleve', 'console_hauteur_v1', 'ia_onglets_teachable_v1', 'code_enseignant_v1'];
       var prefixe = 'multi' + ed + ':', S = Storage.prototype, lire = S.getItem, ecrire = S.setItem, effacer = S.removeItem;
       var cle = function (k) { k = String(k); return COMMUNES.indexOf(k) >= 0 ? k : prefixe + k; };
       S.getItem = function (k) { return lire.call(this, cle(k)); };
@@ -29,15 +29,21 @@
       if (localStorage.getItem('contrasteApp') === 'high') {
         document.documentElement.dataset.contrast = 'high';
       }
-      // Theme de saison (bandeau.js) : « auto » = Halloween du 15 octobre au 2 novembre, salon Educatech Expo
-      // du 2 au 4 decembre 2026, Noel le reste de decembre.
+      // Theme de saison (bandeau.js) : « auto » = printemps du 20 mars au 20 juin, ete du 21 juin au 22 septembre,
+      // automne du 23 septembre au 30 novembre, salon Educatech Expo du 2 au 4 decembre 2026, Noel le reste de
+      // decembre, aucun theme de janvier au 19 mars. micro:bit et Meteo : seulement choisis a la main.
       var saison = localStorage.getItem('saisonApp');
       if (saison === 'auto') {
-        var d = new Date(), m = d.getMonth() + 1, j = d.getDate();
-        saison = (m === 10 && j >= 15) || (m === 11 && j <= 2) ? 'halloween'
-          : (d.getFullYear() === 2026 && m === 12 && j >= 2 && j <= 4) ? 'salon' : (m === 12 ? 'noel' : '');
+        var d = new Date(), m = d.getMonth() + 1, j = d.getDate(), q = m * 100 + j;
+        saison = (d.getFullYear() === 2026 && m === 12 && j >= 2 && j <= 4) ? 'salon' : m === 12 ? 'noel'
+          : q >= 320 && q <= 620 ? 'printemps' : q >= 621 && q <= 922 ? 'ete' : q >= 923 ? 'automne' : '';
       }
-      if (saison === 'halloween' || saison === 'noel' || saison === 'salon') document.documentElement.dataset.saison = saison;
+      if (['printemps', 'ete', 'automne', 'noel', 'microbit', 'meteo', 'salon'].indexOf(saison) >= 0) document.documentElement.dataset.saison = saison;
+      // Meteo : dernier releve (moins de 3 h) en attendant le nouveau, sinon ambiance neutre (bandeau.js).
+      if (saison === 'meteo') {
+        var releve = JSON.parse(localStorage.getItem('meteoReleve') || 'null');
+        document.documentElement.dataset.meteo = releve && Date.now() - releve.quand < 3 * 3600e3 ? releve.ciel : 'indispo';
+      }
     } catch (erreur) { /* localStorage indisponible (navigation privee...) : tant pis, etat par defaut */ }
   </script>
 
@@ -171,7 +177,7 @@
       --btn-green: #4caa3c; --btn-green-h: #3d8e2f;
       /* Couleur du bandeau pour les textes poses sur fond blanc (cadre du nom, numero de carte) et les titres et boutons
          principaux des fenetres : violet du degrade Educatech, le bandeau affiche (choix de l'utilisateur, nov. 2026 ;
-         contraste 8,8 sur blanc). Themes Halloween et Noel : couleur de leur bandeau ; contraste eleve : noir. */
+         contraste 8,8 sur blanc). Themes de saison : couleur de leur bandeau ; contraste eleve : noir. */
       --couleur-bandeau: #6a2c91;
     }
     :root:not([data-theme="light"]) { --couleur-bandeau: var(--bandeau-sombre); }
@@ -1700,19 +1706,58 @@
     }
     body { background: var(--ec-page); }
 
-    /* ═══ THEMES DE SAISON (Halloween, Noel) : menu Affichage > Saison, bandeau.js ═══
+    /* ═══ THEMES DE SAISON (printemps, ete, automne, Noel, micro:bit, meteo, salon) : menu Affichage > Saison, bandeau.js ═══
        Variantes du theme sombre en contraste normal seulement (le clair et le contraste eleve passent avant).
        Les couleurs des blocs et des puces ne changent pas : elles servent de repere aux eleves.
        Decorations dans #deco-saison (cree par bandeau.js) : jamais cliquables, animations coupees si
        le systeme demande de reduire les animations. */
-    :root[data-saison="halloween"]:not([data-theme="light"]):not([data-contrast="high"]) {
-      --bandeau-sombre: #2b1740; --accent-fonce: #ff7a1a;
-      --fond-saisie: #0c0814; --texte-saisie: #f3e8ff; --fond-code: #120c1c; --bordure-chrome: #4a2e5e;
-      --ec-page: #0c0814; --ec-cat-hover: #2a1f3a; --ec-cat-sel: #3a2552; --ec-cat-lisere: #ff7a1a;
-      --ec-grille: #2a2036; --ec-flyout: #1d1530;
-      --ec-sim: #120c1c; --ec-bord: #3a2552; --ec-code: #120c1c; --ec-code-bord: #3a2552;
-      --ec-pan: #1d1530; --ec-pan-bord: #3a2552; --ec-sep: #3a2552;
+    :root[data-saison="printemps"]:not([data-theme="light"]):not([data-contrast="high"]) {
+      --bandeau-sombre: #2f7d4a; --accent-fonce: #f783ac;
+      --fond-saisie: #0b1610; --texte-saisie: #e6f7ec; --fond-code: #0e1c13; --bordure-chrome: #2e5a3d;
+      --ec-page: #0b1610; --ec-cat-hover: #1c3626; --ec-cat-sel: #24452f; --ec-cat-lisere: #f783ac;
+      --ec-grille: #1c3024; --ec-flyout: #14261b;
+      --ec-sim: #0f1d15; --ec-bord: #24452f; --ec-code: #0e1c13; --ec-code-bord: #24452f;
+      --ec-pan: #14261b; --ec-pan-bord: #24452f; --ec-sep: #24452f;
     }
+    :root[data-saison="ete"]:not([data-theme="light"]):not([data-contrast="high"]) {
+      --bandeau-sombre: #0b6e99; --accent-fonce: #ffd43b;
+      --fond-saisie: #071824; --texte-saisie: #e3f2fb; --fond-code: #0a1d2b; --bordure-chrome: #1f4f6e;
+      --ec-page: #071824; --ec-cat-hover: #13354d; --ec-cat-sel: #163d57; --ec-cat-lisere: #ffd43b;
+      --ec-grille: #13304a; --ec-flyout: #0d2738;
+      --ec-sim: #0a1d2b; --ec-bord: #163d57; --ec-code: #0a1d2b; --ec-code-bord: #163d57;
+      --ec-pan: #0d2738; --ec-pan-bord: #163d57; --ec-sep: #163d57;
+    }
+    :root[data-saison="automne"]:not([data-theme="light"]):not([data-contrast="high"]) {
+      --bandeau-sombre: #8a3b12; --accent-fonce: #fd7e14;
+      --fond-saisie: #140c06; --texte-saisie: #fbeee2; --fond-code: #1a1009; --bordure-chrome: #5a3418;
+      --ec-page: #140c06; --ec-cat-hover: #33200f; --ec-cat-sel: #3d2512; --ec-cat-lisere: #fd7e14;
+      --ec-grille: #2e1d10; --ec-flyout: #24160c;
+      --ec-sim: #1a1009; --ec-bord: #3d2512; --ec-code: #1a1009; --ec-code-bord: #3d2512;
+      --ec-pan: #24160c; --ec-pan-bord: #3d2512; --ec-sep: #3d2512;
+    }
+    :root[data-saison="microbit"]:not([data-theme="light"]):not([data-contrast="high"]) {
+      --bandeau-sombre: #1d2a3a; --accent-fonce: #00c853;
+      --fond-saisie: #0a1118; --texte-saisie: #e3f0ea; --fond-code: #0c141c; --bordure-chrome: #2a4256;
+      --ec-page: #0a1118; --ec-cat-hover: #182a38; --ec-cat-sel: #1d3040; --ec-cat-lisere: #00c853;
+      --ec-grille: #172634; --ec-flyout: #111c27;
+      --ec-sim: #0c141c; --ec-bord: #1d3040; --ec-code: #0c141c; --ec-code-bord: #1d3040;
+      --ec-pan: #111c27; --ec-pan-bord: #1d3040; --ec-sep: #1d3040;
+    }
+    :root[data-saison="meteo"]:not([data-theme="light"]):not([data-contrast="high"]) {
+      --bandeau-sombre: #3a4652; --accent-fonce: #adb5bd;
+      --fond-saisie: #0a1017; --texte-saisie: #e6edf5; --fond-code: #0e151d; --bordure-chrome: #2e3f52;
+      --ec-page: #0a1017; --ec-cat-hover: #1b2a3a; --ec-cat-sel: #22344a; --ec-cat-lisere: #74c0fc;
+      --ec-grille: #1a2735; --ec-flyout: #142130;
+      --ec-sim: #0e151d; --ec-bord: #22344a; --ec-code: #0e151d; --ec-code-bord: #22344a;
+      --ec-pan: #142130; --ec-pan-bord: #22344a; --ec-sep: #22344a;
+    }
+    :root[data-saison="meteo"][data-meteo="soleil"]:not([data-theme="light"]):not([data-contrast="high"]) { --bandeau-sombre: #1971c2; --accent-fonce: #ffd43b; }
+    :root[data-saison="meteo"][data-meteo="nuit"]:not([data-theme="light"]):not([data-contrast="high"]) { --bandeau-sombre: #1b1f3b; --accent-fonce: #b197fc; }
+    :root[data-saison="meteo"][data-meteo="nuages"]:not([data-theme="light"]):not([data-contrast="high"]) { --bandeau-sombre: #495867; --accent-fonce: #ced4da; }
+    :root[data-saison="meteo"][data-meteo="pluie"]:not([data-theme="light"]):not([data-contrast="high"]) { --bandeau-sombre: #364a63; --accent-fonce: #74c0fc; }
+    :root[data-saison="meteo"][data-meteo="orage"]:not([data-theme="light"]):not([data-contrast="high"]) { --bandeau-sombre: #2c2541; --accent-fonce: #ffd43b; }
+    :root[data-saison="meteo"][data-meteo="neige"]:not([data-theme="light"]):not([data-contrast="high"]) { --bandeau-sombre: #4a6075; --accent-fonce: #f1f3f5; }
+    :root[data-saison="meteo"][data-meteo="brouillard"]:not([data-theme="light"]):not([data-contrast="high"]) { --bandeau-sombre: #55606b; --accent-fonce: #ced4da; }
     :root[data-saison="noel"]:not([data-theme="light"]):not([data-contrast="high"]) {
       --bandeau-sombre: #b3122e; --accent-fonce: #f1f3f5;
       --fond-saisie: #08131f; --texte-saisie: #e3eefa; --fond-code: #0b1826; --bordure-chrome: #2a4a6b;
@@ -1737,34 +1782,104 @@
     }
     :root:is([data-saison="salon"], :not([data-saison])):not([data-theme="light"]):not([data-contrast="high"]) #toolbar {
       background: #6a2c91; border-bottom: none; }   /* violet uni, sans degrade ni filet magenta (demande de l'utilisateur, nov. 2026) */
-    /* Filet du bandeau : neige (Noel) ; rayures « bonbon » orange, jaune, blanc (Halloween) ; magenta (salon). */
-    :root[data-saison]:not([data-theme="light"]):not([data-contrast="high"]) #toolbar { border-bottom-color: var(--accent-fonce); }
-    :root[data-saison="halloween"]:not([data-theme="light"]):not([data-contrast="high"]) #toolbar {
-      border-bottom: 4px solid #ff7a1a;
-      border-image: repeating-linear-gradient(90deg, #ff7a1a 0 18px, #ffd43b 18px 36px, #fff4e6 36px 54px) 1; }
+    /* Filet du bandeau : couleur d'accent du theme (4 px) ; salon : aucun (regle ci-dessus). */
+    :root[data-saison]:not([data-saison="salon"]):not([data-theme="light"]):not([data-contrast="high"]) #toolbar {
+      border-bottom: 4px solid var(--accent-fonce); }
     #tb-saison, #deco-saison, #guirlande-saison { display: none; }
     :root[data-saison]:not([data-theme="light"]):not([data-contrast="high"]) #tb-saison { display: block; font-size: 20px; line-height: 1; margin: 0 2px; user-select: none; }
     :root[data-saison]:not([data-theme="light"]):not([data-contrast="high"]) #deco-saison {
       display: block; position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 60; }
     #deco-saison > * { position: absolute; display: none; }
-    :root[data-saison="halloween"] #deco-saison > .deco-halloween, :root[data-saison="noel"] #deco-saison > .deco-noel,
-    :root[data-saison="salon"] #deco-saison > .deco-salon { display: block; }
+    :root[data-saison="printemps"] #deco-saison > .deco-printemps,
+    :root[data-saison="ete"] #deco-saison > .deco-ete,
+    :root[data-saison="automne"] #deco-saison > .deco-automne,
+    :root[data-saison="noel"] #deco-saison > .deco-noel,
+    :root[data-saison="microbit"] #deco-saison > .deco-microbit,
+    :root[data-saison="salon"] #deco-saison > .deco-salon,
+    :root[data-saison="meteo"][data-meteo="soleil"] #deco-saison > .m-soleil,
+    :root[data-saison="meteo"][data-meteo="nuit"] #deco-saison > .m-nuit,
+    :root[data-saison="meteo"][data-meteo="nuages"] #deco-saison > .m-nuages,
+    :root[data-saison="meteo"][data-meteo="pluie"] #deco-saison > .m-pluie,
+    :root[data-saison="meteo"][data-meteo="orage"] #deco-saison > .m-orage,
+    :root[data-saison="meteo"][data-meteo="neige"] #deco-saison > .m-neige,
+    :root[data-saison="meteo"][data-meteo="brouillard"] #deco-saison > .m-brouillard { display: block; }
     #deco-saison svg { overflow: visible; }
 
-    /* Halloween « Nuit hantee » : lune, manoir aux fenetres allumees, chauves-souris, toile, citrouilles, brume. */
-    .deco-lune { top: 16px; right: 64px; width: 70px; height: 70px; filter: drop-shadow(0 0 18px rgba(255, 232, 163, 0.45)); }
-    .deco-toile { top: 0; right: 0; width: 110px; height: 110px; opacity: 0.55; }
-    .deco-manoir { right: 100px; bottom: 0; width: 190px; height: 130px; }
-    .deco-citrouilles { right: 300px; bottom: 6px; width: 96px; height: 46px; }
-    .deco-chauves { top: 24px; right: 160px; width: 280px; height: 110px; }
-    .deco-chauves .chauve { animation: deco-vole 6s ease-in-out infinite; transform-box: fill-box; }
-    .deco-chauves .chauve:nth-child(2) { animation-duration: 7.5s; animation-delay: -2s; }
-    .deco-chauves .chauve:nth-child(3) { animation-duration: 5s; animation-delay: -4s; }
-    @keyframes deco-vole { 0%, 100% { transform: translate(0, 0) scaleY(1); } 25% { transform: translate(-40px, -10px) scaleY(0.6); }
-      50% { transform: translate(-70px, 6px) scaleY(1); } 75% { transform: translate(-30px, 12px) scaleY(0.6); } }
-    .deco-brume { left: 0; right: 0; bottom: 0; height: 80px;
-      background: linear-gradient(to top, rgba(200, 190, 230, 0.2), rgba(200, 190, 230, 0)); animation: deco-brume 7s ease-in-out infinite alternate; }
+    /* Printemps « Jardin en fleurs » : prairie, tulipes et marguerites, petales qui tombent, papillon. */
+    .deco-prairie { left: 0; right: 0; bottom: 0; width: 100%; height: 40px; }   /* basse : laisse voir la corbeille */
+    .deco-fleurs { right: 170px; bottom: 6px; width: 170px; height: 80px; }
+    .deco-petales { inset: 0; opacity: 0.8;
+      background-image: radial-gradient(5px 3px, #ffc9de 92%, transparent 100%), radial-gradient(4px 2.5px, #fcc2d7 92%, transparent 100%);
+      background-size: 150px 130px, 110px 170px; background-position: 0 0, 60px 40px; animation: deco-petales 16s linear infinite; }
+    @keyframes deco-petales { to { background-position: 90px 130px, -50px 210px; } }
+    .deco-papillon { top: 40px; right: 120px; width: 46px; height: 40px; animation: deco-papillon-vol 9s ease-in-out infinite; }
+    .deco-papillon .aile { transform-box: fill-box; transform-origin: right center; animation: deco-battre 0.5s ease-in-out infinite alternate; }
+    .deco-papillon .aile-d { transform-origin: left center; }
+    @keyframes deco-battre { to { transform: scaleX(0.35); } }
+    @keyframes deco-papillon-vol { 0%, 100% { transform: translate(0, 0); } 30% { transform: translate(-60px, 18px); } 60% { transform: translate(-20px, -14px); } }
+
+    /* Ete « Bord de mer » : soleil qui pulse, mouettes, vagues qui ondulent, plage et palmier. */
+    .deco-soleil { top: 18px; right: 40px; width: 76px; height: 76px; }
+    .deco-soleil .rayons { transform-box: fill-box; transform-origin: center; animation: deco-tourne 40s linear infinite; }
+    .deco-soleil .disque { transform-box: fill-box; transform-origin: center; animation: deco-pulse 4s ease-in-out infinite; }
+    @keyframes deco-tourne { to { transform: rotate(360deg); } }
+    @keyframes deco-pulse { 50% { transform: scale(1.08); } }
+    .deco-mouettes { top: 70px; right: 170px; width: 90px; height: 30px; }
+    .deco-vagues, .deco-vagues-2 { left: 0; right: 0; bottom: 0; height: 30px; background-repeat: repeat-x;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='30'%3E%3Cpath d='M0 12 Q20 2 40 12 T80 12 V30 H0Z' fill='%234dabf7'/%3E%3C/svg%3E");
+      animation: deco-vague 6s linear infinite; }
+    .deco-vagues { bottom: 10px; opacity: 0.55; animation-duration: 9s; animation-direction: reverse; }
+    @keyframes deco-vague { to { background-position: 80px 0; } }
+    .deco-plage { right: 150px; bottom: 0; width: 230px; height: 120px; }   /* a gauche de la corbeille et du zoom */
+
+    /* Automne « Foret d'automne » : feuilles qui tombent en tournoyant, sol de feuilles, champignon, gland. */
+    .deco-sol { left: 0; right: 0; bottom: 0; width: 100%; height: 36px; }
+    .deco-sous-bois { right: 180px; bottom: 4px; width: 110px; height: 50px; }
+    .deco-feuille { top: -40px; width: 26px; height: 26px; animation: deco-feuille 12s linear infinite; }
+    .deco-feuille > svg { animation: deco-tournoie 3s ease-in-out infinite alternate; }
+    @keyframes deco-feuille { 0% { top: -40px; transform: translateX(0); } 50% { transform: translateX(-50px); } 100% { top: 105%; transform: translateX(20px); } }
+    @keyframes deco-tournoie { from { transform: rotate(-40deg); } to { transform: rotate(60deg); } }
+
+    /* micro:bit « Circuit imprime » : matrice de LED dont le coeur bat, pistes qui s'allument, connecteur dore. */
+    .deco-matrice { top: 20px; right: 30px; width: 96px; height: 96px; }
+    .deco-matrice .coeur { transform-box: fill-box; transform-origin: center; animation: deco-coeur 1.4s ease-in-out infinite; }
+    @keyframes deco-coeur { 0%, 40%, 100% { transform: scale(1); } 15% { transform: scale(1.12); } 25% { transform: scale(0.96); } }
+    .deco-connecteur { right: 150px; bottom: 0; width: 240px; height: 36px; }
+
+    /* Meteo : ambiance selon le temps local (bandeau.js). Soleil, nuit etoilee, nuages qui passent, pluie, eclair,
+       neige (memes flocons que Noel), brume. */
+    .deco-nuages { top: 10px; right: 20px; width: 300px; height: 90px; animation: deco-nuages 30s ease-in-out infinite alternate; }
+    @keyframes deco-nuages { to { transform: translateX(-80px); } }
+    .deco-pluie { inset: 0; opacity: 0.55;
+      background-image: repeating-linear-gradient(105deg, transparent 0 22px, rgba(116, 192, 252, 0.9) 22px 23.5px, transparent 23.5px 48px);
+      background-size: 100% 60px; -webkit-mask-image: repeating-linear-gradient(transparent 0 6px, #000 6px 20px);
+      mask-image: repeating-linear-gradient(transparent 0 6px, #000 6px 20px); animation: deco-pluie 0.6s linear infinite; }
+    @keyframes deco-pluie { to { background-position: -16px 60px; } }
+    .deco-eclair { top: 70px; right: 140px; width: 40px; height: 70px; opacity: 0; animation: deco-eclair 7s linear infinite; }
+    @keyframes deco-eclair { 0%, 88%, 92%, 96%, 100% { opacity: 0; } 89%, 91%, 95% { opacity: 1; } }
+    .deco-etoiles { inset: 0; width: 100%; height: 100%; }
+    .deco-lune { top: 18px; right: 50px; width: 56px; height: 56px; filter: drop-shadow(0 0 14px rgba(255, 243, 191, 0.45)); }
+    .deco-brume { left: 0; right: 0; bottom: 0; height: 120px;
+      background: linear-gradient(to top, rgba(206, 212, 218, 0.28), rgba(206, 212, 218, 0)); animation: deco-brume 7s ease-in-out infinite alternate; }
     @keyframes deco-brume { to { opacity: 0.45; } }
+    /* Repere meteo du bandeau : temperature et temps qu'il fait. */
+    #tb-meteo { display: none; }
+    :root[data-saison="meteo"]:not([data-theme="light"]):not([data-contrast="high"]) #tb-meteo {
+      display: inline-block; flex-shrink: 0; margin: 0 4px; padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+      background: rgba(255, 255, 255, 0.16); color: #fff; font-size: 12px; line-height: 18px; }
+    /* Fenetre d'accord du theme Meteo (bandeau.js). */
+    #meteo-accord { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, 0.5); }
+    #meteo-accord[hidden] { display: none; }
+    #meteo-accord .boite { max-width: 440px; margin: 16px; padding: 18px 20px; border-radius: 10px; background: var(--fond-code, #fff);
+      color: var(--texte-code, #222); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4); font: 14px/1.55 var(--font); }
+    #meteo-accord h2 { margin: 0 0 8px; font-size: 16px; color: inherit; }
+    #meteo-accord p { margin: 0 0 10px; }
+    #meteo-accord .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+    #meteo-accord button { padding: 7px 14px; border-radius: 6px; border: 1px solid #868e96; background: transparent; color: inherit;
+      font: inherit; cursor: pointer; }
+    #meteo-accord button.principal { background: #1864ab; border-color: #1864ab; color: #fff; }
+    #meteo-accord button:focus-visible { outline: 3px solid #74c0fc; outline-offset: 2px; }
     .deco-lueur { animation: deco-lueur 2.4s ease-in-out infinite; }
     .deco-lueur-2 { animation: deco-lueur 2.4s ease-in-out -1.2s infinite; }
     @keyframes deco-lueur { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
@@ -2026,10 +2141,14 @@
         <button id="aff-contraste-eleve"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor"/></svg>Élevé</button>
         <div class="menu-titre">Saison</div>
         <button id="aff-saison-aucune">Aucune</button>
-        <button id="aff-saison-halloween"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7c-5 0-8 3-8 7s3 6 8 6 8-2 8-6-3-7-8-7z"/><path d="M12 7c-2 2-2 11 0 13M12 7c2 2 2 11 0 13M12 7V4l2-1"/></svg>Halloween</button>
+        <button id="aff-saison-printemps" title="Du 20 mars au 20 juin"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-9"/><path d="M7 4l2.5 3L12 4l2.5 3L17 4v4a5 5 0 0 1-10 0z"/><path d="M12 18c-1.5-1.5-4-2-6-1.5M12 16c1.5-1.5 4-2 6-1.5"/></svg>Printemps</button>
+        <button id="aff-saison-ete" title="Du 21 juin au 22 septembre"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Été</button>
+        <button id="aff-saison-automne" title="Du 23 septembre au 30 novembre"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c.5-4.5 2.5-8 7-10"/><path d="M9 18c6.2 0 10.5-3.3 11-12V4h-4c-9 0-12 4-12 9 0 1 0 3 2 5h3z"/></svg>Automne</button>
         <button id="aff-saison-noel"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l-6 8h4l-5 7h14l-5-7h4z"/><path d="M12 18v3"/></svg>Noël</button>
+        <button id="aff-saison-microbit"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/></svg>micro:bit</button>
+        <button id="aff-saison-meteo" title="Selon le temps qu'il fait autour de vous (position demandée au navigateur)"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 19a4.5 4.5 0 0 1-.4-9A6 6 0 0 1 17.6 10.5 4.25 4.25 0 0 1 17.5 19z"/></svg>Météo</button>
         <button id="aff-saison-salon" title="Salon Educatech Expo, 2 au 4 décembre 2026, stand K3"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/><path d="M22 9v5"/></svg>Salon Educatech Expo</button>
-        <button id="aff-saison-auto" title="Halloween du 15 octobre au 2 novembre, salon Educatech Expo du 2 au 4 décembre 2026, Noël le reste de décembre"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Selon la date</button>
+        <button id="aff-saison-auto" title="Printemps, été, automne selon la saison ; salon Educatech Expo du 2 au 4 décembre 2026 ; Noël le reste de décembre"><svg class="ic-menu" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Selon la date</button>
         <button id="btn-theme" class="btn-vue" style="display:none" title="Passer au thème clair">Thème</button>
         <button id="btn-contraste" class="btn-vue" style="display:none" title="Passer en contraste élevé">Contraste élevé</button>
       </div>

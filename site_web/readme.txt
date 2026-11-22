@@ -1787,3 +1787,34 @@ Correctif : une cible dans la colonne de categories (categorie IA, en bas depuis
 l'ecran ; elle en sortait a 1280 x 720. Message d'accueil : cite la visite du transfert. Textes traduits en anglais.
 Verifie (1280 x 720) : les cinq visites, chaque cible presente et a l'ecran, demarrage par le menu, detection de
 l'etape "Un programme pret". Pas verifie avec une vraie carte (etapes Televerser a redemarrage).
+
+56. THEMES DE SAISON : HALLOWEEN RETIRE, PRINTEMPS, ETE, AUTOMNE, MICRO:BIT ET METEO (nov. 2026)
+Menu Affichage > Saison : Aucune, Printemps, Ete, Automne, Noel, micro:bit, Meteo, Salon Educatech Expo, Selon la date.
+Halloween est retire (menu, date automatique, couleurs, decor, theme Blockly, traduction).
+Comme Noel et le salon, chaque theme est une variante du sombre en contraste normal ; les couleurs des blocs ne changent
+pas ; le decor (#deco-saison, bandeau.js) n'est jamais cliquable et ses animations s'arretent si le systeme demande de
+reduire les animations. Les decors du bas restent a gauche de la corbeille et du zoom.
+- Printemps "Jardin en fleurs" (bandeau vert, accent rose) : prairie, tulipes et marguerites, petales qui tombent,
+  papillon qui volette.
+- Ete "Bord de mer" (bandeau bleu ocean, accent jaune) : soleil qui pulse, mouettes, vagues qui ondulent, plage, palmier.
+- Automne "Foret d'automne" (bandeau rouille, accent orange) : feuilles d'erable qui tombent en tournoyant, sol de
+  feuilles, champignon, gland.
+- micro:bit "Circuit imprime" (bandeau ardoise, accent vert) : matrice 5 x 5 dont le coeur bat, pistes qui s'allument,
+  connecteur dore. Sans le logo officiel.
+"Selon la date" : printemps du 20 mars au 20 juin, ete du 21 juin au 22 septembre, automne du 23 septembre au
+30 novembre, salon du 2 au 4 decembre 2026, Noel le reste de decembre, aucun theme du 1er janvier au 19 mars
+(meme regle dans le script en tete de index.html et dans bandeau.js : saisonDuJour). micro:bit et Meteo : choix manuel.
+Theme Meteo : le decor suit le temps local. Avant la premiere demande, une fenetre explique ce qui est envoye
+(#meteo-accord ; accord retenu dans meteoAccord) ; puis le navigateur demande la position (sa propre autorisation).
+La position est arrondie a 0,1 degre (environ 10 km) et envoyee seulement a Open-Meteo (api.open-meteo.com, gratuit,
+sans cle ni compte : temperature, code meteo OMM, jour ou nuit), toutes les 30 minutes tant que le theme est affiche.
+Elle n'est jamais enregistree ; seul le dernier releve (ambiance, temperature, heure) l'est, dans meteoReleve.
+Sept ambiances (attribut data-meteo) : soleil, nuit (lune et etoiles), nuages, pluie, orage (eclair), neige,
+brouillard (brume), chacune avec la couleur de son bandeau ; badge du bandeau "8 °C · Pluie" (#tb-meteo).
+Sans autorisation ni connexion : dernier releve de moins de 3 h, sinon ambiance neutre et "Meteo indisponible".
+Fonctionne aussi dans l'exe : il ouvre l'application dans le navigateur a l'adresse localhost, ou la geolocalisation
+est permise. Fichiers : index.html (couleurs, decors, menu), bandeau.js (decors, saisonDuJour, theme Meteo), un.js
+(themes Blockly), montage.js (capture : data-meteo), langue-en.js (textes anglais).
+Verifie (1280 x 720) : les sept themes, les sept ambiances meteo, la fenetre d'accord, un vrai releve Open-Meteo
+(position de test), "Selon la date" le 22 novembre (automne), retour a "Aucune" en choisissant le theme clair, aucune
+erreur JavaScript. Pas verifie : la demande de position du navigateur (refusee dans l'apercu), l'exe.

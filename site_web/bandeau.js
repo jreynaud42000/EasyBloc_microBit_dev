@@ -18,18 +18,20 @@ const contrasteEleve = () => racine.dataset.contrast === 'high';
 function choisirTheme(clair) { if (themeClair() !== clair && $('btn-theme')) $('btn-theme').click(); }
 function choisirContraste(eleve) { if (contrasteEleve() !== eleve && $('btn-contraste')) $('btn-contraste').click(); }
 
-// ---------- Affichage : theme de saison (Halloween, Noel, salon Educatech Expo) ----------
-// Choix memorise dans saisonApp : aucune, halloween, noel, salon ou auto (selon la date). L'attribut data-saison
+// ---------- Affichage : theme de saison (printemps, ete, automne, Noel, micro:bit, meteo, salon Educatech Expo) ----------
+// Choix memorise dans saisonApp : aucune, un theme, ou auto (selon la date). L'attribut data-saison
 // est pose des le chargement par le petit script en tete de index.html ; un.js y accorde le theme Blockly.
 // Un theme de saison est une variante du sombre en contraste normal : le choisir y ramene, et choisir
-// le theme clair ou le contraste eleve revient a « Aucune ».
-const SAISONS = ['aucune', 'halloween', 'noel', 'salon', 'auto'];
+// le theme clair ou le contraste eleve revient a « Aucune ». Halloween retire (demande de l'utilisateur, nov. 2026).
+const SAISONS = ['aucune', 'printemps', 'ete', 'automne', 'noel', 'microbit', 'meteo', 'salon', 'auto'];
 const SALON = { titre: 'Educatech Expo', dates: '2-4 déc. 2026', stand: 'K3' };   // a mettre a jour pour un autre salon
-function saisonDuJour(d = new Date()) {
-    const m = d.getMonth() + 1, j = d.getDate();
-    if ((m === 10 && j >= 15) || (m === 11 && j <= 2)) return 'halloween';
-    if (d.getFullYear() === 2026 && m === 12 && j >= 2 && j <= 4) return 'salon';   // meme regle qu'en tete de index.html
-    return m === 12 ? 'noel' : '';
+function saisonDuJour(d = new Date()) {   // meme regle qu'en tete de index.html ; micro:bit et Meteo : jamais automatiques
+    const m = d.getMonth() + 1, j = d.getDate(), q = m * 100 + j;
+    if (d.getFullYear() === 2026 && m === 12 && j >= 2 && j <= 4) return 'salon';
+    if (m === 12) return 'noel';
+    if (q >= 320 && q <= 620) return 'printemps';
+    if (q >= 621 && q <= 922) return 'ete';
+    return q >= 923 ? 'automne' : '';
 }
 function choixSaison() {
     let choix = 'aucune';
@@ -37,11 +39,13 @@ function choixSaison() {
     return SAISONS.includes(choix) ? choix : 'aucune';
 }
 function appliquerSaison(choix) {
+    if (choix === 'meteo' && !accordMeteo()) { demanderAccordMeteo(); return; }   // fenetre d'explication d'abord
     try { localStorage.setItem('saisonApp', choix); } catch (erreur) { /* le choix ne survivra pas au rechargement */ }
     const saison = choix === 'auto' ? saisonDuJour() : (choix === 'aucune' ? '' : choix);
     if (saison) { racine.dataset.saison = saison; choisirTheme(false); choisirContraste(false); }
     else delete racine.dataset.saison;
     majCoches();
+    suivreMeteo();
 }
 SAISONS.forEach(choix => {
     const b = $('aff-saison-' + choix);
@@ -56,27 +60,33 @@ if ($('tb-logo') && !$('tb-saison')) {
     repere.setAttribute('aria-hidden', 'true');
     $('tb-logo').after(repere);
 }
-// Dessins des decors (SVG dans la page, aucun fichier a telecharger) : Halloween « Nuit hantee », Noel « Village enneige ».
+// Dessins des decors (SVG dans la page, aucun fichier a telecharger) : printemps, ete, automne, Noel, micro:bit, meteo, salon.
 const svg = (classe, vue, contenu) => '<svg class="' + classe + '" viewBox="' + vue + '" aria-hidden="true">' + contenu + '</svg>';
-function dessinToile() {   // toile d'araignee accrochee au coin haut droit
-    const coin = [110, 0], bouts = [[8, 0], [12, 44], [38, 82], [74, 106], [110, 110]];
-    let d = bouts.map(([x, y]) => 'M110 0 L' + x + ' ' + y).join(' ');
-    for (const f of [0.28, 0.52, 0.76, 0.98]) {
-        const pts = bouts.map(([x, y]) => [coin[0] + (x - coin[0]) * f, coin[1] + (y - coin[1]) * f]);
-        d += ' M' + pts[0].join(' ');
-        for (let i = 1; i < pts.length; i++) {
-            const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
-            d += ' Q' + ((ax + bx) / 2 + (coin[0] - (ax + bx) / 2) * 0.12) + ' ' + ((ay + by) / 2 + (coin[1] - (ay + by) / 2) * 0.12) + ' ' + bx + ' ' + by;
-        }
-    }
-    return '<path d="' + d + '" fill="none" stroke="#e6e6e6" stroke-width="1"/>';
+const tulipe = (x, y, s, c) => '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')">' +
+    '<path d="M10 40 V14" stroke="#40c057" stroke-width="2.4"/><path d="M10 32 Q2 26 0 18 Q8 22 10 30Z" fill="#2f9e44"/>' +
+    '<path d="M3 4 L6.5 8 L10 3 L13.5 8 L17 4 V10 A7 7 0 0 1 3 10Z" fill="' + c + '"/></g>';
+const marguerite = (x, y, s) => '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')">' +
+    '<path d="M10 40 V12" stroke="#40c057" stroke-width="2.2"/><g fill="#fff">' +
+    [0, 45, 90, 135, 180, 225, 270, 315].map(a => '<ellipse cx="10" cy="4" rx="2.6" ry="5" transform="rotate(' + a + ' 10 10)"/>').join('') +
+    '</g><circle cx="10" cy="10" r="3.4" fill="#fcc419"/></g>';
+const feuilleErable = c => '<svg viewBox="-13 -13 26 26" width="26" height="26">' +
+    '<path d="M0 -12 L3 -5 L9 -8 L7 -1 L12 1 L5 4 L6 9 L0 6 L-6 9 L-5 4 L-12 1 L-7 -1 L-9 -8 L-3 -5Z" fill="' + c + '"/>' +
+    '<path d="M0 6 V13" stroke="#6b3e1f" stroke-width="1.4"/></svg>';
+const nuage = (x, y, s, c) => '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')" fill="' + c + '">' +
+    '<ellipse cx="30" cy="24" rx="30" ry="12"/><ellipse cx="20" cy="16" rx="13" ry="11"/><ellipse cx="38" cy="12" rx="16" ry="13"/></g>';
+const soleil = () => '<g class="rayons" stroke="#ffd43b" stroke-width="3" stroke-linecap="round">' +
+    [0, 45, 90, 135, 180, 225, 270, 315].map(a => '<line x1="38" y1="4" x2="38" y2="11" transform="rotate(' + a + ' 38 38)"/>').join('') +
+    '</g><circle class="disque" cx="38" cy="38" r="20" fill="#ffd43b"/>';
+function dessinMatrice() {   // micro:bit : 5 x 5 LED, coeur allume
+    const COEUR = ['01010', '11111', '11111', '01110', '00100'];
+    let leds = '';
+    COEUR.forEach((ligne, l) => [...ligne].forEach((v, c) => {
+        leds += '<rect x="' + (16 + c * 14) + '" y="' + (16 + l * 14) + '" width="8" height="8" rx="1.5" fill="#ff3b30"' +
+            (v === '1' ? '' : ' opacity="0.18"') + '/>';
+    }));
+    return '<rect x="2" y="2" width="92" height="92" rx="12" fill="#1d2a3a" stroke="#4dabf7" stroke-width="1.2"/>' +
+        '<g class="coeur">' + leds + '</g>';
 }
-const citrouille = (x, y, s) => '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')">' +
-    '<ellipse cx="12" cy="13" rx="11" ry="9" fill="#e8590c"/><ellipse cx="12" cy="13" rx="5" ry="9" fill="#fd7e14"/>' +
-    '<rect x="10.5" y="1" width="3" height="5" rx="1" fill="#2b8a3e"/>' +
-    '<path class="deco-lueur" d="M6 11 L9 9 L9 12Z M18 11 L15 9 L15 12Z M6 15 Q12 20 18 15 Q12 17 6 15Z" fill="#ffd43b"/></g>';
-const chauve = (x, y, s) => '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')"><g class="chauve">' +
-    '<path d="M0 4 C3 -2 7 -2 9 3 C10 1 11 1 12 3 C14 -2 18 -2 21 4 C18 3 16 5 15 7 C13 5 12 6 10.5 8 C9 6 8 5 6 7 C5 5 3 3 0 4Z" fill="#06030a" stroke="#ffd68a" stroke-opacity="0.55" stroke-width="0.6"/></g></g>';   // liseré clair : visibles sur la nuit
 const sapin = (x, y, s) => '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')">' +
     '<path d="M10 0 L20 14 L15 14 L22 24 L-2 24 L5 14 L0 14Z" fill="#2b8a3e"/>' +
     '<path d="M10 0 L14 6 L6 6Z M5 14 L15 14 L16 16 L4 16Z M-2 24 L22 24 L20 21 L0 21Z" fill="#f1f6fb"/>' +
@@ -97,18 +107,63 @@ if ($('blockly-wrapper') && !$('deco-saison')) {
     deco.id = 'deco-saison';
     deco.setAttribute('aria-hidden', 'true');
     deco.innerHTML =
-        '<div class="deco-halloween deco-brume"></div>' +
-        svg('deco-halloween deco-lune', '0 0 70 70', '<circle cx="35" cy="35" r="30" fill="#ffe8a3"/>' +
-            '<circle cx="26" cy="28" r="5" fill="#f2d47a"/><circle cx="44" cy="44" r="7" fill="#f2d47a"/><circle cx="46" cy="23" r="3" fill="#f2d47a"/>') +
-        svg('deco-halloween deco-toile', '0 0 110 110', dessinToile()) +
-        svg('deco-halloween deco-chauves', '0 0 280 110', chauve(200, 20, 2.2) + chauve(110, 50, 1.6) + chauve(30, 14, 1.2)) +
-        svg('deco-halloween deco-manoir', '0 0 190 130',
-            '<path d="M0 130 L0 70 L20 70 L20 40 L30 22 L40 40 L40 70 L60 70 L60 50 L95 18 L130 50 L130 70 L150 70 L150 30 L160 12 L170 30 L170 130Z" fill="#06030a"/>' +
-            '<g fill="#ffd43b"><rect class="deco-lueur" x="27" y="48" width="6" height="8"/><rect class="deco-lueur-2" x="84" y="55" width="8" height="10"/>' +
-            '<rect class="deco-lueur" x="99" y="55" width="8" height="10"/><rect class="deco-lueur-2" x="157" y="42" width="6" height="8"/>' +
-            '<rect class="deco-lueur-2" x="68" y="88" width="8" height="10"/><rect class="deco-lueur" x="114" y="88" width="8" height="10"/></g>' +
-            '<rect x="89" y="104" width="12" height="26" rx="6" fill="#ffa94d" opacity="0.8"/>') +
-        svg('deco-halloween deco-citrouilles', '0 0 96 46', citrouille(0, 6, 1.8) + citrouille(50, 18, 1.25)) +
+        // Printemps
+        '<div class="deco-printemps deco-petales"></div>' +
+        '<svg class="deco-printemps deco-prairie" viewBox="0 0 1000 60" preserveAspectRatio="none" aria-hidden="true">' +
+            '<path d="M0 60 L0 34 Q160 14 340 30 T700 26 T1000 30 L1000 60Z" fill="#2b8a3e"/>' +
+            '<path d="M0 60 L0 48 Q240 34 480 46 T1000 42 L1000 60Z" fill="#37b24d"/></svg>' +
+        svg('deco-printemps deco-fleurs', '0 0 170 80', tulipe(10, 36, 1.1, '#f03e3e') + marguerite(48, 40, 1) +
+            tulipe(80, 28, 1.3, '#f783ac') + marguerite(120, 38, 1.05) + tulipe(146, 40, 0.95, '#fab005')) +
+        svg('deco-printemps deco-papillon', '0 0 46 40',
+            '<path class="aile" d="M22 20 C10 4 0 8 4 18 C0 28 12 32 22 22Z" fill="#ffd43b" stroke="#e8590c" stroke-width="1"/>' +
+            '<path class="aile aile-d" d="M24 20 C36 4 46 8 42 18 C46 28 34 32 24 22Z" fill="#ffd43b" stroke="#e8590c" stroke-width="1"/>' +
+            '<rect x="21.5" y="12" width="3" height="18" rx="1.5" fill="#343a40"/>') +
+        // Ete
+        svg('deco-ete deco-soleil', '0 0 76 76', soleil()) +
+        svg('deco-ete deco-mouettes', '0 0 90 30', '<path d="M4 16 q8 -9 16 0 q8 -9 16 0 M54 8 q6 -7 12 0 q6 -7 12 0" fill="none" stroke="#e9ecef" stroke-width="2"/>') +
+        '<div class="deco-ete deco-vagues"></div><div class="deco-ete deco-vagues-2"></div>' +
+        svg('deco-ete deco-plage', '0 0 230 120', '<path d="M0 120 Q90 88 230 96 V120Z" fill="#f2d49b"/>' +
+            '<path d="M150 104 Q142 64 160 30" fill="none" stroke="#8a5a2b" stroke-width="6" stroke-linecap="round"/>' +
+            '<g fill="#2f9e44"><path d="M160 30 Q132 18 112 38 Q136 26 160 33Z"/><path d="M160 30 Q190 14 214 34 Q188 24 162 33Z"/>' +
+            '<path d="M160 30 Q150 4 128 2 Q152 12 157 30Z"/><path d="M160 30 Q176 4 198 6 Q174 14 163 30Z"/></g>' +
+            '<circle cx="155" cy="36" r="3.5" fill="#8a5a2b"/><circle cx="163" cy="37" r="3.5" fill="#8a5a2b"/>') +
+        // Automne
+        [[8, 0, '#e8590c'], [22, -4, '#f59f00'], [38, -8, '#c92a2a'], [55, -2, '#fab005'], [70, -6, '#e8590c'], [86, -10, '#c92a2a']]
+            .map(([gauche, retard, c], n) => '<div class="deco-automne deco-feuille" style="left:' + gauche + '%;animation-delay:' + retard +
+                's;animation-duration:' + (10 + (n % 3) * 3) + 's">' + feuilleErable(c) + '</div>').join('') +
+        '<svg class="deco-automne deco-sol" viewBox="0 0 1000 50" preserveAspectRatio="none" aria-hidden="true">' +
+            '<path d="M0 50 L0 26 Q200 10 420 24 T1000 20 L1000 50Z" fill="#5c3a1e"/>' +
+            '<g fill="#e8590c" opacity="0.85"><ellipse cx="120" cy="30" rx="14" ry="5"/><ellipse cx="330" cy="28" rx="12" ry="4" fill="#fab005"/>' +
+            '<ellipse cx="560" cy="30" rx="14" ry="5" fill="#c92a2a"/><ellipse cx="780" cy="27" rx="12" ry="4"/></g></svg>' +
+        svg('deco-automne deco-sous-bois', '0 0 110 50', '<rect x="22" y="22" width="9" height="20" rx="3" fill="#f1e3c8"/>' +
+            '<path d="M8 26 Q26 0 45 26Z" fill="#e03131"/><circle cx="20" cy="18" r="2.6" fill="#fff"/><circle cx="31" cy="14" r="2.2" fill="#fff"/>' +
+            '<ellipse cx="84" cy="36" rx="9" ry="11" fill="#a0612b"/><path d="M74 30 Q84 18 94 30Z" fill="#5c3a1e"/>') +
+        // micro:bit
+        svg('deco-microbit deco-matrice', '0 0 96 96', dessinMatrice()) +
+        svg('deco-microbit deco-circuit-haut', '0 0 320 190',
+            '<g fill="none" stroke-width="2"><path class="deco-piste" d="M320 150 H250 V176 H190" stroke="#00c853"/>' +
+            '<path class="deco-piste" d="M210 0 V30 H150 V90" stroke="#4dabf7" style="animation-delay:-1.5s"/></g>' +
+            '<circle class="deco-lueur" cx="190" cy="176" r="4" fill="#00c853"/><circle class="deco-lueur-2" cx="150" cy="90" r="4" fill="#4dabf7"/>') +
+        svg('deco-microbit deco-circuit-bas', '0 0 260 120',
+            '<g fill="none" stroke-width="2"><path class="deco-piste" d="M0 110 H60 V70 H130" stroke="#00c853"/>' +
+            '<path class="deco-piste" d="M0 30 H40 V50 H90" stroke="#4dabf7" style="animation-delay:-1s"/></g>' +
+            '<circle class="deco-lueur-2" cx="130" cy="70" r="4" fill="#00c853"/><circle class="deco-lueur" cx="90" cy="50" r="4" fill="#4dabf7"/>') +
+        svg('deco-microbit deco-connecteur', '0 0 240 36', '<rect x="0" y="0" width="240" height="36" fill="#1d2a3a"/><g fill="#e6b800">' +
+            [[8, 22], [38, 6], [50, 6], [64, 22], [94, 6], [106, 6], [120, 22], [150, 6], [162, 6], [176, 22], [206, 6], [218, 6]]
+                .map(([x, l]) => '<rect x="' + x + '" y="8" width="' + l + '" height="28"/>').join('') + '</g>') +
+        // Meteo : chaque element porte les ambiances ou il apparait (m-<ambiance>)
+        svg('deco-meteo m-soleil deco-soleil', '0 0 76 76', soleil()) +
+        svg('deco-meteo m-nuit deco-lune', '0 0 56 56', '<path d="M30 4 A24 24 0 1 0 52 34 A18 18 0 1 1 30 4Z" fill="#fff3bf"/>') +
+        '<svg class="deco-meteo m-nuit deco-etoiles" aria-hidden="true">' +
+            [[8, 12], [22, 30], [35, 8], [48, 22], [62, 14], [74, 34], [86, 10], [15, 52], [56, 44], [92, 48]]
+                .map(([x, y], n) => '<circle class="' + (n % 2 ? 'deco-lueur' : 'deco-lueur-2') + '" cx="' + x + '%" cy="' + y + '%" r="' + (1 + (n % 3) * 0.5) + '" fill="#fff"/>').join('') +
+            '</svg>' +
+        svg('deco-meteo m-nuages m-pluie m-orage m-neige m-brouillard deco-nuages', '0 0 300 90',
+            nuage(170, 6, 1.6, '#868e96') + nuage(60, 30, 1.1, '#5c6670') + nuage(0, 0, 0.8, '#6c7680')) +
+        '<div class="deco-meteo m-pluie m-orage deco-pluie"></div>' +
+        svg('deco-meteo m-orage deco-eclair', '0 0 40 70', '<path d="M24 0 L6 38 H20 L10 70 L36 28 H22 L32 0Z" fill="#ffd43b"/>') +
+        '<div class="deco-meteo m-neige deco-neige"></div><div class="deco-meteo m-neige deco-neige deco-neige-2"></div>' +
+        '<div class="deco-meteo m-brouillard deco-brume"></div>' +
         '<div class="deco-noel deco-neige"></div><div class="deco-noel deco-neige deco-neige-2"></div><div class="deco-noel deco-neige deco-neige-3"></div>' +
         '<svg class="deco-noel deco-collines" viewBox="0 0 1000 70" preserveAspectRatio="none" aria-hidden="true">' +
             '<path d="M0 70 L0 40 Q120 10 260 34 T520 30 T780 26 T1000 32 L1000 70Z" fill="#dde9f5"/>' +
@@ -208,7 +263,7 @@ if (racine.dataset.editeur && $('tb-logo')) {
 function majRepereSaison() {
     const repere = $('tb-saison');
     if (!repere) return;
-    const bouton = $({ halloween: 'aff-saison-halloween', noel: 'aff-saison-noel', salon: 'aff-saison-salon' }[racine.dataset.saison]);
+    const bouton = racine.dataset.saison && $('aff-saison-' + racine.dataset.saison);
     const icone = bouton && bouton.querySelector('svg');
     repere.innerHTML = '';
     if (icone) {
@@ -235,6 +290,100 @@ if ($('aff-contraste-normal')) $('aff-contraste-normal').addEventListener('click
 if ($('aff-contraste-eleve')) $('aff-contraste-eleve').addEventListener('click', () => { quitterSaison(); choisirContraste(true); });
 new MutationObserver(majCoches).observe(racine, { attributes: true, attributeFilter: ['data-theme', 'data-contrast', 'data-saison'] });
 majCoches();
+
+// ---------- Theme Meteo (nov. 2026) ----------
+// Le decor suit le temps qu'il fait autour de l'eleve. La position est demandee au navigateur (sa propre fenetre
+// d'autorisation), arrondie a 0,1 degre (environ 10 km) et envoyee seulement a Open-Meteo (gratuit, sans cle ni
+// compte), toutes les 30 minutes tant que le theme est affiche. Elle n'est jamais enregistree : seul le dernier releve
+// (ambiance, temperature, heure) l'est, dans meteoReleve. Une fenetre explique tout cela avant la premiere demande
+// (accord retenu dans meteoAccord). Sans autorisation ni connexion : dernier releve de moins de 3 h, sinon ambiance
+// neutre et « Météo indisponible ». Jamais choisi par « Selon la date ».
+const trM = (texte, vars) => (typeof window.tr === 'function' ? window.tr(texte, vars) : texte);
+const CLE_METEO_ACCORD = 'meteoAccord', CLE_METEO_RELEVE = 'meteoReleve';
+const METEO_PERIODE = 30 * 60e3, METEO_VALIDITE = 3 * 3600e3;
+const CIELS = { soleil: 'Ensoleillé', nuit: 'Ciel dégagé', nuages: 'Nuageux', pluie: 'Pluie', orage: 'Orage', neige: 'Neige', brouillard: 'Brouillard' };
+const accordMeteo = () => lireStockage(localStorage, CLE_METEO_ACCORD) === '1';
+function cielDeCode(code, jour) {   // codes meteo OMM (WMO) renvoyes par Open-Meteo
+    if (code <= 1) return jour ? 'soleil' : 'nuit';
+    if (code <= 3) return 'nuages';
+    if (code === 45 || code === 48) return 'brouillard';
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'neige';
+    if (code >= 95) return 'orage';
+    return 'pluie';   // bruine, pluie, pluie verglacante, averses (51 a 67, 80 a 82)
+}
+function lireReleve() {
+    try { const r = JSON.parse(localStorage.getItem(CLE_METEO_RELEVE) || 'null'); return r && CIELS[r.ciel] ? r : null; }
+    catch (erreur) { return null; }
+}
+let repereMeteo = null;
+if ($('tb-saison') && !$('tb-meteo')) {
+    repereMeteo = document.createElement('span');
+    repereMeteo.id = 'tb-meteo';
+    repereMeteo.setAttribute('role', 'status');
+    $('tb-saison').after(repereMeteo);
+}
+function afficherMeteo(releve) {
+    const frais = releve && Date.now() - releve.quand < METEO_VALIDITE;
+    racine.dataset.meteo = frais ? releve.ciel : 'indispo';
+    if (!repereMeteo) return;
+    repereMeteo.textContent = frais ? Math.round(releve.temp) + ' °C · ' + trM(CIELS[releve.ciel]) : trM('Météo indisponible');
+    repereMeteo.title = frais
+        ? trM('Météo locale relevée à {heure} (Open-Meteo)', { heure: new Date(releve.quand).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })
+        : trM('Position refusée ou pas de connexion : le décor reste neutre.');
+}
+function releverMeteo() {
+    if (!navigator.geolocation) { afficherMeteo(lireReleve()); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+        const lat = pos.coords.latitude.toFixed(1), lon = pos.coords.longitude.toFixed(1);   // environ 10 km
+        fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
+              '&current=temperature_2m,weather_code,is_day&timezone=auto', { cache: 'no-store' })
+            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(d => {
+                const c = d.current;
+                const releve = { quand: Date.now(), temp: c.temperature_2m, ciel: cielDeCode(c.weather_code, c.is_day === 1) };
+                try { localStorage.setItem(CLE_METEO_RELEVE, JSON.stringify(releve)); } catch (erreur) { /* navigation privee */ }
+                if (racine.dataset.saison === 'meteo') afficherMeteo(releve);
+            })
+            .catch(() => { if (racine.dataset.saison === 'meteo') afficherMeteo(lireReleve()); });
+    }, () => { if (racine.dataset.saison === 'meteo') afficherMeteo(lireReleve()); },
+    { maximumAge: METEO_PERIODE, timeout: 20000 });
+}
+let minuteurMeteo = null;
+function suivreMeteo() {   // demarre ou arrete le suivi selon le theme affiche
+    clearInterval(minuteurMeteo); minuteurMeteo = null;
+    if (racine.dataset.saison !== 'meteo') { delete racine.dataset.meteo; return; }
+    const releve = lireReleve();
+    afficherMeteo(releve);
+    if (!releve || Date.now() - releve.quand >= METEO_PERIODE) releverMeteo();
+    minuteurMeteo = setInterval(releverMeteo, METEO_PERIODE);
+}
+function demanderAccordMeteo() {
+    let fenetre = $('meteo-accord');
+    if (!fenetre) {
+        fenetre = document.createElement('div');
+        fenetre.id = 'meteo-accord';
+        fenetre.innerHTML = '<div class="boite" role="dialog" aria-modal="true" aria-labelledby="meteo-accord-titre">' +
+            '<h2 id="meteo-accord-titre">Thème Météo</h2>' +
+            '<p>Ce thème adapte le décor au temps qu\'il fait autour de vous. Le navigateur va vous demander votre position.</p>' +
+            '<p>Votre position est arrondie à environ 10 km. Elle est envoyée seulement au service météo Open-Meteo, toutes ' +
+            'les 30 minutes tant que le thème est affiché, et n\'est pas enregistrée.</p>' +
+            '<div class="actions"><button type="button" id="meteo-accord-non">Annuler</button>' +
+            '<button type="button" class="principal" id="meteo-accord-oui">Autoriser la météo</button></div></div>';
+        document.body.appendChild(fenetre);
+        const fermer = () => { fenetre.hidden = true; };
+        $('meteo-accord-non').addEventListener('click', fermer);
+        $('meteo-accord-oui').addEventListener('click', () => {
+            fermer();
+            ecrireStockage(localStorage, CLE_METEO_ACCORD);
+            appliquerSaison('meteo');
+        });
+        fenetre.addEventListener('click', ev => { if (ev.target === fenetre) fermer(); });
+        fenetre.addEventListener('keydown', ev => { if (ev.key === 'Escape') fermer(); });
+    }
+    fenetre.hidden = false;
+    $('meteo-accord-oui').focus();
+}
+suivreMeteo();
 
 // ---------- Libelles Afficher / Masquer (l'etat « ferme » = classe .inactif, posee par le code existant) ----------
 function suivreBascule(idBouton, idLibelle, quandOuvert, quandFerme) {

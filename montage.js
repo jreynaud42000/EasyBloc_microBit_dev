@@ -2464,7 +2464,8 @@ window.capturerSimulation = async function () {
                     '#microbit-board { -webkit-mask-image: none !important; mask-image: none !important; }\n';
         const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + largeur + '" height="' + hauteur + '"' +
             ' data-theme="' + (racineHtml.dataset.theme || '') + '" data-contrast="' + (racineHtml.dataset.contrast || '') + '"' +
-            (racineHtml.dataset.saison ? ' data-saison="' + racineHtml.dataset.saison + '"' : '') + '>' +
+            (racineHtml.dataset.saison ? ' data-saison="' + racineHtml.dataset.saison + '"' : '') +
+            (racineHtml.dataset.meteo ? ' data-meteo="' + racineHtml.dataset.meteo + '"' : '') + '>' +
             '<style>' + css.replace(/<\/style/gi, '<\\/style') + '</style>' +
             '<rect width="100%" height="100%" fill="' + fond + '"/>' +
             '<foreignObject x="0" y="0" width="' + largeur + '" height="' + hauteur + '">' +
