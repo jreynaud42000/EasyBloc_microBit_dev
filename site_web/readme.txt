@@ -979,7 +979,7 @@ est le bruit de fond).
 20. VISITES GUIDEES (MENU AIDE)
 ---------------------------------------------------------
 L'entree "Visite guidee (tuto)" du menu Aide (elle relance toujours depuis
-le debut) lance une visite en 12 etapes : une bulle
+le debut) lance une visite en 14 etapes (section 55) : une bulle
 explicative se place a cote de l'element presente (mis en evidence, le reste de
 l'ecran est assombri). Le voile ne bloque pas les clics : on manipule les vrais
 outils pendant la visite. Boutons Precedent / Suivant / Quitter, touche Echap
@@ -1769,3 +1769,21 @@ secondaire blanc ; confirmation, Ctrl+Z le retablit) et un bouton vert "Ajouter 
 seul Ctrl+Z). Espace de depart : le bouton "Essayer ce programme dans EasyBloc" de la fiche, inchange. Les 394 fiches
 (francaises et anglaises) ne sont pas modifiees ; ouvertes seules, hors d'EasyBloc, elles gardent leur unique bouton
 (un.js : adapterBoutonsFiche, window.ajouterExempleFiche).
+
+55. VISITES GUIDEES MISES A JOUR, VISITE "TRANSFERER SUR LA CARTE" (nov. 2026)
+Visite generale (menu Aide > "Visite guidee") : 14 etapes au lieu de 12. Deux etapes ajoutees : "5. Le montage et la
+carte d'extension" (montage, menu de choix de la carte, bandeau rouge et "Cabler automatiquement" ; cible : le menu de
+carte quand il est affiche, sinon le simulateur) et "9. Les extensions" (Fichier > Extensions..., STOP:bit, LAMP:bit,
+ACCESS:bit). Textes actualises : "11. Envoyer sur la carte" renvoie a la nouvelle visite ; "14. De l'aide partout"
+cite l'exemple a ajouter au programme ou a mettre a sa place.
+Nouvelle visite : menu Aide > "Visite guidee Transferer sur la carte" (tuto.js : ETAPES_TRANSFERT, 8 etapes +
+introduction et conclusion) : programme pret (attend un bloc dans "au demarrage" ou "repeter indefiniment"), l'essayer
+dans le simulateur, brancher la carte (LED jaune, lecteur MICROBIT, cable de donnees), "Televerser" (attend le clic :
+l'envoi demarre vraiment), choisir le lecteur MICROBIT (premiere fois, choix retenu), fenetre d'envoi (trois etapes,
+pourcentage, annulation), redemarrage de la carte (ne pas debrancher pendant le clignotement), autre methode du
+fichier .hex, problemes courants (bouton grise, mauvais dossier, erreur affichee par la carte). Sans carte, "Suivant"
+permet de tout parcourir.
+Correctif : une cible dans la colonne de categories (categorie IA, en bas depuis les extensions) est ramenee a
+l'ecran ; elle en sortait a 1280 x 720. Message d'accueil : cite la visite du transfert. Textes traduits en anglais.
+Verifie (1280 x 720) : les cinq visites, chaque cible presente et a l'ecran, demarrage par le menu, detection de
+l'etape "Un programme pret". Pas verifie avec une vraie carte (etapes Televerser a redemarrage).

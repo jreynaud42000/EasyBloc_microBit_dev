@@ -1,4 +1,4 @@
-// tuto.js — visites guidees (generale, IA, console, clic droit), toutes dans le menu Aide de la barre d'outils.
+// tuto.js — visites guidees (generale, IA, console, clic droit, transfert sur la carte), toutes dans le menu Aide.
 //
 // Une bulle explicative se place a cote de l'element presente, qui est mis en
 // evidence (le reste de l'ecran est assombri). Le voile ne bloque PAS les clics :
@@ -70,7 +70,7 @@ function fermerFiche() {
 const ETAPES_GENERAL = [
     {
         titre: 'Bienvenue',
-        texte: 'Cette visite guidée présente les outils du logiciel, en 12 étapes. Vous pouvez manipuler le logiciel ' +
+        texte: 'Cette visite guidée présente les outils du logiciel, en 14 étapes. Vous pouvez manipuler le logiciel ' +
             'pendant la visite. « Suivant » passe à l\'étape d\'après sans rien faire, « Quitter » (ou la touche Échap) ' +
             'arrête la visite ; le menu « Aide » > « Visite guidée » la relance quand vous voulez.',
     },
@@ -113,7 +113,17 @@ const ETAPES_GENERAL = [
         avant: () => ouvrir('btn-vue-simu'),
     },
     {
-        titre: '5. Lancer la simulation',
+        // Nov. 2026 : montage, choix de la carte d'extension et cablage automatique (montage.js).
+        titre: '5. Le montage et la carte d\'extension',
+        texte: 'Dès qu\'un programme utilise un module (Grove, servomoteur, carte Kitronik…), le simulateur dessine le ' +
+            'montage : la carte d\'extension, les modules et leurs fils. Le menu au-dessus du montage choisit la carte ' +
+            'd\'extension (Grove Shield, BitMaker, Motor:bit). Un bandeau rouge signale deux modules sur la même broche : ' +
+            'son bouton « Câbler automatiquement » leur donne des broches libres.',
+        cible: () => { const c = $('#sim-carte'); return c && c.offsetWidth ? c : $('#simulator-container'); },
+        avant: () => ouvrir('btn-vue-simu'),
+    },
+    {
+        titre: '6. Lancer la simulation',
         texte: 'Ce bouton démarre le programme sur la carte virtuelle ; pendant la simulation, il sert à l\'arrêter.',
         cible: '#tb-lancer',
         avant: () => ouvrir('btn-vue-simu'),
@@ -121,7 +131,7 @@ const ETAPES_GENERAL = [
         attendreClic: '#tb-lancer',          // le programme d'exemple se termine tout de suite : on attend le clic, pas l'etat
     },
     {
-        titre: '6. Boutons, gestes et capteurs',
+        titre: '7. Boutons, gestes et capteurs',
         texte: 'Cliquez sur les boutons A et B de la carte virtuelle, ou sur « Secouer la carte », pour tester les blocs ' +
             '« lorsque le bouton… » et « lorsque… » (catégorie Capteurs). Les modules du montage se manipulent à la ' +
             'souris : tourner un potentiomètre, appuyer sur un bouton poussoir…',
@@ -129,7 +139,7 @@ const ETAPES_GENERAL = [
         avant: () => ouvrir('btn-vue-simu'),
     },
     {
-        titre: '7. La console',
+        titre: '8. La console',
         texte: 'Le bloc « afficher dans la console » (catégorie Matrice LED) écrit des messages ici, depuis le simulateur ' +
             'ou depuis la vraie carte branchée en USB (bouton « Connecter »). L\'onglet « Graphique » trace les ' +
             'valeurs en courbes, et le bouton d\'export les enregistre dans un fichier Excel.',
@@ -138,20 +148,29 @@ const ETAPES_GENERAL = [
         attendre: () => panneauOuvert('btn-vue-console'),
     },
     {
-        titre: '8. Enregistrer et ouvrir',
+        // Nov. 2026 : fenetre Extensions (menu Fichier > Blocs).
+        titre: '9. Les extensions',
+        texte: 'Le menu « Fichier » > « Extensions… » ajoute des catégories de blocs pour d\'autres cartes : le feu ' +
+            'tricolore STOP:bit, le lampadaire LAMP:bit, la barrière ACCESS:bit. Cliquez sur une carte pour l\'ajouter ' +
+            'à la colonne des catégories, ou pour la retirer.',
+        cible: '#menu-fichier-btn',
+    },
+    {
+        titre: '10. Enregistrer et ouvrir',
         texte: 'Le menu « Fichier » commence un nouveau projet, charge un fichier .hex ou un script .py, et télécharge ' +
             'le programme (.hex pour la carte, .py pour un éditeur Python). Le nom du programme, affiché à côté, ' +
             'devient le nom du fichier téléchargé : cliquez dessus pour le changer.',
         cible: () => zone('#menu-fichier-btn', '#tb-nomfichier'),
     },
     {
-        titre: '9. Envoyer sur la carte',
+        titre: '11. Envoyer sur la carte',
         texte: 'Branchez la micro:bit en USB : le bouton « Téléverser » écrit directement le programme sur le lecteur ' +
-            'MICROBIT (Chrome ou Edge). C\'est comme glisser le fichier .hex sur la carte.',
+            'MICROBIT (Chrome ou Edge). C\'est comme glisser le fichier .hex sur la carte. La visite « Transférer sur la ' +
+            'carte » (menu « Aide ») détaille chaque étape.',
         cible: '#btn-envoyer',
     },
     {
-        titre: '10. L\'intelligence artificielle',
+        titre: '12. L\'intelligence artificielle',
         texte: 'La fenêtre IA reconnaît des images (caméra) ou des sons (micro). L\'onglet « IA » apprend vos propres ' +
             'classes (quelques photos ou quelques sons par classe, sans entraînement) ; l\'onglet « QR code » lit des ' +
             'QR codes. Les classes reconnues déclenchent vos blocs.',
@@ -159,23 +178,100 @@ const ETAPES_GENERAL = [
         avant: () => { if (window.ouvrirPanneauIA) window.ouvrirPanneauIA(); },
     },
     {
-        titre: '11. Les blocs IA',
+        titre: '13. Les blocs IA',
         texte: 'La catégorie « IA » contient « lorsque l\'IA reconnaît… » (à compléter avec le nom d\'une classe), ' +
             '« l\'IA reconnaît », « dernière classe reconnue » et « confiance de l\'IA », puis trois blocs pour les QR codes. ' +
             'Lancez la simulation, puis la comparaison dans la fenêtre IA : les classes pilotent le programme.',
         cible: () => categorie('IA'),
     },
     {
-        titre: '12. De l\'aide partout',
-        texte: 'Clic droit sur un bloc > « Expliquer ce bloc » : la fiche du bloc, avec un programme d\'exemple à essayer ' +
-            'd\'un clic. Les boutons « ? » de la console et de la fenêtre IA ouvrent leur aide. Les flèches de la barre du ' +
-            'haut défont et refont ; le menu « Affichage » règle le thème et le contraste ; le drapeau change la langue.',
+        titre: '14. De l\'aide partout',
+        texte: 'Clic droit sur un bloc > « Expliquer ce bloc » : la fiche du bloc et un programme d\'exemple, à ajouter à ' +
+            'votre programme ou à mettre à sa place. Les boutons « ? » de la console et de la fenêtre IA ouvrent leur aide. ' +
+            'Les flèches de la barre du haut défont et refont ; le menu « Affichage » règle le thème et le contraste ; le ' +
+            'drapeau change la langue.',
         cible: '#blocklyDiv',
         decor: { menu: 'bloc', surligne: /Expliquer ce bloc|Explain this block/ },
     },
     {
         titre: 'C\'est terminé',
         texte: 'Vous connaissez l\'essentiel. Le menu « Aide » > « Visite guidée » relance la visite à tout moment.',
+    },
+];
+
+// ---------- visite « Transferer sur la carte » (menu Aide, nov. 2026) ----------
+// Du programme a la vraie carte : preparer et essayer le programme, brancher la carte, « Televerser » (fenetre
+// d'envoi : generation, lecteur MICROBIT, ecriture), redemarrage de la carte, methode du fichier .hex, problemes
+// courants. L'etape « Televerser » attend un vrai clic (l'envoi demarre vraiment) ; « Suivant » reste possible sans carte.
+const envoiOuvert = () => { const f = $('#fenetre-envoi'); return !!f && f.getBoundingClientRect().width > 0; };
+const ETAPES_TRANSFERT = [
+    {
+        titre: 'Transférer sur la carte',
+        texte: 'Cette visite montre comment mettre votre programme sur une vraie carte micro:bit, en 8 étapes. Il faut ' +
+            'la carte, un câble USB et Chrome ou Edge (ou le logiciel installé). Sans carte, suivez quand même : ' +
+            '« Suivant » passe à l\'étape d\'après.',
+    },
+    {
+        titre: '1. Un programme prêt',
+        texte: 'On transfère le programme de l\'espace de travail, tel qu\'il est. Il faut au moins un bloc dans ' +
+            '« au démarrage » ou « répéter indéfiniment » : un bloc posé seul est grisé et n\'est pas envoyé.',
+        cible: '#blocklyDiv',
+        consigne: 'Placez par exemple « afficher l\'icône » (catégorie Matrice LED) dans « au démarrage ».',
+        attendre: () => blocs().some(b => !['au_demarrage', 'boucle_infinie'].includes(b.type) &&
+                                          racineEst(b, ['au_demarrage', 'boucle_infinie'])),
+    },
+    {
+        titre: '2. L\'essayer d\'abord',
+        texte: 'Avant d\'envoyer, lancez la simulation : si le programme fait ce que vous voulez sur la carte virtuelle, ' +
+            'il le fera sur la vraie. C\'est plus rapide que de recommencer un transfert.',
+        cible: '#tb-lancer',
+        avant: () => ouvrir('btn-vue-simu'),
+    },
+    {
+        titre: '3. Brancher la carte',
+        texte: 'Reliez la micro:bit à l\'ordinateur avec le câble USB. La petite LED jaune au dos s\'allume, et un ' +
+            'lecteur MICROBIT apparaît dans l\'explorateur de fichiers, comme une clé USB. Rien ne se passe ? Essayez un ' +
+            'autre câble : certains ne font que charger et ne transportent pas les données.',
+    },
+    {
+        titre: '4. Téléverser',
+        texte: 'Le bouton « Téléverser » prépare le programme pour la carte (fichier .hex) et l\'écrit directement sur le ' +
+            'lecteur MICROBIT.',
+        cible: '#btn-envoyer',
+        consigne: 'Carte branchée ? Cliquez sur « Téléverser ».',
+        attendreClic: '#btn-envoyer',
+    },
+    {
+        titre: '5. Choisir le lecteur MICROBIT',
+        texte: 'La première fois, le navigateur demande où écrire : choisissez le lecteur MICROBIT lui-même (pas un ' +
+            'dossier à l\'intérieur), puis acceptez de le modifier. Ce choix est retenu : les envois suivants se font ' +
+            'd\'un seul clic.',
+        cible: () => (envoiOuvert() ? $('#fenetre-envoi') : $('#btn-envoyer')),
+    },
+    {
+        titre: '6. Suivre l\'envoi',
+        texte: 'Cette fenêtre montre les trois étapes : génération du programme, lecteur MICROBIT, écriture sur la carte, ' +
+            'avec le pourcentage. « Annuler le téléversement » arrête l\'envoi en cours.',
+        cible: () => (envoiOuvert() ? $('#fenetre-envoi') : $('#btn-envoyer')),
+    },
+    {
+        titre: '7. La carte redémarre',
+        texte: 'Pendant l\'écriture, la LED jaune clignote : ne débranchez pas la carte. Le lecteur MICROBIT disparaît ' +
+            'puis revient, c\'est normal. La carte redémarre et votre programme commence tout seul ; il y reste même ' +
+            'débranchée, jusqu\'au prochain transfert.',
+    },
+    {
+        titre: '8. Autre méthode : le fichier .hex',
+        texte: 'Sans Chrome ni Edge, ou si l\'envoi direct échoue : menu « Fichier » > « Télécharger .hex », puis glissez ' +
+            'le fichier sur le lecteur MICROBIT dans l\'explorateur de fichiers. Le résultat est le même.',
+        cible: '#menu-fichier-btn',
+    },
+    {
+        titre: 'En cas de problème',
+        texte: 'Bouton « Téléverser » grisé : le navigateur ne permet pas l\'envoi direct, utilisez le fichier .hex. ' +
+            '« Ce dossier ne ressemble pas au lecteur MICROBIT » : choisissez le lecteur lui-même. La carte affiche un ' +
+            'message ou un numéro qui défile : le programme a une erreur ; la console (bouton « Connecter ») la montre. ' +
+            'Cette visite se relance par le menu « Aide » > « Visite guidée Transférer sur la carte ».',
     },
 ];
 
@@ -744,7 +840,8 @@ function aller(i) {
     // Cible dans le panneau IA (a defilement) : on la ramene dans la zone visible, une seule fois par etape.
     setTimeout(() => {
         const c = cibleDe(etape);
-        if (c && c.closest && c.closest('#ia-panneau')) c.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        // Idem pour une ligne de la colonne de categories (« IA » est en bas : avec les extensions, elle sortait de l'ecran).
+        if (c && c.closest && (c.closest('#ia-panneau') || c.closest('.blocklyToolboxDiv'))) c.scrollIntoView({ block: 'nearest', inline: 'nearest' });
         if (indice === i) appliquerDecor(etape);
         placer();
     }, 150);
@@ -799,6 +896,8 @@ const btnMenuConsole = bouton('tuto-console-menu-btn');
 if (btnMenuConsole) btnMenuConsole.addEventListener('click', () => { arreter(); demarrer(ETAPES_CONSOLE); });
 const btnMenuClicDroit = bouton('tuto-clicdroit-menu-btn');
 if (btnMenuClicDroit) btnMenuClicDroit.addEventListener('click', () => { arreter(); demarrer(ETAPES_CLIC_DROIT); });
+const btnMenuTransfert = bouton('tuto-transfert-menu-btn');
+if (btnMenuTransfert) btnMenuTransfert.addEventListener('click', () => { arreter(); demarrer(ETAPES_TRANSFERT); });
 const btnMenuIA = bouton('tuto-ia-menu-btn');
 if (btnMenuIA) btnMenuIA.addEventListener('click', () => { arreter(); demarrer(ETAPES_IA); });
 window.addEventListener('resize', () => { placer(); if (actif) appliquerDecor(ETAPES[indice]); });
@@ -856,7 +955,7 @@ function afficherAccueil() {
         '<span id="tuto-accueil-fleche"></span>' +
         '<h4>Bienvenue</h4>' +
         '<p>Des <b>visites guidées</b> vous expliquent le logiciel pas à pas : visite générale, intelligence artificielle, ' +
-        'console et clic droit. Elles se trouvent dans le menu <b>Aide</b>. Voulez-vous le visiter ?</p>' +
+        'console, clic droit et transfert sur la carte. Elles se trouvent dans le menu <b>Aide</b>. Voulez-vous le visiter ?</p>' +
         '<label id="tuto-accueil-label"><input type="checkbox" id="tuto-accueil-masquer"> Ne plus afficher ce message</label>' +
         '<div id="tuto-accueil-boutons">' +
         '<button id="tuto-accueil-plus-tard" class="btn-vue">Plus tard</button>' +
@@ -881,4 +980,4 @@ function afficherAccueil() {
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && accueil) fermerAccueil(); });
 setTimeout(afficherAccueil, 1200);
 
-window.tutoTest = { cibleDe, demarrer, arreter, aller, ETAPES_GENERAL, ETAPES_IA, ETAPES_CONSOLE, ETAPES_CLIC_DROIT, etapes: () => ETAPES, etat: () => ({ actif, indice, attenteFaite, accueil: !!accueil }), categorie, afficherAccueil, fermerAccueil, CLE_ACCUEIL };
+window.tutoTest = { cibleDe, demarrer, arreter, aller, ETAPES_GENERAL, ETAPES_IA, ETAPES_CONSOLE, ETAPES_CLIC_DROIT, ETAPES_TRANSFERT, etapes: () => ETAPES, etat: () => ({ actif, indice, attenteFaite, accueil: !!accueil }), categorie, afficherAccueil, fermerAccueil, CLE_ACCUEIL };
