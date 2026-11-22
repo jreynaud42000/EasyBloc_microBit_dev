@@ -8770,6 +8770,50 @@ try {
         voileFiche.classList.remove('ouvert');
         document.getElementById('fiche-corps').textContent = '';
     }
+    /**
+     * Boutons de l'exemple d'une fiche (nov. 2026, comme mBot1 et l'aide simple) : programme deja en place ->
+     * « Remplacer mon programme » (le bouton de la fiche, qui demande confirmation) et « Ajouter a mon programme » ;
+     * espace de depart -> le bouton de la fiche inchange. Les fiches HTML ne changent pas : EasyBloc adapte leurs
+     * boutons a l'ouverture (ouvertes seules, hors d'EasyBloc, elles gardent leur unique bouton).
+     */
+    function adapterBoutonsFiche(doc) {
+        const tous = window.workspace.getAllBlocks(false);
+        const depart = tous.length <= 2 && tous.every(b => b.type === 'au_demarrage' || b.type === 'boucle_infinie');
+        if (depart || !doc) return;
+        const tr = t => (window.tr ? window.tr(t) : t);
+        const style = doc.createElement('style');
+        style.textContent = '.aide-essayer.aide-remplacer { background: #fff; color: #222; border: 1px solid #bbb; }' +
+            '.aide-essayer.aide-remplacer:hover { background: #ececec; }' +
+            '.aide-essayer.aide-ajouter { margin-left: 8px; }' +
+            '.aide-essayer:focus-visible { outline: 3px solid #4caa3c; outline-offset: 2px; }';
+        doc.head.appendChild(style);
+        doc.querySelectorAll('.aide-essayer').forEach(bouton => {
+            if (bouton.dataset.adapte) return;
+            bouton.dataset.adapte = '1';
+            const m = /essayerExemple\('([^']*)'\)/.exec(bouton.getAttribute('onclick') || '');
+            const id = m ? m[1] : 'programme-exemple';
+            bouton.textContent = tr('Remplacer mon programme');
+            bouton.title = tr('Effacer votre programme et mettre l\'exemple à la place (Ctrl+Z pour annuler)');
+            bouton.classList.add('aide-remplacer');
+            const ajout = doc.createElement('button');
+            ajout.type = 'button';
+            ajout.className = 'aide-essayer aide-ajouter';
+            ajout.textContent = tr('Ajouter à mon programme');
+            ajout.title = tr('Ajouter ce programme d\'exemple à votre programme');
+            ajout.addEventListener('click', () => {
+                const source = doc.getElementById(id);
+                if (source) window.ajouterExempleFiche(JSON.parse(source.textContent));
+            });
+            bouton.after(ajout);
+        });
+    }
+    /** « Ajouter a mon programme » d'une fiche : l'exemple s'ajoute sous les blocs existants (un seul Ctrl+Z). */
+    window.ajouterExempleFiche = function (blocs) {
+        fermerFiche();
+        if (editionManuelleActive) sortirEditionManuelle();
+        insererExemple({ blocs });
+        afficherEtat(window.tr ? window.tr('Exemple ajouté à votre programme.') : 'Exemple ajouté à votre programme.', false);
+    };
     async function ouvrirFicheBloc(bloc) {
         const chemin = 'aide/' + (window.LANGUE === 'en' ? 'en/' : '') + encodeURIComponent(bloc.type) + '.html';
         let existe = false;
@@ -8791,6 +8835,7 @@ try {
                 if (h1 && h1.textContent.trim()) document.getElementById('fiche-titre').textContent =
                     (window.tr ? window.tr('Expliquer ce bloc') : 'Expliquer ce bloc') + (window.LANGUE === 'en' ? ': ' : ' : ') + h1.textContent.trim();
             } catch (erreur) { /* fiche illisible : on garde le texte du bloc */ }
+            try { adapterBoutonsFiche(cadre.contentDocument); } catch (erreur) { /* boutons de la fiche laisses tels quels */ }
         });
         cadre.src = chemin;
         cadre.title = window.tr ? window.tr('Fiche d\'aide du bloc') : 'Fiche d\'aide du bloc';

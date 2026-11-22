@@ -1763,3 +1763,9 @@ l'exemple :
 Le remplacement quitte l'edition manuelle du code si elle est active. index.html : #aide-actions-exemple,
 #aide-remplacer ; un.js : ouvrirAideBloc, insererExemple(ex, remplacer). Textes traduits en anglais.
 Les fiches illustrees (aide/<bloc>.html) gardent leur bouton "Essayer ce programme".
+Fiches illustrees (aide/<bloc>.html) : memes choix (nov. 2026). Avec un programme deja en place, EasyBloc adapte les
+boutons de l'exemple a l'ouverture de la fiche : le bouton vert de la fiche devient "Remplacer mon programme" (bouton
+secondaire blanc ; confirmation, Ctrl+Z le retablit) et un bouton vert "Ajouter a mon programme" apparait a cote (un
+seul Ctrl+Z). Espace de depart : le bouton "Essayer ce programme dans EasyBloc" de la fiche, inchange. Les 394 fiches
+(francaises et anglaises) ne sont pas modifiees ; ouvertes seules, hors d'EasyBloc, elles gardent leur unique bouton
+(un.js : adapterBoutonsFiche, window.ajouterExempleFiche).

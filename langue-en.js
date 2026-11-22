@@ -311,6 +311,7 @@ window.DICO_EN = {
   "Voir le code MicroPython": "See the MicroPython code",
   "Insérer cet exemple dans mon espace de travail": "Insert this example into my workspace",
   "Ajouter à mon programme": "Add to my program",
+  "Exemple ajouté à votre programme.": "Example added to your program.",
   "Remplacer mon programme": "Replace my program",
   "Ajouter ce programme d'exemple à votre programme": "Add this example program to your program",
   "Effacer votre programme et mettre l'exemple à la place (Ctrl+Z pour annuler)": "Delete your program and put the example in its place (Ctrl+Z to undo)",
