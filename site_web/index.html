@@ -491,6 +491,15 @@
     :root #aide-inserer, :root #aide-fermer { padding: 7px 16px; border-radius: 6px; font-size: 14px; font-family: inherit; cursor: pointer; }
     :root #aide-inserer { background: var(--couleur-bandeau); border: 1px solid var(--couleur-bandeau); color: #fff; font-weight: 600; }
     :root #aide-fermer { display: block; margin: 0 0 0 auto; background: #fff; border: 1px solid #bbb; color: #222; }
+    /* « Remplacer mon programme » : bouton secondaire, comme « Fermer » ; « Ajouter » reste le bouton principal. */
+    #aide-actions-exemple { display: flex; flex-wrap: wrap; gap: 8px; }
+    :root #aide-remplacer { padding: 7px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
+        background: #fff; border: 1px solid #bbb; color: #222; }
+    :root #aide-remplacer[hidden] { display: none; }
+    :root #aide-remplacer:focus-visible, :root #aide-inserer:focus-visible { outline: 3px solid var(--couleur-bandeau); outline-offset: 2px; }
+    :root:not([data-theme="light"]) #aide-remplacer { background: #3a3d42; color: #e6e6e6; border-color: #4a4d53; }
+    :root[data-contrast="high"] #aide-remplacer { background: #000; color: #fff; border: 2px solid #fff; }
+    :root[data-theme="light"][data-contrast="high"] #aide-remplacer { background: #fff; color: #000; border-color: #000; }
     :root:not([data-theme="light"]) #fenetre-aide { background: #303237; color: #e6e6e6; }
     :root:not([data-theme="light"]) #aide-exemple-titre { color: #d3b5e8; }   /* violet eclairci : lisible sur fond sombre */
     :root:not([data-theme="light"]) #aide-fermer { background: #3a3d42; color: #e6e6e6; border-color: #4a4d53; }
@@ -3966,7 +3975,12 @@
           <summary>Voir le code MicroPython</summary>
           <pre id="aide-exemple-code"></pre>
         </details>
-        <button id="aide-inserer" type="button">Insérer cet exemple dans mon espace de travail</button>
+        <!-- Comme mBot1 (nov. 2026) : programme deja en place -> « Remplacer mon programme » + « Ajouter a mon
+             programme » ; espace vide -> « Inserer cet exemple dans mon espace de travail » seul (un.js, ouvrirAideBloc). -->
+        <div id="aide-actions-exemple">
+          <button id="aide-remplacer" type="button" hidden title="Effacer votre programme et mettre l'exemple à la place (Ctrl+Z pour annuler)">Remplacer mon programme</button>
+          <button id="aide-inserer" type="button">Insérer cet exemple dans mon espace de travail</button>
+        </div>
       </div>
       <button id="aide-fermer" type="button">Fermer</button>
     </div>

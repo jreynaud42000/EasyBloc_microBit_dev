@@ -8462,6 +8462,14 @@ try {
             document.getElementById('aide-exemple-titre').textContent = 'Exemple : ' + ex.titre;
             document.getElementById('aide-exemple-desc').textContent = ex.texte;
             document.getElementById('aide-exemple-code').textContent = codeExemple(ex);
+            // Comme mBot1 : programme deja en place -> « Remplacer mon programme » et « Ajouter a mon programme » ;
+            // espace de depart (« au demarrage » et « repeter indefiniment » vides, ou rien) -> le seul bouton d'insertion.
+            const tous = window.workspace.getAllBlocks(false);
+            const depart = tous.length <= 2 && tous.every(b => b.type === 'au_demarrage' || b.type === 'boucle_infinie');
+            const tr = t => (window.tr ? window.tr(t) : t);
+            document.getElementById('aide-remplacer').hidden = depart;
+            document.getElementById('aide-inserer').textContent = depart ? tr('Insérer cet exemple dans mon espace de travail') : tr('Ajouter à mon programme');
+            document.getElementById('aide-inserer').title = depart ? '' : tr('Ajouter ce programme d\'exemple à votre programme');
         }
 
         document.getElementById('aide-exemple-details').open = false;
@@ -8558,19 +8566,21 @@ try {
         return b;
     }
 
-    /** Ajoute l'exemple sous les blocs existants, en un seul pas d'annulation (Ctrl+Z). */
-    function insererExemple(ex) {
+    /** Ajoute l'exemple sous les blocs existants, en un seul pas d'annulation (Ctrl+Z). remplacer : efface d'abord le
+        programme (« Remplacer mon programme », comme mBot1), dans le meme pas d'annulation. */
+    function insererExemple(ex, remplacer) {
         const espace = window.workspace;
-        let x = 40, y = 40;
-        const existants = espace.getTopBlocks(false);
-        if (existants.length) {
-            const zones = existants.map(b => b.getBoundingRectangle());
-            x = Math.min(...zones.map(r => r.left));
-            y = Math.max(...zones.map(r => r.bottom)) + 60;
-        }
         let premier = null;
         Blockly.Events.setGroup(true);
         try {
+            if (remplacer) espace.clear();
+            let x = 40, y = 40;
+            const existants = espace.getTopBlocks(false);
+            if (existants.length) {
+                const zones = existants.map(b => b.getBoundingRectangle());
+                x = Math.min(...zones.map(r => r.left));
+                y = Math.max(...zones.map(r => r.bottom)) + 60;
+            }
             const aPoser = JSON.parse(JSON.stringify(ex.blocs));
             while (aPoser.length) {
                 const def = aPoser.shift();
@@ -8605,6 +8615,16 @@ try {
         document.getElementById('aide-inserer').addEventListener('click', () => {
             if (!exempleAffiche) return;
             insererExemple(exempleAffiche);
+            fermerAideBloc();
+        });
+        // « Remplacer mon programme » (comme mBot1) : apres confirmation ; Ctrl+Z rend le programme d'avant.
+        document.getElementById('aide-remplacer').addEventListener('click', () => {
+            if (!exempleAffiche) return;
+            const question = window.tr ? window.tr('Effacer votre programme et le remplacer par l\'exemple ? (Ctrl+Z le rétablit.)')
+                                       : 'Effacer votre programme et le remplacer par l\'exemple ? (Ctrl+Z le rétablit.)';
+            if (!confirm(question)) return;
+            if (editionManuelleActive) sortirEditionManuelle();
+            insererExemple(exempleAffiche, true);
             fermerAideBloc();
         });
         // Clic sur le voile (hors de la fenetre) ou Echap : on referme.

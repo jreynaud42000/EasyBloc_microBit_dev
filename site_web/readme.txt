@@ -1751,3 +1751,15 @@ matrice de LED en dernier (un.js : calculerCablageKitronik, choisir). Sans monta
 Verifie avec les trois cartes, sans conflit ni alerte : BitMaker (LAMP:bit P14, P0 ; ACCESS:bit P15, P16 ; STOP:bit
 P12, P1, P2), Grove Shield (P14, P0 ; P15, P16 ; P13, P8, P12 : la matrice reste allumee), Motor:bit avec moteur
 (P13, P3 ; P14, P15 ; P16, P4, P10 : matrice eteinte, pas d'autre solution), DFR0548 (P13, P0 ; P14, P15 ; P16, P8, P12).
+
+54. AIDE D'UN BLOC : REMPLACER OU AJOUTER L'EXEMPLE (nov. 2026, comme mBot1)
+Dans la fenetre d'aide d'un bloc (clic droit > "Expliquer ce bloc" quand le bloc n'a pas de fiche illustree), sous
+l'exemple :
+- programme deja en place : "Remplacer mon programme" (bouton secondaire ; efface le programme et met l'exemple a la
+  place, apres confirmation ; un seul Ctrl+Z rend le programme d'avant) et "Ajouter a mon programme" (bouton
+  principal ; l'exemple s'ajoute sous les blocs existants, comme avant) ;
+- espace de depart ("au demarrage" et "repeter indefiniment" vides, ou rien) : le seul bouton "Inserer cet exemple dans
+  mon espace de travail".
+Le remplacement quitte l'edition manuelle du code si elle est active. index.html : #aide-actions-exemple,
+#aide-remplacer ; un.js : ouvrirAideBloc, insererExemple(ex, remplacer). Textes traduits en anglais.
+Les fiches illustrees (aide/<bloc>.html) gardent leur bouton "Essayer ce programme".
