@@ -4916,6 +4916,15 @@ try {
                 + P.lineOnAxis('H', row.xPos + row.width);
             this.positionStatementInputConnection_(row);
         };
+        // Bord droit : jamais plus bas que le bas du bloc. La partie basse d'un bloc en C, agrandie a BAS_C ci-dessus,
+        // pouvait depasser le bas de 4 px (la languette) : le contour descendait puis remontait (« V 80 V 76 ») et
+        // ce trait d'aller-retour, dessine avec le lisere clair, faisait un petit trait vertical sous le coin bas droit
+        // (signale par l'utilisateur, nov. 2026).
+        dessin.drawRightSideRow_ = function (row) {
+            const bas = this.info_.bottomRow;
+            const y = row.yPos + row.height;
+            this.outlinePath_ += Blockly.utils.svgPaths.lineOnAxis('V', bas ? Math.min(y, bas.baseline) : y);
+        };
     })();
 
     window.workspace = Blockly.inject('blocklyDiv', {

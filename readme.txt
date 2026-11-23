@@ -1878,3 +1878,10 @@ Verifie dans l'editeur : objets ou images 2 x 3 images -> test.ebia (17,8 Ko : m
 reimport : 6 exemples et 6 photos, empreintes conservees (cosinus 0,997) ; positions des bras -> bras.ebia
 (modele.bin seul), valeurs exactes au reimport ; fichier etranger refuse ; ancien .json et ancien .zip relus.
 Pas verifie : export avec la camera ; Windows n'associe pas l'extension .ebia (ouvrir par "Importer un modele").
+
+60. BLOCS EN C : PETIT TRAIT SOUS LE COIN BAS DROIT SUPPRIME (nov. 2026, signale par l'utilisateur)
+Defaut : sous le coin bas droit d'un bloc en C (« si », « repeter »...), un fin trait vertical clair. Cause : la partie
+basse, agrandie a 14 px par formeDesBlocs (un.js), depassait le bas du bloc de la hauteur de la languette (4 px) ; le
+contour descendait puis remontait (« V 80 V 76 ») et ce trait d'aller-retour etait dessine avec le lisere clair.
+Correction : drawRightSideRow_ du dessin thrasos ne descend jamais plus bas que le bas du bloc (bottomRow.baseline).
+Verifie : les 255 types de blocs dessines, aucun contour qui remonte ; bloc « si » range dans « au demarrage » et seul.
