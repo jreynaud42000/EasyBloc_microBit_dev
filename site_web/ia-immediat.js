@@ -35,12 +35,12 @@
 // dans le .py telecharge (lignes de commentaire « # >>> apprentissage-ia » a la fin,
 // ignorees par MicroPython) et relu a son ouverture. Il n'est pas mis dans le .hex : la
 // place y est comptee et la carte n'en a pas besoin.
-// « Exporter le modele » / « Importer un modele » (demande de l'utilisateur, nov. 2026 : exporter ET
-// reimporter les fichiers) : objets et images avec photos -> un .zip (modele.json + photos/<classe>/001.jpg...),
-// les photos reviennent a l'import ; autres types (ou sans photo) -> un .json comme avant. L'import accepte le
-// .zip, l'ancien .json, et aussi un .zip de dossiers d'images sans modele.json (un dossier = une classe, empreintes
-// recalculees, par exemple les images d'un projet Teachable Machine). Les photos ne sortent du navigateur que par
-// ce telechargement, decide par l'eleve.
+// « Exporter le modele » / « Importer un modele » (demandes de l'utilisateur, nov. 2026 : exporter ET reimporter les
+// fichiers, sans fichier de type JSON) : un fichier .ebia (« EasyBloc IA »), pour tous les types. C'est un conteneur
+// zip (comme un .docx) : modele.bin (format binaire propre a EasyBloc, voir ecrireModeleBin) + pour les objets et
+// images, photos/<classe>/001.jpg... ; les photos reviennent a l'import. L'import lit aussi les anciens .json et
+// .zip, et un .zip de dossiers d'images (un dossier = une classe, empreintes recalculees, par exemple les images d'un
+// projet Teachable Machine). Les photos ne sortent du navigateur que par ce telechargement, decide par l'eleve.
 //
 // Donnees personnelles : l'image et le son restent dans le navigateur. Aucune requete
 // hors de l'application : MediaPipe (lib/mediapipe) et ZXing (lib/zxing) sont embarques.
@@ -828,7 +828,7 @@ function depuisDonnees(d, demander) {
     if (typeof d.nom === 'string' && d.nom.trim()) nomModele = d.nom.trim().slice(0, 60);
     const classes = d.classes.slice(0, MAX_CLASSES).map((c, i) => ({
         nom: String(c.nom || nomClasse(i + 1)).slice(0, 30),
-        ex: (c.exemples || []).slice(0, MAX_EXEMPLES).map(e => ({ v: decoder(e, type), vignette: undefined })),
+        ex: (c.exemples || []).slice(0, MAX_EXEMPLES).map(e => ({ v: typeof e === 'string' ? decoder(e, type) : e, vignette: undefined })),
     }));
     arreter();
     eteindreCapteur('imm-capture');
@@ -921,13 +921,81 @@ const blobVersDataUrl = blob => new Promise((ok, ko) => {
 });
 const IMAGE_ZIP = /\.(jpe?g|png|webp|gif|bmp)$/i;
 
+// modele.bin du .ebia, petit-boutiste : « EBIA », version (1 octet), type (1 octet, ordre de ORDRE_TYPES), nom du
+// modele, nombre de classes (1 octet) ; puis par classe : nom, dossier des photos (vide sans photo), nombre
+// d'exemples (2 octets), taille d'une empreinte (2 octets), codage (0 : un octet signe par nombre, objets et images,
+// comme le .py ; 1 : flottant de 4 octets, autres types) ; puis par exemple : l'empreinte, et 1 octet (1 = une photo
+// photos/<dossier>/<numero sur 3 chiffres>.jpg). Textes : longueur sur 2 octets puis UTF-8.
+const ORDRE_TYPES = ['images', 'mains', 'bras', 'sons'];
+function ecrireModeleBin(dossiers) {
+    const morceaux = [], encodeur = new TextEncoder();
+    const octet = v => morceaux.push(Uint8Array.of(v & 0xFF));
+    const mot = v => morceaux.push(Uint8Array.of(v & 0xFF, (v >>> 8) & 0xFF));
+    const texte = t => { const u = encodeur.encode(String(t || '')).slice(0, 65535); mot(u.length); morceaux.push(u); };
+    morceaux.push(encodeur.encode('EBIA')); octet(1);
+    octet(Math.max(0, ORDRE_TYPES.indexOf(etat.type)));
+    texte(nomModele);
+    octet(etat.classes.length);
+    etat.classes.forEach((c, i) => {
+        texte(c.nom); texte(dossiers[i] || '');
+        const dim = c.ex.length ? c.ex[0].v.length : 0, entiers = etat.type === 'images';
+        mot(c.ex.length); mot(dim); octet(entiers ? 0 : 1);
+        c.ex.forEach(e => {
+            morceaux.push(entiers ? new Uint8Array(Int8Array.from(e.v, x => Math.max(-127, Math.min(127, Math.round(x * 127)))).buffer)
+                                  : new Uint8Array(Float32Array.from(e.v).buffer));
+            octet(dossiers[i] && e.photo ? 1 : 0);
+        });
+    });
+    const total = morceaux.reduce((t, m) => t + m.length, 0), u = new Uint8Array(total);
+    let p = 0;
+    morceaux.forEach(m => { u.set(m, p); p += m.length; });
+    return u;
+}
+function lireModeleBin(u) {
+    const dv = new DataView(u.buffer, u.byteOffset, u.byteLength), decodeur = new TextDecoder();
+    let p = 0;
+    const verifier = n => { if (p + n > u.length) throw new Error('fichier .ebia incomplet'); };
+    const octet = () => { verifier(1); return u[p++]; };
+    const mot = () => { verifier(2); const v = dv.getUint16(p, true); p += 2; return v; };
+    const texte = () => { const n = mot(); verifier(n); const t = decodeur.decode(u.subarray(p, p + n)); p += n; return t; };
+    verifier(4);
+    if (decodeur.decode(u.subarray(0, 4)) !== 'EBIA') throw new Error('ce fichier n\'est pas un modèle IA d\'EasyBloc');
+    p = 4;
+    if (octet() !== 1) throw new Error('modèle IA d\'une version plus récente d\'EasyBloc');
+    const type = ORDRE_TYPES[octet()] || 'images';
+    const nom = texte();
+    const classes = [];
+    for (let k = octet(); k > 0; k--) {
+        const c = { nom: texte(), exemples: [], photos: [] };
+        const dossier = texte(), n = mot(), dim = mot(), entiers = octet() === 0;
+        for (let j = 0; j < n; j++) {
+            const taille = dim * (entiers ? 1 : 4);
+            verifier(taille);
+            let v;
+            if (entiers) {
+                v = Float32Array.from(new Int8Array(u.slice(p, p + taille).buffer), x => x / 127);
+                const norme = Math.hypot(...v) || 1;
+                v = v.map(x => x / norme);
+            } else v = new Float32Array(u.slice(p, p + taille).buffer);
+            p += taille;
+            c.exemples.push(v);
+            c.photos.push(octet() && dossier ? 'photos/' + dossier + '/' + String(j + 1).padStart(3, '0') + '.jpg' : null);
+        }
+        classes.push(c);
+    }
+    return { format: 'apprentissage-ia-microbit', version: 1, nom, type, classes };
+}
+
 async function importerZip(fichier) {
     const zip = await lireZip(fichier);
-    const json = zip.noms.find(n => /(^|\/)modele\.json$/i.test(n)) || zip.noms.find(n => /\.json$/i.test(n) && !n.startsWith('__MACOSX/'));
-    if (json) {
-        const d = JSON.parse(new TextDecoder().decode(await zip.lire(json)));
+    // .ebia : modele.bin ; anciens .zip (nov. 2026) : modele.json
+    const bin = zip.noms.find(n => /(^|\/)modele\.bin$/i.test(n));
+    const json = bin ? null : (zip.noms.find(n => /(^|\/)modele\.json$/i.test(n)) || zip.noms.find(n => /\.json$/i.test(n) && !n.startsWith('__MACOSX/')));
+    const source = bin || json;
+    if (source) {
+        const d = bin ? lireModeleBin(await zip.lire(bin)) : JSON.parse(new TextDecoder().decode(await zip.lire(json)));
         if (!depuisDonnees(d, true)) return;
-        const racine = json.slice(0, json.lastIndexOf('/') + 1);
+        const racine = source.slice(0, source.lastIndexOf('/') + 1);
         let n = 0;
         for (let i = 0; i < etat.classes.length; i++) {
             const photos = (d.classes[i] && Array.isArray(d.classes[i].photos)) ? d.classes[i].photos : [];
@@ -957,7 +1025,7 @@ async function importerZip(fichier) {
         if (!parDossier.has(dossier)) parDossier.set(dossier, []);
         parDossier.get(dossier).push(n);
     });
-    if (!parDossier.size) throw new Error('ce zip ne contient ni modèle IA ni dossiers d\'images');
+    if (!parDossier.size) throw new Error('ce fichier ne contient ni modèle IA ni dossiers d\'images');
     const nExemples = etat.classes.reduce((s, c) => s + c.ex.length, 0);
     if (nExemples && !confirm('Importer ces ' + parDossier.size + ' dossiers d\'images remplace vos ' + etat.classes.length +
                               ' classes et leurs ' + nExemples + ' exemples. Continuer ?')) return;
@@ -1021,32 +1089,27 @@ async function exporter() {
                                             propose, true, { etiquette: 'Nom du modèle IA', exemple: 'Par exemple : signes-robot-groupe3' })
         : propose;
     if (saisi === null) return;   // annule
-    nomModele = saisi.replace(/\.(json|zip)$/i, '').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'Modèle IA';
-    // Objets et images avec photos : un .zip (modele.json + photos/<classe>/001.jpg...) ; sinon un .json comme avant.
-    const donnees = versDonnees();
+    nomModele = saisi.replace(/\.(ebia|json|zip)$/i, '').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'Modèle IA';
+    // Un seul type de fichier, .ebia : modele.bin + (objets et images) photos/<classe>/001.jpg...
     const avecPhotos = etat.type === 'images' && etat.classes.some(c => c.ex.some(e => e.photo));
-    let blob, nom, nPhotos = 0;
+    const fichiers = [], dossiers = [], vus = new Set();
+    let nPhotos = 0;
     if (avecPhotos) {
-        const fichiers = [], dossiers = new Set();
         etat.classes.forEach((c, i) => {
             let dossier = nomDeFichier(c.nom) || nomDeFichier(nomClasse(i + 1));
-            while (dossiers.has(dossier.toLowerCase())) dossier += '_' + (i + 1);
-            dossiers.add(dossier.toLowerCase());
-            donnees.classes[i].photos = c.ex.map((e, j) => {
-                if (!e.photo) return null;
-                const chemin = 'photos/' + dossier + '/' + String(j + 1).padStart(3, '0') + '.jpg';
-                fichiers.push({ nom: chemin, donnees: dataUrlVersOctets(e.photo) });
+            while (vus.has(dossier.toLowerCase())) dossier += '_' + (i + 1);
+            vus.add(dossier.toLowerCase());
+            dossiers[i] = dossier;
+            c.ex.forEach((e, j) => {
+                if (!e.photo) return;
+                fichiers.push({ nom: 'photos/' + dossier + '/' + String(j + 1).padStart(3, '0') + '.jpg', donnees: dataUrlVersOctets(e.photo) });
                 nPhotos++;
-                return chemin;
             });
         });
-        fichiers.unshift({ nom: 'modele.json', donnees: new TextEncoder().encode(JSON.stringify(donnees)) });
-        blob = creerZip(fichiers);
-        nom = nomModele + '.zip';
-    } else {
-        blob = new Blob([JSON.stringify(donnees)], { type: 'application/json' });
-        nom = nomModele + '.json';
     }
+    fichiers.unshift({ nom: 'modele.bin', donnees: ecrireModeleBin(dossiers) });
+    const blob = new Blob([creerZip(fichiers)], { type: 'application/octet-stream' });
+    const nom = nomModele + '.ebia';
     const lien = document.createElement('a');
     lien.href = URL.createObjectURL(blob);
     lien.download = nom;
@@ -1063,7 +1126,7 @@ entreeImport.addEventListener('change', async () => {
     entreeImport.value = '';
     if (!f) return;
     try {
-        if (/\.zip$/i.test(f.name) || /zip/.test(f.type)) await importerZip(f);
+        if (/\.(ebia|zip)$/i.test(f.name) || /zip/.test(f.type)) await importerZip(f);
         else depuisDonnees(JSON.parse(await f.text()), true);
     } catch (erreur) { direCreer('Import impossible : ' + messageErreur(erreur) + '. Rien n\'a été changé.'); }
 });
@@ -1369,7 +1432,7 @@ window.iaImmediat = {
     annexePy,
     lireAnnexePy,
     // Pour les verifications depuis la console (pas d'usage dans l'application).
-    test: { etat, qr, TYPES, empreinte, voter, proximite, coder, decoder, versDonnees, depuisDonnees, ajouterImages, creerZip, lireZip, importerZip, exporter,
+    test: { etat, qr, TYPES, empreinte, voter, proximite, coder, decoder, versDonnees, depuisDonnees, ajouterImages, creerZip, lireZip, importerZip, exporter, ecrireModeleBin, lireModeleBin,
             formeMain, formeBras, modele, chargerZxing, decoderToile, texteCarte, signalerQR, demarrer, demarrerQR, arreterQR,
             renommerDansLesBlocs, reconnaitre, reconnaitreSon, vignetteSquelette, vignetteDe, genre },
 };

@@ -359,8 +359,8 @@ const ETAPES_IA = [
     },
     {
         titre: '8. Exporter et importer un modèle',
-        texte: '« Exporter le modèle », en bas de la fenêtre, enregistre l\'apprentissage avec le nom que vous lui donnez : un ' +
-            'fichier .zip avec les photos pour les objets ou images, un fichier .json sinon. Pour le garder, le partager ou le ' +
+        texte: '« Exporter le modèle », en bas de la fenêtre, enregistre l\'apprentissage dans un fichier .ebia (EasyBloc IA), ' +
+            'avec le nom que vous lui donnez et les photos pour les objets ou images. Pour le garder, le partager ou le ' +
             'réutiliser dans un autre programme. « Importer un modèle » recharge un tel fichier, photos comprises ; après ' +
             'confirmation, il remplace les classes en cours.',
         cible: () => zone('#ia-pied .ia-imm-exporter', '#ia-pied .ia-imm-importer'),

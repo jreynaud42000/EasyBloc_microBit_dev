@@ -2812,7 +2812,7 @@
               <button class="btn-vue ia-tout-effacer" hidden title="Supprimer toutes les classes et leurs exemples">Tout effacer</button>
             </div>
             <input type="file" class="ia-imm-fichiers" accept="image/png,image/jpeg,image/webp" multiple style="display:none;">
-            <input type="file" class="ia-imm-import-fichier" accept=".zip,.json,application/zip,application/json" style="display:none;">
+            <input type="file" class="ia-imm-import-fichier" accept=".ebia,.zip,.json" style="display:none;">
           </div>
           <div class="ia-imm-droite">
             <div class="ia-imm-cadre eteint" data-toujours="1"><video class="ia-imm-video" autoplay muted playsinline></video><canvas class="ia-imm-calque"></canvas><span class="ia-imm-cadre-vide">Caméra éteinte</span></div>
@@ -2907,8 +2907,8 @@
       <button type="button" class="btn-vue ia-pied-effacer" title="Supprimer toutes les classes et leurs exemples">Tout effacer</button>
       <!-- Comme le modele R4 : « Exporter le modele » / « Importer un modele » dans le pied (fichier .json : noms des classes
            et resumes chiffres des exemples, jamais d'image ni de son) -->
-      <button type="button" class="btn-vue ia-pied-effacer ia-imm-exporter" title="Télécharger le modèle IA : un .zip avec les photos (objets ou images), sinon un .json"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Exporter le modèle</span></button>
-      <button type="button" class="btn-vue ia-pied-effacer ia-imm-importer" title="Ouvrir un modèle IA enregistré (.zip ou .json), ou un .zip de dossiers d'images (un dossier par classe)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Importer un modèle</span></button>
+      <button type="button" class="btn-vue ia-pied-effacer ia-imm-exporter" title="Télécharger le modèle IA dans un fichier .ebia (EasyBloc IA), avec les photos pour les objets ou images"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Exporter le modèle</span></button>
+      <button type="button" class="btn-vue ia-pied-effacer ia-imm-importer" title="Ouvrir un modèle IA enregistré (.ebia, ou ancien .zip / .json), ou un .zip de dossiers d'images (un dossier par classe)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Importer un modèle</span></button>
       <span id="ia-seuil-groupe">
         <label for="ia-seuil">Seuil de confiance</label>
         <input type="range" id="ia-seuil" min="30" max="99" value="80">

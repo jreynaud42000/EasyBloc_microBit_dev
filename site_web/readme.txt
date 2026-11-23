@@ -1860,3 +1860,21 @@ Verifie dans l'editeur : export de 2 classes x 3 images -> test.zip (modele.json
 reimport : 6 exemples, 6 photos et vignettes ; ancien .json relu ; zip de dossiers sans modele.json (stocke, et
 compresse par Python) -> classes nommees d'apres les dossiers, empreintes recalculees. Pas verifie : un export
 avec la camera, et l'ouverture du .zip dans l'Explorateur Windows.
+
+59. MODELE IA : FICHIER .EBIA (EasyBloc IA) A LA PLACE DU .JSON ET DU .ZIP (nov. 2026, demande de l'utilisateur)
+Demande : ne plus produire de fichier de type JSON, en gardant les memes fonctions (export, reimport, photos).
+- "Exporter le modele" produit toujours NOM.ebia, pour les 4 types. C'est un conteneur zip (comme un .docx) :
+  modele.bin + pour les objets et images, photos/<classe>/001.jpg... Aucun texte JSON dedans.
+- modele.bin (ia-immediat.js, ecrireModeleBin / lireModeleBin), petit-boutiste : "EBIA", version 1, type (0 images,
+  1 mains, 2 bras, 3 sons), nom du modele, nombre de classes ; par classe : nom, dossier des photos (vide sans photo),
+  nombre d'exemples, taille d'une empreinte, codage (0 = un octet signe par nombre pour les objets et images, comme
+  le .py ; 1 = flottant 4 octets pour les autres) ; par exemple : l'empreinte puis 1 octet "photo presente".
+  Textes : longueur sur 2 octets puis UTF-8. Un fichier etranger ou d'une version plus recente est refuse avec un
+  message clair. Environ 3 fois plus petit que le JSON (base64) pour les objets et images.
+- "Importer un modele" : .ebia, et toujours les anciens .zip (modele.json) et .json du §58, et un .zip de dossiers
+  d'images. Le .py garde son annexe de commentaires (inchangee).
+- Bulles, aide de la fenetre IA, visite guidee "8. Exporter et importer un modele", traductions anglaises a jour.
+Verifie dans l'editeur : objets ou images 2 x 3 images -> test.ebia (17,8 Ko : modele.bin de 6,2 Ko + 6 photos),
+reimport : 6 exemples et 6 photos, empreintes conservees (cosinus 0,997) ; positions des bras -> bras.ebia
+(modele.bin seul), valeurs exactes au reimport ; fichier etranger refuse ; ancien .json et ancien .zip relus.
+Pas verifie : export avec la camera ; Windows n'associe pas l'extension .ebia (ouvrir par "Importer un modele").
