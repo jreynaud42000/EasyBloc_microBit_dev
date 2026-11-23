@@ -8781,8 +8781,11 @@ try {
         "• Images, gestes et positions pilotent les blocs « vision » ; les sons pilotent les blocs « son ». Un son reconnu " +
         "le reste 1 seconde.\n" +
         "• L'apprentissage (des nombres, jamais d'images ni de sons) est rangé dans le .py téléchargé et relu à son " +
-        "ouverture ; « Exporter le modèle » le met dans un fichier .json à part. Il n'est pas dans le .hex. Les photos des " +
-        "vignettes ne sont pas enregistrées (▣ après réouverture) ; squelettes et timbres se redessinent.\n\n" +
+        "ouverture ; il n'est pas dans le .hex. Les photos n'y sont pas (▣ après réouverture) ; squelettes et timbres " +
+        "se redessinent.\n" +
+        "• « Exporter le modèle » : objets ou images avec photos, un fichier .zip (le modèle et un dossier de photos par " +
+        "classe) ; autres types, un fichier .json. « Importer un modèle » relit le .zip (photos comprises) ou le .json, " +
+        "et aussi un .zip de dossiers d'images : un dossier par classe.\n\n" +
         "2. OU CHARGER UN MODÈLE TEACHABLE MACHINE (onglets « Modèle Teachable Machine », caméra et micro)\n" +
         "• Sur teachablemachine.withgoogle.com : « Exporter le modèle », onglet Tensorflow.js. Collez l'adresse puis " +
         "« Charger » (nécessite Internet), ou « Fichiers… » et sélectionnez les 3 fichiers à la fois (model.json, " +

@@ -23,8 +23,9 @@
 //    consigne du professeur, nov. 2026) : la camera et le micro ne s'allument JAMAIS sans un clic de l'eleve
 //    (« Allumer la camera / le micro », une capture, « Demarrer ») ; ils s'eteignent quand la fenetre se ferme.
 //    Chaque exemple a sa VIGNETTE (cliquer dessus le supprime) : petite photo pour les
-//    objets et images (en memoire seulement, jamais enregistree), squelette dessine pour
-//    les gestes et positions, dessin du timbre pour les sons.
+//    objets et images, squelette dessine pour les gestes et positions, dessin du timbre pour
+//    les sons. Objets et images : une photo de 320 x 240 est aussi gardee en memoire, pour
+//    l'export en .zip (voir plus bas).
 //
 // 2. QR codes et codes-barres (onglet « QR code ») : ZXing lit l'image de la
 //    camera ; le texte (sans accents) part vers le programme. Un code qui n'est plus
@@ -32,9 +33,14 @@
 //
 // Sauvegarde : l'apprentissage (les empreintes, JAMAIS les images ni les sons) est range
 // dans le .py telecharge (lignes de commentaire « # >>> apprentissage-ia » a la fin,
-// ignorees par MicroPython) et relu a son ouverture ; « 💾 Exporter » / « 📂 Importer »
-// font la meme chose dans un fichier .json a part. Il n'est pas mis dans le .hex : la
+// ignorees par MicroPython) et relu a son ouverture. Il n'est pas mis dans le .hex : la
 // place y est comptee et la carte n'en a pas besoin.
+// « Exporter le modele » / « Importer un modele » (demande de l'utilisateur, nov. 2026 : exporter ET
+// reimporter les fichiers) : objets et images avec photos -> un .zip (modele.json + photos/<classe>/001.jpg...),
+// les photos reviennent a l'import ; autres types (ou sans photo) -> un .json comme avant. L'import accepte le
+// .zip, l'ancien .json, et aussi un .zip de dossiers d'images sans modele.json (un dossier = une classe, empreintes
+// recalculees, par exemple les images d'un projet Teachable Machine). Les photos ne sortent du navigateur que par
+// ce telechargement, decide par l'eleve.
 //
 // Donnees personnelles : l'image et le son restent dans le navigateur. Aucune requete
 // hors de l'application : MediaPipe (lib/mediapipe) et ZXing (lib/zxing) sont embarques.
@@ -51,6 +57,7 @@ const INTERVALLE_QR_MS = 200;
 const QR_VISIBLE_MS = 700;
 const QR_LONGUEUR_MAX = 60;        // un texte plus long est coupe (affichage sur la carte)
 const VIGNETTE_L = 48, VIGNETTE_H = 36;
+const PHOTO_L = 320, PHOTO_H = 240;   // photo gardee pour l'export .zip (objets et images)
 
 const TYPES = {
     images: { nom: 'objets ou images', fichier: 'mobilenet_v3_small.tflite', genre: 'vision' },
@@ -249,6 +256,20 @@ function vignettePhoto(source, largeur, hauteur, miroir) {
     ctx.drawImage(source, (largeur - l) / 2, (hauteur - h) / 2, l, h, 0, 0, VIGNETTE_L, VIGNETTE_H);
     ctx.restore();
     return toileVignette.toDataURL('image/jpeg', 0.7);
+}
+
+// Photo de l'exemple (meme cadrage que la vignette, 320 x 240) : exportee dans le .zip, en memoire sinon.
+const toilePhoto = document.createElement('canvas');
+toilePhoto.width = PHOTO_L; toilePhoto.height = PHOTO_H;
+function photoExemple(source, largeur, hauteur, miroir) {
+    const ctx = toilePhoto.getContext('2d');
+    const rapport = PHOTO_L / PHOTO_H;
+    const l = Math.min(largeur, hauteur * rapport), h = l / rapport;
+    ctx.save();
+    if (miroir) { ctx.translate(PHOTO_L, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(source, (largeur - l) / 2, (hauteur - h) / 2, l, h, 0, 0, PHOTO_L, PHOTO_H);
+    ctx.restore();
+    return toilePhoto.toDataURL('image/jpeg', 0.85);
 }
 
 // Vignette d'un exemple : calculee a la demande si elle manque (exemple relu d'un fichier).
@@ -520,9 +541,10 @@ function apresModification() {
 }
 
 // ---------- ajout d'exemples ----------
-function ajouterExemple(c, v, vignette, vignettes, compteur) {
+function ajouterExemple(c, v, vignette, vignettes, compteur, photo) {
     if (c.ex.length >= MAX_EXEMPLES) return false;
     const e = { v, vignette };
+    if (photo) e.photo = photo;
     c.ex.push(e);
     if (vignettes) vignettes.appendChild(elementVignette(c, e, compteur));
     return true;
@@ -563,7 +585,8 @@ async function capturerUne(c, compteur, vignettes) {
     dessinerSquelette(r);
     const vignette = r && (etat.type === 'images' ? vignettePhoto(video, l, h, true) : vignetteSquelette(r.v, etat.type));
     if (!r) { direCreer(MESSAGE_RIEN[etat.type] || 'Image inutilisable.'); return true; }
-    if (!ajouterExemple(c, r.v, vignette, vignettes, compteur)) { direCreer('Maximum atteint : ' + MAX_EXEMPLES + ' exemples par classe.'); return false; }
+    const photo = etat.type === 'images' ? photoExemple(video, l, h, true) : undefined;
+    if (!ajouterExemple(c, r.v, vignette, vignettes, compteur, photo)) { direCreer('Maximum atteint : ' + MAX_EXEMPLES + ' exemples par classe.'); return false; }
     majCompte(compteur, c.ex.length);
     direCreer('Exemple ajouté à « ' + c.nom + ' » (' + c.ex.length + ').');
     majDemarrer();
@@ -643,7 +666,8 @@ async function ajouterImages(c, fichiers) {
                 toileImage.getContext('2d').drawImage(image, 0, 0);
                 const r = await empreinte(toileImage, image.width, image.height);
                 const vignette = r && (etat.type === 'images' ? vignettePhoto(toileImage, image.width, image.height, false) : vignetteSquelette(r.v, etat.type));
-                if (r && ajouterExemple(c, r.v, vignette)) ajoutes++; else rejetes++;
+                const photo = r && etat.type === 'images' ? photoExemple(toileImage, image.width, image.height, false) : undefined;
+                if (r && ajouterExemple(c, r.v, vignette, undefined, undefined, photo)) ajoutes++; else rejetes++;
             } catch (erreur) {
                 rejetes++;
             } finally {
@@ -787,8 +811,9 @@ function versDonnees() {
     };
 }
 
-// Les vignettes ne sont pas dans le fichier : celles des squelettes et des sons se
-// redessinent a partir des empreintes ; les photos (objets et images) ne reviennent pas.
+// Les vignettes ne sont pas dans le .json : celles des squelettes et des sons se redessinent a partir des
+// empreintes ; les photos (objets et images) reviennent seulement depuis un .zip (importerZip). Renvoie true si le
+// modele a ete charge (false : import annule par l'eleve).
 function depuisDonnees(d, demander) {
     if (!d || d.format !== 'apprentissage-ia-microbit' || !Array.isArray(d.classes)) throw new Error('ce fichier ne contient pas de modèle IA d\'EasyBloc micro:bit');
     const type = TYPES[d.type] ? d.type : 'images';
@@ -797,8 +822,8 @@ function depuisDonnees(d, demander) {
         const n = etat.classes.reduce((s, c) => s + c.ex.length, 0);
         if (type !== etat.type) {
             if (!confirm('Ce modèle est pour les « ' + TYPES[type].nom + ' » : l\'IA va passer à ce type' +
-                         (n ? ' et remplacer vos ' + etat.classes.length + ' classes et leurs ' + n + ' exemples' : '') + '. Continuer ?')) return;
-        } else if (n && !confirm('Importer ce modèle remplace vos ' + etat.classes.length + ' classes et leurs ' + n + ' exemples. Continuer ?')) return;
+                         (n ? ' et remplacer vos ' + etat.classes.length + ' classes et leurs ' + n + ' exemples' : '') + '. Continuer ?')) return false;
+        } else if (n && !confirm('Importer ce modèle remplace vos ' + etat.classes.length + ' classes et leurs ' + n + ' exemples. Continuer ?')) return false;
     }
     if (typeof d.nom === 'string' && d.nom.trim()) nomModele = d.nom.trim().slice(0, 60);
     const classes = d.classes.slice(0, MAX_CLASSES).map((c, i) => ({
@@ -814,6 +839,142 @@ function depuisDonnees(d, demander) {
     const total = etat.classes.reduce((s, c) => s + c.ex.length, 0);
     direCreer((nomModele && d.nom ? 'Modèle « ' + nomModele + ' » importé : ' : 'Modèle importé : ') + TYPES[type].nom + ', ' +
               etat.classes.length + ' classes, ' + total + ' exemple' + (total > 1 ? 's' : '') + '.');
+    return true;
+}
+
+// ---------- fichiers .zip (export avec photos, import) ----------
+// Ecriture sans compression (les photos sont deja du JPEG) ; lecture des zips stockes ou compresses (deflate,
+// celui de l'Explorateur Windows), par le DecompressionStream du navigateur. Noms de fichiers en UTF-8.
+const TABLE_CRC = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+    return t;
+})();
+function crc32(u) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < u.length; i++) c = TABLE_CRC[(c ^ u[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function creerZip(fichiers) {
+    const encodeur = new TextEncoder(), d = new Date();
+    const heureDos = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    const dateDos = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    const u16 = v => [v & 0xFF, (v >>> 8) & 0xFF];
+    const u32 = v => [v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF];
+    const locaux = [], centraux = [];
+    let decalage = 0;
+    fichiers.forEach(f => {
+        const nom = encodeur.encode(f.nom), donnees = f.donnees, crc = crc32(donnees);
+        const commun = [...u16(20), ...u16(0x0800), ...u16(0), ...u16(heureDos), ...u16(dateDos),
+                        ...u32(crc), ...u32(donnees.length), ...u32(donnees.length), ...u16(nom.length), ...u16(0)];
+        locaux.push(Uint8Array.from([...u32(0x04034b50), ...commun]), nom, donnees);
+        centraux.push(Uint8Array.from([...u32(0x02014b50), ...u16(20), ...commun,
+                                       ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(decalage)]), nom);
+        decalage += 30 + nom.length + donnees.length;
+    });
+    const tailleCentral = centraux.reduce((t, x) => t + x.length, 0);
+    const fin = Uint8Array.from([...u32(0x06054b50), ...u16(0), ...u16(0), ...u16(fichiers.length), ...u16(fichiers.length),
+                                 ...u32(tailleCentral), ...u32(decalage), ...u16(0)]);
+    return new Blob([...locaux, ...centraux, fin], { type: 'application/zip' });
+}
+async function lireZip(blob) {
+    const u = new Uint8Array(await blob.arrayBuffer());
+    const dv = new DataView(u.buffer);
+    let fin = -1;
+    for (let i = u.length - 22; i >= Math.max(0, u.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { fin = i; break; }
+    if (fin < 0) throw new Error('ce fichier n\'est pas un zip lisible');
+    const nombre = dv.getUint16(fin + 10, true);
+    let p = dv.getUint32(fin + 16, true);
+    const decodeur = new TextDecoder(), fichiers = new Map();
+    for (let k = 0; k < nombre; k++) {
+        if (dv.getUint32(p, true) !== 0x02014b50) throw new Error('zip abîmé');
+        const methode = dv.getUint16(p + 10, true), taille = dv.getUint32(p + 20, true);
+        const ln = dv.getUint16(p + 28, true), le = dv.getUint16(p + 30, true), lc = dv.getUint16(p + 32, true);
+        const local = dv.getUint32(p + 42, true);
+        const nom = decodeur.decode(u.subarray(p + 46, p + 46 + ln)).replace(/\\/g, '/');
+        p += 46 + ln + le + lc;
+        if (nom.endsWith('/')) continue;
+        const debut = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
+        fichiers.set(nom, { methode, brut: u.subarray(debut, debut + taille) });
+    }
+    return {
+        noms: Array.from(fichiers.keys()),
+        async lire(nom) {
+            const f = fichiers.get(nom);
+            if (!f) throw new Error('fichier absent du zip : ' + nom);
+            if (f.methode === 0) return f.brut;
+            if (f.methode === 8) {
+                const flux = new Blob([f.brut]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+                return new Uint8Array(await new Response(flux).arrayBuffer());
+            }
+            throw new Error('compression non prise en charge');
+        },
+    };
+}
+const nomDeFichier = t => String(t).replace(/[\\/:*?"<>|]+/g, '-').replace(/[. ]+$/, '').trim();
+const dataUrlVersOctets = url => base64VersOctets(url.slice(url.indexOf(',') + 1));
+const blobVersDataUrl = blob => new Promise((ok, ko) => {
+    const lecteur = new FileReader();
+    lecteur.onload = () => ok(lecteur.result);
+    lecteur.onerror = () => ko(lecteur.error);
+    lecteur.readAsDataURL(blob);
+});
+const IMAGE_ZIP = /\.(jpe?g|png|webp|gif|bmp)$/i;
+
+async function importerZip(fichier) {
+    const zip = await lireZip(fichier);
+    const json = zip.noms.find(n => /(^|\/)modele\.json$/i.test(n)) || zip.noms.find(n => /\.json$/i.test(n) && !n.startsWith('__MACOSX/'));
+    if (json) {
+        const d = JSON.parse(new TextDecoder().decode(await zip.lire(json)));
+        if (!depuisDonnees(d, true)) return;
+        const racine = json.slice(0, json.lastIndexOf('/') + 1);
+        let n = 0;
+        for (let i = 0; i < etat.classes.length; i++) {
+            const photos = (d.classes[i] && Array.isArray(d.classes[i].photos)) ? d.classes[i].photos : [];
+            for (let j = 0; j < etat.classes[i].ex.length; j++) {
+                if (typeof photos[j] !== 'string' || !zip.noms.includes(racine + photos[j])) continue;
+                try {
+                    const blob = new Blob([await zip.lire(racine + photos[j])], { type: 'image/jpeg' });
+                    const image = await createImageBitmap(blob);
+                    const e = etat.classes[i].ex[j];
+                    e.vignette = vignettePhoto(image, image.width, image.height, false);
+                    e.photo = await blobVersDataUrl(blob);
+                    if (image.close) image.close();
+                    n++;
+                } catch (erreur) { /* photo illisible : l'exemple reste, sans photo */ }
+            }
+        }
+        apresModification();
+        const total = etat.classes.reduce((s, c) => s + c.ex.length, 0);
+        direCreer('Modèle importé : ' + TYPES[etat.type].nom + ', ' + etat.classes.length + ' classes, ' + total + ' exemples, ' + n + ' photo(s).');
+        return;
+    }
+    // Sans modele.json : un dossier d'images = une classe (empreintes recalculees).
+    const parDossier = new Map();
+    zip.noms.filter(n => IMAGE_ZIP.test(n) && !n.startsWith('__MACOSX/')).forEach(n => {
+        const morceaux = n.split('/');
+        const dossier = morceaux.length > 1 ? morceaux[morceaux.length - 2] : nomClasse(1);
+        if (!parDossier.has(dossier)) parDossier.set(dossier, []);
+        parDossier.get(dossier).push(n);
+    });
+    if (!parDossier.size) throw new Error('ce zip ne contient ni modèle IA ni dossiers d\'images');
+    const nExemples = etat.classes.reduce((s, c) => s + c.ex.length, 0);
+    if (nExemples && !confirm('Importer ces ' + parDossier.size + ' dossiers d\'images remplace vos ' + etat.classes.length +
+                              ' classes et leurs ' + nExemples + ' exemples. Continuer ?')) return;
+    arreter();
+    eteindreCapteur('imm-capture');
+    etat.type = 'images';
+    $('.ia-imm-type', col).value = 'images';
+    const dossiers = Array.from(parDossier.keys()).slice(0, MAX_CLASSES);
+    etat.classes = dossiers.map(nom => ({ nom: nom.slice(0, 30), ex: [] }));
+    apresModification();
+    for (let i = 0; i < dossiers.length; i++) {
+        const blobs = [];
+        for (const n of parDossier.get(dossiers[i]).slice(0, MAX_EXEMPLES)) blobs.push(new Blob([await zip.lire(n)]));
+        await ajouterImages(etat.classes[i], blobs);
+    }
+    const total = etat.classes.reduce((s, c) => s + c.ex.length, 0);
+    direCreer('Images importées : ' + etat.classes.length + ' classes, ' + total + ' exemples.');
 }
 
 const aDesExemples = () => etat.classes.some(c => c.ex.length);
@@ -860,15 +1021,40 @@ async function exporter() {
                                             propose, true, { etiquette: 'Nom du modèle IA', exemple: 'Par exemple : signes-robot-groupe3' })
         : propose;
     if (saisi === null) return;   // annule
-    nomModele = saisi.replace(/\.json$/i, '').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'Modèle IA';
-    const nom = nomModele + '.json';
+    nomModele = saisi.replace(/\.(json|zip)$/i, '').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'Modèle IA';
+    // Objets et images avec photos : un .zip (modele.json + photos/<classe>/001.jpg...) ; sinon un .json comme avant.
+    const donnees = versDonnees();
+    const avecPhotos = etat.type === 'images' && etat.classes.some(c => c.ex.some(e => e.photo));
+    let blob, nom, nPhotos = 0;
+    if (avecPhotos) {
+        const fichiers = [], dossiers = new Set();
+        etat.classes.forEach((c, i) => {
+            let dossier = nomDeFichier(c.nom) || nomDeFichier(nomClasse(i + 1));
+            while (dossiers.has(dossier.toLowerCase())) dossier += '_' + (i + 1);
+            dossiers.add(dossier.toLowerCase());
+            donnees.classes[i].photos = c.ex.map((e, j) => {
+                if (!e.photo) return null;
+                const chemin = 'photos/' + dossier + '/' + String(j + 1).padStart(3, '0') + '.jpg';
+                fichiers.push({ nom: chemin, donnees: dataUrlVersOctets(e.photo) });
+                nPhotos++;
+                return chemin;
+            });
+        });
+        fichiers.unshift({ nom: 'modele.json', donnees: new TextEncoder().encode(JSON.stringify(donnees)) });
+        blob = creerZip(fichiers);
+        nom = nomModele + '.zip';
+    } else {
+        blob = new Blob([JSON.stringify(donnees)], { type: 'application/json' });
+        nom = nomModele + '.json';
+    }
     const lien = document.createElement('a');
-    lien.href = URL.createObjectURL(new Blob([JSON.stringify(versDonnees())], { type: 'application/json' }));
+    lien.href = URL.createObjectURL(blob);
     lien.download = nom;
     document.body.appendChild(lien); lien.click(); lien.remove();
     setTimeout(() => URL.revokeObjectURL(lien.href), 10000);
     const n = etat.classes.reduce((s, c) => s + c.ex.length, 0);
-    direCreer('Modèle exporté dans le fichier « ' + nom + ' » (' + etat.classes.length + ' classes, ' + n + ' exemple' + (n > 1 ? 's' : '') + ').');
+    direCreer('Modèle exporté dans le fichier « ' + nom + ' » (' + etat.classes.length + ' classes, ' + n + ' exemple' + (n > 1 ? 's' : '') + ')' +
+              (avecPhotos ? ', avec ' + nPhotos + ' photo(s).' : '.'));
 }
 
 const entreeImport = $('.ia-imm-import-fichier', col);
@@ -876,7 +1062,10 @@ entreeImport.addEventListener('change', async () => {
     const f = entreeImport.files[0];
     entreeImport.value = '';
     if (!f) return;
-    try { depuisDonnees(JSON.parse(await f.text()), true); } catch (erreur) { direCreer('Import impossible : ' + messageErreur(erreur) + '. Rien n\'a été changé.'); }
+    try {
+        if (/\.zip$/i.test(f.name) || /zip/.test(f.type)) await importerZip(f);
+        else depuisDonnees(JSON.parse(await f.text()), true);
+    } catch (erreur) { direCreer('Import impossible : ' + messageErreur(erreur) + '. Rien n\'a été changé.'); }
 });
 
 // ---------- branchement de l'interface ----------
@@ -1180,7 +1369,7 @@ window.iaImmediat = {
     annexePy,
     lireAnnexePy,
     // Pour les verifications depuis la console (pas d'usage dans l'application).
-    test: { etat, qr, TYPES, empreinte, voter, proximite, coder, decoder, versDonnees, depuisDonnees, ajouterImages,
+    test: { etat, qr, TYPES, empreinte, voter, proximite, coder, decoder, versDonnees, depuisDonnees, ajouterImages, creerZip, lireZip, importerZip, exporter,
             formeMain, formeBras, modele, chargerZxing, decoderToile, texteCarte, signalerQR, demarrer, demarrerQR, arreterQR,
             renommerDansLesBlocs, reconnaitre, reconnaitreSon, vignetteSquelette, vignetteDe, genre },
 };

@@ -1841,3 +1841,22 @@ precedents). exercices.js : niveauxProposes, majPlat (a chaque ouverture), acces
 Verifie : categorie absente sans carte, une ou deux cartes selon les ajouts, reactivation par un bloc pose ; niveaux
 affiches selon les cartes ajoutees, premiers exercices ouverts ; les 12 solutions validees, un espace vierge refuse ;
 aucune erreur JavaScript. Pas verifie : un eleve qui fait les exercices de bout en bout dans le simulateur.
+
+58. MODELE IA : EXPORT EN .ZIP AVEC LES PHOTOS, REIMPORT (nov. 2026, demande de l'utilisateur)
+Demande : pouvoir exporter le modele IA puis le reimporter, fichiers compris (le .json seul perdait les photos des
+"objets ou images" : vignettes vides apres import).
+- ia-immediat.js : chaque exemple d'objet ou d'image garde aussi une photo de 320 x 240 (JPEG, meme cadrage que la
+  vignette), en memoire. "Exporter le modele" : objets ou images avec photos -> NOM.zip = modele.json (meme format que
+  le .json, plus un tableau "photos" par classe) + photos/<classe>/001.jpg... ; autres types (mains, bras, sons) ou
+  sans photo -> NOM.json comme avant. Zip ecrit sans compression (les photos sont deja du JPEG), noms en UTF-8.
+- "Importer un modele" accepte .zip et .json : un .zip avec modele.json recharge le modele PUIS ses photos (vignettes
+  refaites) ; un .zip sans modele.json, fait de dossiers d'images (un dossier = une classe, par exemple un projet
+  Teachable Machine ou un dossier de photos zippe par l'Explorateur Windows), recree les classes et recalcule les
+  empreintes. Lecture des zips stockes ou compresses (DecompressionStream du navigateur). Les anciens .json restent
+  lisibles.
+- Le .py garde seulement les empreintes (pas de photos) ; le .hex rien. Bulles des boutons, aide de la fenetre IA,
+  visite guidee "8. Exporter et importer un modele" et traductions anglaises mises a jour.
+Verifie dans l'editeur : export de 2 classes x 3 images -> test.zip (modele.json + 6 photos, noms accentues) ;
+reimport : 6 exemples, 6 photos et vignettes ; ancien .json relu ; zip de dossiers sans modele.json (stocke, et
+compresse par Python) -> classes nommees d'apres les dossiers, empreintes recalculees. Pas verifie : un export
+avec la camera, et l'ouverture du .zip dans l'Explorateur Windows.
