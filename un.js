@@ -8884,6 +8884,28 @@ try {
             bouton.after(ajout);
         });
     }
+    /**
+     * Fiche sans ascenseur (nov. 2026, demande de l'utilisateur) : a l'ouverture, rubriques repliees, le dessin de
+     * l'exemple est reduit juste assez pour que toute la fiche (legende, boutons, pied) tienne dans la fenetre. Jamais
+     * agrandi, jamais sous 60 % de sa taille : au-dela, l'ascenseur reste (petit ecran). Une rubrique depliee par
+     * l'eleve peut aussi faire revenir l'ascenseur (choix de l'utilisateur) : on ne reduit plus alors.
+     */
+    const REDUCTION_MIN_FICHE = 0.6;
+    function ajusterFiche(cadre) {
+        const doc = cadre.contentDocument;
+        if (!doc || !doc.body) return;
+        const dessins = Array.from(doc.querySelectorAll('svg.aide-blocs'));
+        if (!dessins.length || doc.querySelector('details[open]')) return;
+        dessins.forEach(svg => { svg.style.width = ''; });   // taille d'origine (limitee a la largeur de la fiche)
+        const depasse = doc.documentElement.scrollHeight - cadre.clientHeight;
+        if (depasse <= 0) return;
+        const hauteur = dessins.reduce((t, svg) => t + svg.getBoundingClientRect().height, 0);
+        if (!hauteur) return;
+        const naturelle = dessins.reduce((t, svg) => t + (Number(svg.getAttribute('height')) || svg.getBoundingClientRect().height), 0);
+        const cible = Math.max(naturelle * REDUCTION_MIN_FICHE, hauteur - depasse - 2);
+        const rapport = Math.min(1, cible / hauteur);
+        dessins.forEach(svg => { svg.style.width = (svg.getBoundingClientRect().width * rapport) + 'px'; });
+    }
     /** « Ajouter a mon programme » d'une fiche : l'exemple s'ajoute sous les blocs existants (un seul Ctrl+Z). */
     window.ajouterExempleFiche = function (blocs) {
         fermerFiche();
@@ -8913,6 +8935,13 @@ try {
                     (window.tr ? window.tr('Expliquer ce bloc') : 'Expliquer ce bloc') + (window.LANGUE === 'en' ? ': ' : ' : ') + h1.textContent.trim();
             } catch (erreur) { /* fiche illisible : on garde le texte du bloc */ }
             try { adapterBoutonsFiche(cadre.contentDocument); } catch (erreur) { /* boutons de la fiche laisses tels quels */ }
+            try {
+                ajusterFiche(cadre);
+                // La police Inter peut arriver apres le chargement : on reajuste une fois prete, et si la fenetre change.
+                const polices = cadre.contentDocument.fonts;
+                if (polices && polices.ready) polices.ready.then(() => ajusterFiche(cadre));
+                if ('ResizeObserver' in window) new ResizeObserver(() => ajusterFiche(cadre)).observe(cadre);
+            } catch (erreur) { /* fiche laissee telle quelle */ }
         });
         cadre.src = chemin;
         cadre.title = window.tr ? window.tr('Fiche d\'aide du bloc') : 'Fiche d\'aide du bloc';

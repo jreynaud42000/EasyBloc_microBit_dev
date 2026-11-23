@@ -529,9 +529,10 @@
     #voile-aide.ouvert { display: flex; }
     /* Fiche d'aide d'un bloc (etape 10) : fenetre integree, la fiche (page blanche) dans un cadre */
     #voile-fiche { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center;
-                   justify-content: center; z-index: 200100; padding: 24px; }
+                   justify-content: center; z-index: 200100; padding: 12px; }
     #voile-fiche.ouvert { display: flex; }
-    #fiche-boite { background: #fff; width: min(900px, 92vw); height: min(90vh, 900px); border-radius: 8px; overflow: hidden;
+    /* Presque toute la hauteur de l'ecran (nov. 2026) : la fiche doit tenir sans ascenseur (voir ajusterFiche, un.js). */
+    #fiche-boite { background: #fff; width: min(900px, 92vw); height: min(calc(100vh - 24px), 1100px); border-radius: 8px; overflow: hidden;
                    display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
     #fiche-entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 14px;
                     background: var(--couleur-bandeau, #6a2c91); color: #fff; font-weight: 600; font-size: 14px; }

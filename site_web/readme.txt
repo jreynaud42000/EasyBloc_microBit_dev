@@ -1898,3 +1898,15 @@ avec l'ancienne fenetre "Aide sur ce bloc" (encore utilisee quand la fiche manqu
   fiche en francais et en anglais ; clic droit "Expliquer ce bloc" sur "STOP:bit : mettre le feu sur" -> fiche.
   Les autres types sans fiche (blocs natifs de Blockly non proposes, pieces des fenetres d'engrenage) ne sont
   jamais poses par l'eleve.
+
+62. FICHE "EXPLIQUER CE BLOC" SANS ASCENSEUR (nov. 2026, maquette validee par l'utilisateur)
+Demande : toute la fiche doit tenir dans la fenetre, sans ascenseur ; l'ascenseur reste accepte quand l'eleve deplie
+une rubrique, et sur un ecran trop petit.
+- aide/style-aide.css (toutes les fiches, sans les refaire) : en-tete sur une ligne (nom du bloc + identifiant),
+  marges resserrees, pied "Technologie Services" en une ligne discrete.
+- index.html : fenetre de la fiche haute de presque tout l'ecran (100vh - 24 px, 1100 px au plus).
+- un.js, ajusterFiche : a l'ouverture (rubriques repliees), le dessin de l'exemple est reduit juste assez pour que
+  tout tienne ; jamais agrandi, jamais sous 60 % ; refait quand la police arrive et quand la fenetre change de
+  taille ; plus de reduction une fois une rubrique depliee.
+Verifie (fenetre de 1024 x 768) : 206 fiches sur 210 tiennent sans ascenseur ; les 4 autres (logic_boolean et les
+3 blocs de cablage Kitronik, dont l'exemple est tres long) gardent l'ascenseur ; en 1080 px de haut, les 210.
