@@ -3301,6 +3301,171 @@ window.FICHES_EN = {
     ],
     legende: 'The board LEDs blink in yellow, on for half a second, off for half a second.',
   },
+  stopbit_etat: {
+    titre: 'STOP:bit: set traffic light to …',
+    sert: 'Puts the **Kitronik STOP:bit traffic light** into one of the four states of a traffic light: **Stop** (red), **Ready to go** (red and amber), **Go** (green), **Ready to stop** (amber).',
+    util: [
+      'First add the STOP:bit with **File > Extensions**: its blocks appear in the **Kitronik** category.',
+      'Choose the state in the block\'s list, then add the ‘wait’ block to keep it for a few seconds.',
+    ],
+    savoir: [
+      'The lights that are not part of the chosen state **turn off**.',
+      'Board screwed onto the micro:bit: red on **P0**, amber on **P1**, green on **P2**. Connected with wires, choose the pins with the ‘STOP:bit: wire’ block.',
+    ],
+    legende: 'The light goes red for 3 seconds, red and amber for 1 second, green for 3 seconds, then amber for 1 second, and starts again.',
+  },
+  stopbit_led: {
+    titre: 'STOP:bit: light … …',
+    sert: 'Turns **a single light** of the **STOP:bit** (red, amber or green) on or off, without touching the other two.',
+    util: [
+      'Choose the colour of the light, then **on** or **off**.',
+    ],
+    savoir: [
+      'For a real traffic light, the ‘STOP:bit: set traffic light to …’ block is simpler: it sets the three lights at once.',
+      'Red on **P0**, amber on **P1**, green on **P2** (board screwed onto the micro:bit).',
+    ],
+    legende: 'The amber light blinks every half second, like a broken traffic light.',
+  },
+  stopbit_eteindre: {
+    titre: 'STOP:bit: turn all three lights off',
+    sert: '**Turns off** the red, the amber and the green of the **STOP:bit**.',
+    util: [
+      'Put it at the end of a cycle, or when the program must stop the traffic light.',
+    ],
+    savoir: [
+      'The light stays off until the next STOP:bit block that turns a light on.',
+    ],
+    legende: 'The light goes red for 3 seconds, red and amber for 1 second, green for 3 seconds, then amber for 1 second, and starts again.',
+  },
+  stopbit_cablage: {
+    titre: 'STOP:bit: wire red on … amber on … green on …',
+    sert: 'Tells which **pins** the three lights of the **STOP:bit** are connected to when it is plugged in **with wires** (crocodile clips or cables) instead of being screwed onto the board.',
+    util: [
+      'Put it **only once**, in the ‘on start’ block, before the other STOP:bit blocks.',
+      'Choose the pin of each light. The right-click ‘Wire automatically’ can also do it for you.',
+    ],
+    savoir: [
+      'Without this block, the board keeps Kitronik\'s pins: **P0, P1, P2**.',
+      'It is mainly useful with the **Motor:bit**, or with the LAMP:bit and the ACCESS:bit, which also use P0 to P2.',
+      'A pin of the **LED matrix** (P3, P4, P6, P7, P9, P10) **turns the matrix off**.',
+    ],
+    legende: 'Three Kitronik boards connected with wires to the Motor:bit. Button A: the light turns green, the barrier rises for 3 seconds, then red light and barrier down. The lamp turns on when it is dark.',
+  },
+  lampbit_lampe: {
+    titre: 'LAMP:bit: lamp …',
+    sert: 'Turns the **lamp** of the **Kitronik LAMP:bit** street light on or off.',
+    util: [
+      'First add the LAMP:bit with **File > Extensions**: its blocks appear in the **Kitronik** category.',
+      'Choose **on** or **off**.',
+    ],
+    savoir: [
+      'The lamp is on pin **P0** when the board is screwed onto the micro:bit.',
+      'With the ‘LAMP:bit: it is dark’ block, it makes an automatic street light.',
+    ],
+    legende: 'The lamp turns on when it is dark (light below 350) and turns off when it is daylight.',
+  },
+  lampbit_lumiere: {
+    titre: 'LAMP:bit: light level',
+    sert: 'Measures the **light** received by the sensor of the **LAMP:bit**.',
+    util: [
+      'Plug it where a number is expected: in the ‘show’ block, or in a comparison with the ‘if’ block.',
+    ],
+    savoir: [
+      'The value goes from **0** (dark) to **1023** (very bright). The sensor is on pin **P1**.',
+      'In the simulator, the **‘Ambient light’** slider of the LAMP:bit section sets this value.',
+    ],
+    legende: 'The lamp turns on when it is dark (light below 350) and turns off when it is daylight.',
+  },
+  lampbit_sombre: {
+    titre: 'LAMP:bit: it is dark (light below …)',
+    sert: 'Tells whether **it is dark**: the light measured by the **LAMP:bit** is smaller than the threshold written in the block.',
+    util: [
+      'Plug it into an ‘if’ block.',
+      'Write the threshold, from 0 to 1023: Kitronik suggests **350**.',
+    ],
+    savoir: [
+      'A **bigger** threshold turns the lamp on earlier, while it is still a little light.',
+    ],
+    legende: 'The lamp turns on when it is dark (light below 350) and turns off when it is daylight.',
+  },
+  lampbit_cablage: {
+    titre: 'LAMP:bit: wire lamp on … light sensor on …',
+    sert: 'Tells which **pins** the lamp and the light sensor of the **LAMP:bit** are connected to when it is plugged in **with wires**.',
+    util: [
+      'Put it **only once**, in the ‘on start’ block, before the other LAMP:bit blocks.',
+      'Choose the pin of the lamp and the pin of the sensor.',
+    ],
+    savoir: [
+      'Without this block, the board keeps Kitronik\'s pins: lamp on **P0**, sensor on **P1**.',
+      'The sensor needs an **analogue input**: P0, P1, P2, P3, P4 or P10.',
+      'A pin of the **LED matrix** (P3, P4, P6, P7, P9, P10) **turns the matrix off**.',
+    ],
+    legende: 'Three Kitronik boards connected with wires to the Motor:bit. Button A: the light turns green, the barrier rises for 3 seconds, then red light and barrier down. The lamp turns on when it is dark.',
+  },
+  accessbit_barriere: {
+    titre: 'ACCESS:bit: … the barrier',
+    sert: '**Raises** or **lowers** the barrier of the **Kitronik ACCESS:bit**, moved by a servo motor.',
+    util: [
+      'First add the ACCESS:bit with **File > Extensions**: its blocks appear in the **Kitronik** category.',
+      'Choose **raise** or **lower**.',
+    ],
+    savoir: [
+      'The block **waits 1 second**, the time of the movement, then the program goes on.',
+      'Raise = **0°**, lower = **90°**. The servo motor is on pin **P0**.',
+    ],
+    legende: 'Press A: two short beeps, the barrier rises, stays up for 3 seconds, then a long beep and it lowers.',
+  },
+  accessbit_bip: {
+    titre: 'ACCESS:bit: … … times',
+    sert: 'Sounds the **buzzer** of the **ACCESS:bit**, from 1 to 10 times.',
+    util: [
+      'Choose **short beep** (0.2 s) or **long beep** (0.8 s), then write the number of beeps.',
+    ],
+    savoir: [
+      'A silence of the same length follows each beep. The program waits for the end of the beeps before going on.',
+      'The buzzer is on pin **P1**.',
+    ],
+    legende: 'Press A: two short beeps, the barrier rises, stays up for 3 seconds, then a long beep and it lowers.',
+  },
+  accessbit_cablage: {
+    titre: 'ACCESS:bit: wire servo motor on … buzzer on …',
+    sert: 'Tells which **pins** the barrier\'s servo motor and the buzzer of the **ACCESS:bit** are connected to when it is plugged in **with wires**.',
+    util: [
+      'Put it **only once**, in the ‘on start’ block, before the other ACCESS:bit blocks.',
+      'Choose the pin of the servo motor and the pin of the buzzer.',
+    ],
+    savoir: [
+      'Without this block, the board keeps Kitronik\'s pins: servo motor on **P0**, buzzer on **P1**.',
+      'On the **Motor:bit**, the servo motor prefers a **G-VCC-S** pin (P13 to P16, VCC selector on 5 V).',
+    ],
+    legende: 'Three Kitronik boards connected with wires to the Motor:bit. Button A: the light turns green, the barrier rises for 3 seconds, then red light and barrier down. The lamp turns on when it is dark.',
+  },
+  code_brut: {
+    titre: 'code …',
+    sert: 'Keeps a **line of MicroPython** that EasyBloc could not turn into blocks, when you open a .py file.',
+    util: [
+      'You do not have to put it yourself: it appears when a program written in MicroPython is opened.',
+      'Read the line: replace it with the real blocks if you can, then delete this block.',
+    ],
+    savoir: [
+      'The line is **copied as it is** into the program sent to the board: it works if the MicroPython is correct.',
+      'The **simulator** cannot always run it.',
+    ],
+    legende: 'On start, the board plays the ‘Happy Birthday’ tune with a line of MicroPython kept as it is.',
+  },
+  expression_brute: {
+    titre: '( … )',
+    sert: 'Keeps a **value written in MicroPython** (a calculation, a measurement) that EasyBloc could not turn into blocks, when you open a .py file.',
+    util: [
+      'You do not have to put it yourself: it appears when a program written in MicroPython is opened.',
+      'Replace it with the real block if you can, then delete it.',
+    ],
+    savoir: [
+      'What is written is **copied as it is** into the program sent to the board.',
+      'The **simulator** cannot always calculate it.',
+    ],
+    legende: 'The board keeps showing the value read on pin P0, written in MicroPython.',
+  },
 };
 window.EXEMPLES_EN = {
   'prenoms': 'names',

@@ -3822,4 +3822,188 @@ window.FICHES = [
     legende: 'Les LED de la carte clignotent en jaune, une demi-seconde allumées, une demi-seconde éteintes.',
     exemple: [LOOP(B('bitmaker_leds', { COULEUR: '0xFFFF00' }), ATT(0.5), B('bitmaker_leds_eteindre'), ATT(0.5))],
   },
+  // ═══════════════ Kitronik (catégorie « Kitronik », Fichier > Extensions) et code brut (nov. 2026) ═══════════════
+  {
+    t: 'stopbit_etat',
+    titre: 'STOP:bit : mettre le feu sur …',
+    sert: 'Met le **feu tricolore Kitronik STOP:bit** dans l\'un des quatre états d\'un feu de circulation : **Stop** (rouge), **Prêt à démarrer** (rouge et orange), **Passez** (vert), **Prêt à s\'arrêter** (orange).',
+    util: [
+      'Ajoutez d\'abord la STOP:bit avec **Fichier > Extensions** : ses blocs apparaissent dans la catégorie **Kitronik**.',
+      'Choisissez l\'état dans la liste du bloc, puis ajoutez le bloc « attendre » pour le garder quelques secondes.',
+    ],
+    savoir: [
+      'Les feux qui ne font pas partie de l\'état choisi **s\'éteignent**.',
+      'Carte vissée sur la micro:bit : rouge sur **P0**, orange sur **P1**, vert sur **P2**. Reliée par des fils, choisissez les broches avec le bloc « STOP:bit : câbler ».',
+    ],
+    legende: 'Le feu passe au rouge 3 secondes, rouge et orange 1 seconde, vert 3 secondes, puis orange 1 seconde, et recommence.',
+  },
+  {
+    t: 'stopbit_led',
+    titre: 'STOP:bit : feu … …',
+    sert: 'Allume ou éteint **un seul feu** de la **STOP:bit** (rouge, orange ou vert), sans toucher aux deux autres.',
+    util: [
+      'Choisissez la couleur du feu, puis **allumé** ou **éteint**.',
+    ],
+    savoir: [
+      'Pour un vrai feu de circulation, le bloc « STOP:bit : mettre le feu sur … » est plus simple : il règle les trois feux à la fois.',
+      'Rouge sur **P0**, orange sur **P1**, vert sur **P2** (carte vissée sur la micro:bit).',
+    ],
+    legende: 'Le feu orange clignote toutes les demi-secondes, comme un feu en panne.',
+  },
+  {
+    t: 'stopbit_eteindre',
+    titre: 'STOP:bit : éteindre les trois feux',
+    sert: '**Éteint** le rouge, l\'orange et le vert de la **STOP:bit**.',
+    util: [
+      'Placez-le à la fin d\'un cycle, ou quand le programme doit arrêter le feu.',
+    ],
+    savoir: [
+      'Le feu reste éteint jusqu\'au prochain bloc STOP:bit qui allume un feu.',
+    ],
+    legende: 'Le feu passe au rouge 3 secondes, rouge et orange 1 seconde, vert 3 secondes, puis orange 1 seconde, et recommence.',
+  },
+  {
+    t: 'stopbit_cablage',
+    titre: 'STOP:bit : câbler rouge sur … orange sur … vert sur …',
+    sert: 'Indique sur quelles **broches** sont reliés les trois feux de la **STOP:bit** quand elle est branchée **par des fils** (pinces crocodile ou câbles) au lieu d\'être vissée sur la carte.',
+    util: [
+      'Posez-le **une seule fois**, dans le bloc « au démarrage », avant les autres blocs STOP:bit.',
+      'Choisissez la broche de chaque feu. Le clic droit « Câbler automatiquement » peut aussi le faire pour vous.',
+    ],
+    savoir: [
+      'Sans ce bloc, la carte garde les broches de Kitronik : **P0, P1, P2**.',
+      'Il sert surtout avec la **Motor:bit**, ou avec le LAMP:bit et l\'ACCESS:bit, qui prennent aussi P0 à P2.',
+      'Une broche de la **matrice de LED** (P3, P4, P6, P7, P9, P10) **éteint la matrice**.',
+    ],
+    legende: 'Trois cartes Kitronik reliées par des fils à la Motor:bit. Bouton A : le feu passe au vert, la barrière se lève 3 secondes, puis feu rouge et barrière baissée. La lampe s\'allume quand il fait sombre.',
+  },
+  {
+    t: 'lampbit_lampe',
+    titre: 'LAMP:bit : lampe …',
+    sert: 'Allume ou éteint la **lampe** du lampadaire **Kitronik LAMP:bit**.',
+    util: [
+      'Ajoutez d\'abord le LAMP:bit avec **Fichier > Extensions** : ses blocs apparaissent dans la catégorie **Kitronik**.',
+      'Choisissez **allumée** ou **éteinte**.',
+    ],
+    savoir: [
+      'La lampe est sur la broche **P0** quand la carte est vissée sur la micro:bit.',
+      'Associé au bloc « LAMP:bit : il fait sombre », il fait un lampadaire automatique.',
+    ],
+    legende: 'La lampe s\'allume quand il fait sombre (lumière sous 350) et s\'éteint quand il fait jour.',
+  },
+  {
+    t: 'lampbit_lumiere',
+    titre: 'LAMP:bit : niveau de lumière',
+    sert: 'Mesure la **lumière** reçue par le capteur du **LAMP:bit**.',
+    valeur: 'nombre',
+    util: [
+      'Branchez-le là où on attend un nombre : dans le bloc « afficher », ou dans une comparaison avec le bloc « si ».',
+    ],
+    savoir: [
+      'La valeur va de **0** (noir) à **1023** (très éclairé). Le capteur est sur la broche **P1**.',
+      'Dans le simulateur, le curseur **« Lumière ambiante »** de la section LAMP:bit règle cette valeur.',
+    ],
+    legende: 'La lampe s\'allume quand il fait sombre (lumière sous 350) et s\'éteint quand il fait jour.',
+  },
+  {
+    t: 'lampbit_sombre',
+    titre: 'LAMP:bit : il fait sombre (lumière sous …)',
+    sert: 'Dit s\'il **fait sombre** : la lumière mesurée par le **LAMP:bit** est plus petite que le seuil écrit dans le bloc.',
+    valeur: 'logique',
+    util: [
+      'Branchez-le dans un bloc « si ».',
+      'Écrivez le seuil, de 0 à 1023 : Kitronik propose **350**.',
+    ],
+    savoir: [
+      'Un seuil plus **grand** allume la lampe plus tôt, quand il fait encore un peu jour.',
+    ],
+    legende: 'La lampe s\'allume quand il fait sombre (lumière sous 350) et s\'éteint quand il fait jour.',
+  },
+  {
+    t: 'lampbit_cablage',
+    titre: 'LAMP:bit : câbler lampe sur … capteur de lumière sur …',
+    sert: 'Indique sur quelles **broches** sont reliés la lampe et le capteur de lumière du **LAMP:bit** quand il est branché **par des fils**.',
+    util: [
+      'Posez-le **une seule fois**, dans le bloc « au démarrage », avant les autres blocs LAMP:bit.',
+      'Choisissez la broche de la lampe et celle du capteur.',
+    ],
+    savoir: [
+      'Sans ce bloc, la carte garde les broches de Kitronik : lampe sur **P0**, capteur sur **P1**.',
+      'Le capteur a besoin d\'une **entrée analogique** : P0, P1, P2, P3, P4 ou P10.',
+      'Une broche de la **matrice de LED** (P3, P4, P6, P7, P9, P10) **éteint la matrice**.',
+    ],
+    legende: 'Trois cartes Kitronik reliées par des fils à la Motor:bit. Bouton A : le feu passe au vert, la barrière se lève 3 secondes, puis feu rouge et barrière baissée. La lampe s\'allume quand il fait sombre.',
+  },
+  {
+    t: 'accessbit_barriere',
+    titre: 'ACCESS:bit : … la barrière',
+    sert: '**Lève** ou **baisse** la barrière de la **Kitronik ACCESS:bit**, actionnée par un servomoteur.',
+    util: [
+      'Ajoutez d\'abord l\'ACCESS:bit avec **Fichier > Extensions** : ses blocs apparaissent dans la catégorie **Kitronik**.',
+      'Choisissez **lever** ou **baisser**.',
+    ],
+    savoir: [
+      'Le bloc **attend 1 seconde**, le temps du mouvement, puis le programme continue.',
+      'Lever = **0°**, baisser = **90°**. Le servomoteur est sur la broche **P0**.',
+    ],
+    legende: 'Appuyer sur A : deux bips courts, la barrière se lève, reste levée 3 secondes, puis un bip long et elle se baisse.',
+  },
+  {
+    t: 'accessbit_bip',
+    titre: 'ACCESS:bit : … … fois',
+    sert: 'Fait sonner le **buzzer** de l\'**ACCESS:bit**, de 1 à 10 fois.',
+    util: [
+      'Choisissez **bip court** (0,2 s) ou **bip long** (0,8 s), puis écrivez le nombre de bips.',
+    ],
+    savoir: [
+      'Un silence de même durée suit chaque bip. Le programme attend la fin des bips avant de continuer.',
+      'Le buzzer est sur la broche **P1**.',
+    ],
+    legende: 'Appuyer sur A : deux bips courts, la barrière se lève, reste levée 3 secondes, puis un bip long et elle se baisse.',
+  },
+  {
+    t: 'accessbit_cablage',
+    titre: 'ACCESS:bit : câbler servomoteur sur … buzzer sur …',
+    sert: 'Indique sur quelles **broches** sont reliés le servomoteur de la barrière et le buzzer de l\'**ACCESS:bit** quand elle est branchée **par des fils**.',
+    util: [
+      'Posez-le **une seule fois**, dans le bloc « au démarrage », avant les autres blocs ACCESS:bit.',
+      'Choisissez la broche du servomoteur et celle du buzzer.',
+    ],
+    savoir: [
+      'Sans ce bloc, la carte garde les broches de Kitronik : servomoteur sur **P0**, buzzer sur **P1**.',
+      'Sur la **Motor:bit**, le servomoteur préfère une broche **G-VCC-S** (P13 à P16, sélecteur VCC sur 5 V).',
+    ],
+    legende: 'Trois cartes Kitronik reliées par des fils à la Motor:bit. Bouton A : le feu passe au vert, la barrière se lève 3 secondes, puis feu rouge et barrière baissée. La lampe s\'allume quand il fait sombre.',
+  },
+  {
+    t: 'code_brut',
+    titre: 'code …',
+    sert: 'Garde une **ligne de MicroPython** qu\'EasyBloc n\'a pas su transformer en blocs, quand vous ouvrez un fichier .py.',
+    util: [
+      'Vous n\'avez pas à le poser vous-même : il apparaît à l\'ouverture d\'un programme écrit en MicroPython.',
+      'Lisez la ligne : remplacez-la si possible par les vrais blocs, puis supprimez ce bloc.',
+    ],
+    savoir: [
+      'La ligne est **recopiée telle quelle** dans le programme envoyé à la carte : elle fonctionne si le MicroPython est correct.',
+      'Le **simulateur** ne sait pas toujours l\'exécuter.',
+    ],
+    legende: 'Au démarrage, la carte joue l\'air « Joyeux anniversaire » avec une ligne de MicroPython gardée telle quelle.',
+    exemple: [START(B('code_brut', { CODE: 'music.play(music.BIRTHDAY)' }))],
+  },
+  {
+    t: 'expression_brute',
+    titre: '( … )',
+    sert: 'Garde une **valeur écrite en MicroPython** (un calcul, une mesure) qu\'EasyBloc n\'a pas su transformer en blocs, quand vous ouvrez un fichier .py.',
+    valeur: 'nombre',
+    util: [
+      'Vous n\'avez pas à le poser vous-même : il apparaît à l\'ouverture d\'un programme écrit en MicroPython.',
+      'Remplacez-le si possible par le vrai bloc, puis supprimez-le.',
+    ],
+    savoir: [
+      'Ce qui est écrit est **recopié tel quel** dans le programme envoyé à la carte.',
+      'Le **simulateur** ne sait pas toujours le calculer.',
+    ],
+    legende: 'La carte affiche sans fin la valeur lue sur la broche P0, écrite en MicroPython.',
+    exemple: [LOOP(AFF(B('expression_brute', { CODE: 'pin0.read_analog()' })), ATT(1))],
+  },
 ];

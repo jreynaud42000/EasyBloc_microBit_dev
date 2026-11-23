@@ -1885,3 +1885,16 @@ basse, agrandie a 14 px par formeDesBlocs (un.js), depassait le bas du bloc de l
 contour descendait puis remontait (« V 80 V 76 ») et ce trait d'aller-retour etait dessine avec le lisere clair.
 Correction : drawRightSideRow_ du dessin thrasos ne descend jamais plus bas que le bas du bloc (bottomRow.baseline).
 Verifie : les 255 types de blocs dessines, aucun contour qui remonte ; bloc « si » range dans « au demarrage » et seul.
+
+61. FICHES ILLUSTREES POUR TOUS LES BLOCS (nov. 2026, demande de l'utilisateur)
+Demande : "Expliquer ce bloc" doit presenter TOUS les blocs comme les fiches illustrees (aide/<type>.html), et non
+avec l'ancienne fenetre "Aide sur ce bloc" (encore utilisee quand la fiche manque).
+- 13 fiches ajoutees, en francais (aide/) et en anglais (aide/en/) : STOP:bit (stopbit_etat, stopbit_led,
+  stopbit_eteindre, stopbit_cablage), LAMP:bit (lampbit_lampe, lampbit_lumiere, lampbit_sombre, lampbit_cablage),
+  ACCESS:bit (accessbit_barriere, accessbit_bip, accessbit_cablage), code brut (code_brut, expression_brute).
+- Textes dans outils/fiches/fiches-data.js et fiches-data-en.js ; exemples repris de l'aide d'avant (Kitronik) ou
+  ecrits dans la fiche (code brut) ; generees par outils/fiches/generer-fiches.js (serveur easybloc_fiches).
+- Verifie : les 197 blocs de la boite a outils (et les blocs Kitronik ajoutes par Fichier > Extensions) ont leur
+  fiche en francais et en anglais ; clic droit "Expliquer ce bloc" sur "STOP:bit : mettre le feu sur" -> fiche.
+  Les autres types sans fiche (blocs natifs de Blockly non proposes, pieces des fenetres d'engrenage) ne sont
+  jamais poses par l'eleve.
