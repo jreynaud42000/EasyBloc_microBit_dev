@@ -1,6 +1,6 @@
 {
   "titre": "Exercices pas à pas",
-  "aide_enseignant": "Ce fichier se modifie avec un éditeur de texte. Chaque exercice a : id (unique, ne plus le changer une fois utilisé : la progression des élèves s'y rattache), titre, consigne, indices (3, du plus vague au plus précis), regle (voir ci-dessous), solution (blocs au format Blockly, facultatif) et points (facultatif, 1 par défaut). Règle = un bloc à trouver : bloc (type ou liste de types), champ {NOM: valeur}, dans [types du bloc racine], ancetre (type d'un bloc parent), contient (bloc ou liste de blocs à trouver à l'intérieur), min (nombre minimal, 1 par défaut), entrees {ENTREE: nombre}, leds_min, texte_sauf. Plusieurs règles se combinent avec tous: [...] ou ou: [...].",
+  "aide_enseignant": "Ce fichier se modifie avec un éditeur de texte. Chaque exercice a : id (unique, ne plus le changer une fois utilisé : la progression des élèves s'y rattache), titre, consigne, indices (3, du plus vague au plus précis), regle (voir ci-dessous), solution (blocs au format Blockly, facultatif) et points (facultatif, 1 par défaut). Règle = un bloc à trouver : bloc (type ou liste de types), champ {NOM: valeur}, dans [types du bloc racine], ancetre (type d'un bloc parent), contient (bloc ou liste de blocs à trouver à l'intérieur), min (nombre minimal, 1 par défaut), entrees {ENTREE: nombre}, leds_min, texte_sauf. Plusieurs règles se combinent avec tous: [...] ou ou: [...]. Niveau lié à des extensions (nov. 2026) : « extensions » [noms des extensions, ex. \"STOP:bit\"] le propose seulement quand elles sont toutes ajoutées (Fichier > Extensions) ; « independant »: true ouvre son premier exercice sans avoir fini les niveaux précédents.",
   "niveaux": [
     {
       "id": "n1",
@@ -637,6 +637,186 @@
           "points": 2,
           "regle": {"tous": [{"bloc": "graph_tracer", "ancetre": "boucle_infinie", "contient": "capteur_temperature"}, {"bloc": "controls_if", "ancetre": "boucle_infinie", "contient": ["capteur_temperature", "logic_compare", {"bloc": ["afficher_icone", "afficher_valeur", "faire_defiler", "afficher_image_matrice"]}]}, {"bloc": "attendre_temps", "ancetre": "boucle_infinie"}]},
           "solution": {"blocks": [{"type": "au_demarrage", "inputs": {"DO": {"block": {"type": "graph_axes", "fields": {"NOM_X": "Temps (s)", "NOM_Y": "Température (°C)"}}}}, "next": {"block": {"type": "boucle_infinie", "inputs": {"DO": {"block": {"type": "graph_tracer", "fields": {"COURBE": "Courbe 1"}, "inputs": {"VAL": {"block": {"type": "capteur_temperature"}}}, "next": {"block": {"type": "controls_if", "extraState": {"hasElse": true}, "inputs": {"IF0": {"block": {"type": "logic_compare", "fields": {"OP": "GT"}, "inputs": {"A": {"block": {"type": "capteur_temperature"}}, "B": {"block": {"type": "math_number", "fields": {"NUM": 25}}}}}}, "DO0": {"block": {"type": "afficher_icone", "fields": {"ICONE": "SAD"}}}, "ELSE": {"block": {"type": "effacer_ecran"}}}, "next": {"block": {"type": "attendre_temps", "fields": {"UNITE": "s"}, "inputs": {"TEMPS": {"block": {"type": "math_number", "fields": {"NUM": 2}}}}}}}}}}}}}, "x": 40, "y": 40}]}
+        }
+      ]
+    },
+    {
+      "id": "k1",
+      "titre": "Kitronik — STOP:bit",
+      "notion": "Commander un feu tricolore",
+      "extensions": ["STOP:bit"],
+      "independant": true,
+      "exercices": [
+        {
+          "id": "K1.1",
+          "titre": "Le feu au rouge",
+          "consigne": "Au démarrage, mets le feu tricolore STOP:bit sur « Stop » : seul le feu rouge doit s'allumer.",
+          "indices": [
+            "Les blocs du feu sont dans la catégorie « Kitronik », tiroir « STOP:bit ».",
+            "Le bloc « STOP:bit : mettre le feu sur » allume les bons feux et éteint les autres.",
+            "Dans « au démarrage », pose « STOP:bit : mettre le feu sur » et choisis « Stop (rouge) ». Lance la simulation."
+          ],
+          "regle": {"bloc": "stopbit_etat", "champ": {"ETAT": "1, 0, 0"}, "dans": ["au_demarrage"]},
+          "solution": {"blocks": [{"type": "au_demarrage", "x": 40, "y": 40, "inputs": {"DO": {"block": {"type": "stopbit_etat", "fields": {"ETAT": "1, 0, 0"}}}}, "next": {"block": {"type": "boucle_infinie"}}}]}
+        },
+        {
+          "id": "K1.2",
+          "titre": "Le cycle du feu",
+          "consigne": "Fais tourner le feu comme dans la rue, sans fin : vert pendant 3 secondes, orange pendant 1 seconde, rouge pendant 3 secondes.",
+          "indices": [
+            "Un cycle qui recommence sans fin se place dans « répéter indéfiniment ».",
+            "Chaque couleur se règle avec « STOP:bit : mettre le feu sur », suivie de « attendre » (catégorie « Temps »).",
+            "Dans « répéter indéfiniment » : « Passez (vert) », attendre 3 s ; « Prêt à s'arrêter (orange) », attendre 1 s ; « Stop (rouge) », attendre 3 s."
+          ],
+          "regle": {"tous": [{"bloc": "stopbit_etat", "champ": {"ETAT": "0, 0, 1"}, "ancetre": "boucle_infinie"}, {"bloc": "stopbit_etat", "champ": {"ETAT": "0, 1, 0"}, "ancetre": "boucle_infinie"}, {"bloc": "stopbit_etat", "champ": {"ETAT": "1, 0, 0"}, "ancetre": "boucle_infinie"}, {"bloc": "attendre_temps", "ancetre": "boucle_infinie", "min": 3}]},
+          "solution": {"blocks": [{"type": "au_demarrage", "x": 40, "y": 40, "next": {"block": {"type": "boucle_infinie", "inputs": {"DO": {"block": {"type": "stopbit_etat", "fields": {"ETAT": "0, 0, 1"}, "next": {"block": {"type": "attendre_temps", "fields": {"UNITE": "s"}, "inputs": {"TEMPS": {"block": {"type": "math_number", "fields": {"NUM": 3}}}}, "next": {"block": {"type": "stopbit_etat", "fields": {"ETAT": "0, 1, 0"}, "next": {"block": {"type": "attendre_temps", "fields": {"UNITE": "s"}, "inputs": {"TEMPS": {"block": {"type": "math_number", "fields": {"NUM": 1}}}}, "next": {"block": {"type": "stopbit_etat", "fields": {"ETAT": "1, 0, 0"}, "next": {"block": {"type": "attendre_temps", "fields": {"UNITE": "s"}, "inputs": {"TEMPS": {"block": {"type": "math_number", "fields": {"NUM": 3}}}}}}}}}}}}}}}}}}}}]}
+        },
+        {
+          "id": "K1.3",
+          "titre": "Le bouton piéton",
+          "consigne": "Le feu est vert au démarrage. Quand un piéton appuie sur le bouton A, le feu passe à l'orange pendant 1 seconde, puis au rouge.",
+          "indices": [
+            "Il faut deux parties : « au démarrage » pour le vert, et un bloc « lorsque le bouton A est appuyé » (catégorie « Entrées/Sorties »).",
+            "Dans « lorsque le bouton A est appuyé », enchaîne l'orange, une attente, puis le rouge.",
+            "« au démarrage » : « Passez (vert) ». « lorsque le bouton A est appuyé » : « Prêt à s'arrêter (orange) », attendre 1 s, « Stop (rouge) »."
+          ],
+          "regle": {"tous": [{"bloc": "stopbit_etat", "champ": {"ETAT": "0, 0, 1"}, "dans": ["au_demarrage"]}, {"bloc": "lorsque_bouton", "champ": {"BOUTON": "a"}, "contient": [{"bloc": "stopbit_etat", "champ": {"ETAT": "0, 1, 0"}}, "attendre_temps", {"bloc": "stopbit_etat", "champ": {"ETAT": "1, 0, 0"}}]}]},
+          "solution": {"blocks": [{"type": "au_demarrage", "x": 40, "y": 40, "inputs": {"DO": {"block": {"type": "stopbit_etat", "fields": {"ETAT": "0, 0, 1"}}}}, "next": {"block": {"type": "boucle_infinie"}}}, {"type": "lorsque_bouton", "x": 40, "y": 220, "fields": {"BOUTON": "a"}, "inputs": {"DO": {"block": {"type": "stopbit_etat", "fields": {"ETAT": "0, 1, 0"}, "next": {"block": {"type": "attendre_temps", "fields": {"UNITE": "s"}, "inputs": {"TEMPS": {"block": {"type": "math_number", "fields": {"NUM": 1}}}}, "next": {"block": {"type": "stopbit_etat", "fields": {"ETAT": "1, 0, 0"}}}}}}}}}]}
+        },
+        {
+          "id": "K1.4",
+          "titre": "Le feu orange clignotant",
+          "consigne": "La nuit, certains feux clignotent à l'orange. Fais clignoter le feu orange sans fin : allumé une demi-seconde, éteint une demi-seconde.",
+          "indices": [
+            "Un feu seul s'allume ou s'éteint avec « STOP:bit : feu … allumé / éteint ».",
+            "Une demi-seconde, c'est 500 millisecondes : choisis « milliseconde.s » dans le bloc « attendre ».",
+            "Dans « répéter indéfiniment » : feu orange allumé, attendre 500 ms, feu orange éteint, attendre 500 ms."
+          ],
+          "regle": {"tous": [{"bloc": "stopbit_led", "champ": {"COULEUR": "pin1", "ETAT": "1"}, "ancetre": "boucle_infinie"}, {"ou": [{"bloc": "stopbit_led", "champ": {"COULEUR": "pin1", "ETAT": "0"}, "ancetre": "boucle_infinie"}, {"bloc": "stopbit_eteindre", "ancetre": "boucle_infinie"}]}, {"bloc": "attendre_temps", "ancetre": "boucle_infinie", "min": 2}]},
+          "solution": {"blocks": [{"type": "au_demarrage", "x": 40, "y": 40, "next": {"block": {"type": "boucle_infinie", "inputs": {"DO": {"block": {"type": "stopbit_led", "fields": {"COULEUR": "pin1", "ETAT": "1"}, "next": {"block": {"type": "attendre_temps", "fields": {"UNITE": "ms"}, "inputs": {"TEMPS": {"block": {"type": "math_number", "fields": {"NUM": 500}}}}, "next": {"block": {"type": "stopbit_led", "fields": {"COULEUR": "pin1", "ETAT": "0"}, "next": {"block": {"type": "attendre_temps", "fields": {"UNITE": "ms"}, "inputs": {"TEMPS": {"block": {"type": "math_number", "fields": {"NUM": 500}}}}}}}}}}}}}}}}]}
+        }
+      ]
+    },
+    {
+      "id": "k2",
+      "titre": "Kitronik — LAMP:bit",
+      "notion": "Allumer un lampadaire selon la lumière",
+      "extensions": ["LAMP:bit"],
+      "independant": true,
+      "exercices": [
+        {
+          "id": "K2.1",
+          "titre": "Allumer le lampadaire",
+          "consigne": "Au démarrage, allume la lampe du lampadaire LAMP:bit.",
+          "indices": [
+            "Les blocs du lampadaire sont dans la catégorie « Kitronik », tiroir « LAMP:bit ».",
+            "Le bloc « LAMP:bit : lampe » allume ou éteint la lampe.",
+            "Dans « au démarrage », pose « LAMP:bit : lampe allumée ». Lance la simulation."
+          ],
+          "regle": {"bloc": "lampbit_lampe", "champ": {"ETAT": "1"}, "dans": ["au_demarrage"]},
+          "solution": {"blocks": [{"type": "au_demarrage", "x": 40, "y": 40, "inputs": {"DO": {"block": {"type": "lampbit_lampe", "fields": {"ETAT": "1"}}}}, "next": {"block": {"type": "boucle_infinie"}}}]}
+        },
+        {
+          "id": "K2.2",
+          "titre": "Mesurer la lumière",
+          "consigne": "Affiche sans fin, sur la matrice de LED, le niveau de lumière mesuré par le capteur du LAMP:bit, une fois par seconde.",
+          "indices": [
+            "Une mesure répétée se place dans « répéter indéfiniment ».",
+            "Le bloc rond « LAMP:bit : niveau de lumière » donne un nombre : glisse-le dans « afficher » (catégorie « Matrice LED »).",
+            "Dans « répéter indéfiniment » : « afficher » avec « LAMP:bit : niveau de lumière », puis attendre 1 s. Change la lumière dans le simulateur."
+          ],
+          "regle": {"tous": [{"bloc": "afficher_valeur", "ancetre": "boucle_infinie", "contient": "lampbit_lumiere"}, {"bloc": "attendre_temps", "ancetre": "boucle_infinie"}]},
+          "solution": {"blocks": [{"type": "au_demarrage", "x": 40, "y": 40, "next": {"block": {"type": "boucle_infinie", "inputs": {"DO": {"block": {"type": "afficher_valeur", "inputs": {"VALEUR": {"block": {"type": "lampbit_lumiere"}}}, "next": {"block": {"type": "attendre_temps", "fields": {"UNITE": "s"}, "inputs": {"TEMPS": {"block": {"type": "math_number", "fields": {"NUM": 1}}}}}}}}}}}}]}
+        },
+        {
+          "id": "K2.3",
+          "titre": "Le lampadaire automatique",
+          "consigne": "Comme un vrai lampadaire : la lampe s'allume quand il fait sombre et s'éteint quand il fait jour. Le programme vérifie sans arrêt.",
+          "indices": [
+            "Il faut un test « si … sinon » (catégorie « Logique ») dans « répéter indéfiniment ».",
+            "Le bloc « LAMP:bit : il fait sombre » répond vrai ou faux : glisse-le dans le « si ».",
+            "« répéter indéfiniment » : « si LAMP:bit : il fait sombre » alors « lampe allumée », sinon « lampe éteinte »."
+          ],
+          "regle": {"bloc": "controls_if", "ancetre": "boucle_infinie", "contient": [{"bloc": ["lampbit_sombre", "lampbit_lumiere"]}, {"bloc": "lampbit_lampe", "champ": {"ETAT": "1"}}, {"bloc": "lampbit_lampe", "champ": {"ETAT": "0"}}]},
+          "solution": {"blocks": [{"type": "au_demarrage", "x": 40, "y": 40, "next": {"block": {"type": "boucle_infinie", "inputs": {"DO": {"block": {"type": "controls_if", "extraState": {"hasElse": true}, "inputs": {"IF0": {"block": {"type": "lampbit_sombre", "inputs": {"SEUIL": {"block": {"type": "math_number", "fields": {"NUM": 350}}}}}}, "DO0": {"block": {"type": "lampbit_lampe", "fields": {"ETAT": "1"}}}, "ELSE": {"block": {"type": "lampbit_lampe", "fields": {"ETAT": "0"}}}}}}}}}}]}
+        }
+      ]
+    },
+    {
+      "id": "k3",
+      "titre": "Kitronik — ACCESS:bit",
+      "notion": "Lever et baisser une barrière, prévenir avec le buzzer",
+      "extensions": ["ACCESS:bit"],
+      "independant": true,
+      "exercices": [
+        {
+          "id": "K3.1",
+          "titre": "Lever la barrière",
+          "consigne": "Au démarrage, lève la barrière de l'ACCESS:bit.",
+          "indices": [
+            "Les blocs de la barrière sont dans la catégorie « Kitronik », tiroir « ACCESS:bit ».",
+            "Le bloc « ACCESS:bit : lever / baisser la barrière » commande le servomoteur.",
+            "Dans « au démarrage », pose « ACCESS:bit : lever la barrière ». Lance la simulation."
+          ],
+          "regle": {"bloc": "accessbit_barriere", "champ": {"POSITION": "0"}, "dans": ["au_demarrage"]},
+          "solution": {"blocks": [{"type": "au_demarrage", "x": 40, "y": 40, "inputs": {"DO": {"block": {"type": "accessbit_barriere", "fields": {"POSITION": "0"}}}}, "next": {"block": {"type": "boucle_infinie"}}}]}
+        },
+        {
+          "id": "K3.2",
+          "titre": "Lever et baisser",
+          "consigne": "Le gardien commande la barrière : le bouton A la lève, le bouton B la baisse.",
+          "indices": [
+            "Il faut deux blocs « lorsque le bouton … est appuyé » (catégorie « Entrées/Sorties »).",
+            "Dans chacun, pose « ACCESS:bit : … la barrière » et choisis « lever » ou « baisser ».",
+            "« lorsque le bouton A est appuyé » : lever la barrière. « lorsque le bouton B est appuyé » : baisser la barrière."
+          ],
+          "regle": {"tous": [{"bloc": "lorsque_bouton", "champ": {"BOUTON": "a"}, "contient": {"bloc": "accessbit_barriere", "champ": {"POSITION": "0"}}}, {"bloc": "lorsque_bouton", "champ": {"BOUTON": "b"}, "contient": {"bloc": "accessbit_barriere", "champ": {"POSITION": "90"}}}]},
+          "solution": {"blocks": [{"type": "au_demarrage", "x": 40, "y": 40, "next": {"block": {"type": "boucle_infinie"}}}, {"type": "lorsque_bouton", "x": 40, "y": 200, "fields": {"BOUTON": "a"}, "inputs": {"DO": {"block": {"type": "accessbit_barriere", "fields": {"POSITION": "0"}}}}}, {"type": "lorsque_bouton", "x": 40, "y": 320, "fields": {"BOUTON": "b"}, "inputs": {"DO": {"block": {"type": "accessbit_barriere", "fields": {"POSITION": "90"}}}}}]}
+        },
+        {
+          "id": "K3.3",
+          "titre": "Attention, la barrière descend",
+          "consigne": "La barrière est levée au démarrage. Quand on appuie sur A, le buzzer prévient par deux bips courts, puis la barrière se baisse.",
+          "indices": [
+            "Le buzzer se commande avec « ACCESS:bit : bip court … fois ».",
+            "L'ordre compte : les bips d'abord, la barrière ensuite.",
+            "« au démarrage » : lever la barrière. « lorsque le bouton A est appuyé » : bip court 2 fois, puis baisser la barrière."
+          ],
+          "regle": {"tous": [{"bloc": "accessbit_barriere", "champ": {"POSITION": "0"}, "dans": ["au_demarrage"]}, {"bloc": "lorsque_bouton", "champ": {"BOUTON": "a"}, "contient": [{"bloc": "accessbit_bip", "entrees": {"NOMBRE": 2}}, {"bloc": "accessbit_barriere", "champ": {"POSITION": "90"}}]}]},
+          "solution": {"blocks": [{"type": "au_demarrage", "x": 40, "y": 40, "inputs": {"DO": {"block": {"type": "accessbit_barriere", "fields": {"POSITION": "0"}}}}, "next": {"block": {"type": "boucle_infinie"}}}, {"type": "lorsque_bouton", "x": 40, "y": 220, "fields": {"BOUTON": "a"}, "inputs": {"DO": {"block": {"type": "accessbit_bip", "fields": {"DUREE": "200"}, "inputs": {"NOMBRE": {"block": {"type": "math_number", "fields": {"NUM": 2}}}}, "next": {"block": {"type": "accessbit_barriere", "fields": {"POSITION": "90"}}}}}}}]}
+        },
+        {
+          "id": "K3.4",
+          "titre": "L'entrée du parking",
+          "consigne": "Une voiture arrive (bouton A) : un bip, la barrière se lève, la voiture a 3 secondes pour passer, puis la barrière se baisse.",
+          "indices": [
+            "Tout se passe dans « lorsque le bouton A est appuyé », dans l'ordre.",
+            "Le temps de passage se règle avec « attendre » (catégorie « Temps »).",
+            "« lorsque le bouton A est appuyé » : bip court 1 fois, lever la barrière, attendre 3 s, baisser la barrière."
+          ],
+          "regle": {"bloc": "lorsque_bouton", "champ": {"BOUTON": "a"}, "contient": ["accessbit_bip", {"bloc": "accessbit_barriere", "champ": {"POSITION": "0"}}, "attendre_temps", {"bloc": "accessbit_barriere", "champ": {"POSITION": "90"}}]},
+          "solution": {"blocks": [{"type": "au_demarrage", "x": 40, "y": 40, "next": {"block": {"type": "boucle_infinie"}}}, {"type": "lorsque_bouton", "x": 40, "y": 220, "fields": {"BOUTON": "a"}, "inputs": {"DO": {"block": {"type": "accessbit_bip", "fields": {"DUREE": "200"}, "inputs": {"NOMBRE": {"block": {"type": "math_number", "fields": {"NUM": 1}}}}, "next": {"block": {"type": "accessbit_barriere", "fields": {"POSITION": "0"}, "next": {"block": {"type": "attendre_temps", "fields": {"UNITE": "s"}, "inputs": {"TEMPS": {"block": {"type": "math_number", "fields": {"NUM": 3}}}}, "next": {"block": {"type": "accessbit_barriere", "fields": {"POSITION": "90"}}}}}}}}}}}]}
+        }
+      ]
+    },
+    {
+      "id": "k4",
+      "titre": "Kitronik — Projet",
+      "notion": "Un passage à niveau avec la STOP:bit et l'ACCESS:bit",
+      "extensions": ["STOP:bit", "ACCESS:bit"],
+      "independant": true,
+      "exercices": [
+        {
+          "id": "K4.1",
+          "titre": "Le passage à niveau",
+          "consigne": "Au démarrage, les voitures passent : feu vert et barrière levée. Quand le train arrive (bouton A) : feu rouge, trois bips, barrière baissée ; 5 secondes plus tard, le train est passé : barrière levée et feu vert.",
+          "indices": [
+            "Ce projet réunit la STOP:bit et l'ACCESS:bit : leurs deux tiroirs sont dans « Kitronik ».",
+            "Prépare d'abord « au démarrage », puis écris l'arrivée du train dans « lorsque le bouton A est appuyé ».",
+            "« au démarrage » : « Passez (vert) », lever la barrière. Bouton A : « Stop (rouge) », bip court 3 fois, baisser la barrière, attendre 5 s, lever la barrière, « Passez (vert) »."
+          ],
+          "regle": {"tous": [{"bloc": "stopbit_etat", "champ": {"ETAT": "0, 0, 1"}, "dans": ["au_demarrage"]}, {"bloc": "accessbit_barriere", "champ": {"POSITION": "0"}, "dans": ["au_demarrage"]}, {"bloc": "lorsque_bouton", "champ": {"BOUTON": "a"}, "contient": [{"bloc": "stopbit_etat", "champ": {"ETAT": "1, 0, 0"}}, "accessbit_bip", {"bloc": "accessbit_barriere", "champ": {"POSITION": "90"}}, "attendre_temps", {"bloc": "accessbit_barriere", "champ": {"POSITION": "0"}}]}]},
+          "solution": {"blocks": [{"type": "au_demarrage", "x": 40, "y": 40, "inputs": {"DO": {"block": {"type": "stopbit_etat", "fields": {"ETAT": "0, 0, 1"}, "next": {"block": {"type": "accessbit_barriere", "fields": {"POSITION": "0"}}}}}}, "next": {"block": {"type": "boucle_infinie"}}}, {"type": "lorsque_bouton", "x": 40, "y": 240, "fields": {"BOUTON": "a"}, "inputs": {"DO": {"block": {"type": "stopbit_etat", "fields": {"ETAT": "1, 0, 0"}, "next": {"block": {"type": "accessbit_bip", "fields": {"DUREE": "200"}, "inputs": {"NOMBRE": {"block": {"type": "math_number", "fields": {"NUM": 3}}}}, "next": {"block": {"type": "accessbit_barriere", "fields": {"POSITION": "90"}, "next": {"block": {"type": "attendre_temps", "fields": {"UNITE": "s"}, "inputs": {"TEMPS": {"block": {"type": "math_number", "fields": {"NUM": 5}}}}, "next": {"block": {"type": "accessbit_barriere", "fields": {"POSITION": "0"}, "next": {"block": {"type": "stopbit_etat", "fields": {"ETAT": "0, 0, 1"}}}}}}}}}}}}}}}]}
         }
       ]
     }

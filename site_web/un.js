@@ -4671,6 +4671,7 @@ try {
         'Fonctions': '#5F2BD4',
         'Listes': '#88009B',
         'Graphique': '#8E1B3A',   // bordeaux, variante A choisie par l'utilisateur (nov. 2026)
+        'Kitronik': '#6B7280',
         'STOP:bit': '#6B7280',
         'LAMP:bit': '#6B7280',
         'ACCESS:bit': '#6B7280',    // gris moyen (l'anthracite de la carte disparaissait en theme sombre) (extension, nov. 2026)
@@ -4705,7 +4706,7 @@ try {
     // a la suite, dans leur ordre d'origine. « Communication » est renommee « Radio ». « Graphique » n'existe pas encore.
     // Graphique puis IA en dernier, apres Listes ; Logique juste apres Boucles ; Radio entre Actionneurs (Audio) et
     // Servos (demandes de l'utilisateur, nov. 2026).
-    const ORDRE_CATEGORIES = ['Boucles', 'Logique', 'Temps', 'Matrice LED', 'Entrées/Sorties', 'Capteurs', 'Actionneurs (Audio)', 'Radio', 'Servos', 'Cartes d\'extension', 'Grove', 'STOP:bit', 'LAMP:bit', 'ACCESS:bit',
+    const ORDRE_CATEGORIES = ['Boucles', 'Logique', 'Temps', 'Matrice LED', 'Entrées/Sorties', 'Capteurs', 'Actionneurs (Audio)', 'Radio', 'Servos', 'Cartes d\'extension', 'Grove', 'Kitronik',
                               'Variables', 'Maths', 'Texte', 'Fonctions', 'Listes', 'Graphique', 'IA'];
     const CATEGORIE_LISTES = {
         "kind": "category", "name": "Listes", "colour": "260",
@@ -5149,38 +5150,46 @@ try {
             ]
           },
           {
-            // Extension Kitronik STOP:bit (nov. 2026) : masquee tant qu'on ne l'ajoute pas (Fichier > Extensions)
-            "kind": "category", "name": "STOP:bit", "colour": "#6B7280",
+            // Extensions Kitronik (nov. 2026, variante A choisie par l'utilisateur) : une categorie « Kitronik », un
+            // tiroir par carte. Absente tant qu'aucune carte n'est ajoutee (Fichier > Extensions) ; seules les cartes
+            // ajoutees y figurent (construireToolbox).
+            "kind": "category", "name": "Kitronik", "colour": "#6B7280",
             "contents": [
-              { "kind": "label", "text": "Feu tricolore (rouge P0, orange P1, vert P2)", "web-class": "groupe-flyout" },
-              { "kind": "block", "type": "stopbit_etat" },
-              { "kind": "block", "type": "stopbit_led" },
-              { "kind": "block", "type": "stopbit_eteindre" },
-              { "kind": "label", "text": "Câblage par fils (avec la Motor:bit, par exemple)", "web-class": "groupe-flyout" },
-              { "kind": "block", "type": "stopbit_cablage" }
-            ]
-          },
-          {
-            // Extension Kitronik LAMP:bit (nov. 2026) : masquee tant qu'on ne l'ajoute pas (Fichier > Extensions)
-            "kind": "category", "name": "LAMP:bit", "colour": "#6B7280",
-            "contents": [
-              { "kind": "label", "text": "Lampadaire (lampe P0, capteur de lumière P1)", "web-class": "groupe-flyout" },
-              { "kind": "block", "type": "lampbit_lampe" },
-              { "kind": "block", "type": "lampbit_lumiere" },
-              { "kind": "block", "type": "lampbit_sombre", "inputs": { "SEUIL": { "shadow": { "type": "math_number", "fields": { "NUM": "350" } } } } },
-              { "kind": "label", "text": "Câblage par fils (avec la Motor:bit, par exemple)", "web-class": "groupe-flyout" },
-              { "kind": "block", "type": "lampbit_cablage" }
-            ]
-          },
-          {
-            // Extension Kitronik ACCESS:bit (nov. 2026) : masquee tant qu'on ne l'ajoute pas (Fichier > Extensions)
-            "kind": "category", "name": "ACCESS:bit", "colour": "#6B7280",
-            "contents": [
-              { "kind": "label", "text": "Barrière (servo P0) et buzzer (P1)", "web-class": "groupe-flyout" },
-              { "kind": "block", "type": "accessbit_barriere" },
-              { "kind": "block", "type": "accessbit_bip", "inputs": { "NOMBRE": { "shadow": { "type": "math_number", "fields": { "NUM": "2" } } } } },
-              { "kind": "label", "text": "Câblage par fils (avec la Motor:bit, par exemple)", "web-class": "groupe-flyout" },
-              { "kind": "block", "type": "accessbit_cablage" }
+            {
+              // Extension Kitronik STOP:bit (nov. 2026) : masquee tant qu'on ne l'ajoute pas (Fichier > Extensions)
+              "kind": "category", "name": "STOP:bit", "colour": "#6B7280",
+              "contents": [
+                { "kind": "label", "text": "Feu tricolore (rouge P0, orange P1, vert P2)", "web-class": "groupe-flyout" },
+                { "kind": "block", "type": "stopbit_etat" },
+                { "kind": "block", "type": "stopbit_led" },
+                { "kind": "block", "type": "stopbit_eteindre" },
+                { "kind": "label", "text": "Câblage par fils (avec la Motor:bit, par exemple)", "web-class": "groupe-flyout" },
+                { "kind": "block", "type": "stopbit_cablage" }
+              ]
+            },
+            {
+              // Extension Kitronik LAMP:bit (nov. 2026) : masquee tant qu'on ne l'ajoute pas (Fichier > Extensions)
+              "kind": "category", "name": "LAMP:bit", "colour": "#6B7280",
+              "contents": [
+                { "kind": "label", "text": "Lampadaire (lampe P0, capteur de lumière P1)", "web-class": "groupe-flyout" },
+                { "kind": "block", "type": "lampbit_lampe" },
+                { "kind": "block", "type": "lampbit_lumiere" },
+                { "kind": "block", "type": "lampbit_sombre", "inputs": { "SEUIL": { "shadow": { "type": "math_number", "fields": { "NUM": "350" } } } } },
+                { "kind": "label", "text": "Câblage par fils (avec la Motor:bit, par exemple)", "web-class": "groupe-flyout" },
+                { "kind": "block", "type": "lampbit_cablage" }
+              ]
+            },
+            {
+              // Extension Kitronik ACCESS:bit (nov. 2026) : masquee tant qu'on ne l'ajoute pas (Fichier > Extensions)
+              "kind": "category", "name": "ACCESS:bit", "colour": "#6B7280",
+              "contents": [
+                { "kind": "label", "text": "Barrière (servo P0) et buzzer (P1)", "web-class": "groupe-flyout" },
+                { "kind": "block", "type": "accessbit_barriere" },
+                { "kind": "block", "type": "accessbit_bip", "inputs": { "NOMBRE": { "shadow": { "type": "math_number", "fields": { "NUM": "2" } } } } },
+                { "kind": "label", "text": "Câblage par fils (avec la Motor:bit, par exemple)", "web-class": "groupe-flyout" },
+                { "kind": "block", "type": "accessbit_cablage" }
+              ]
+            }
             ]
           },
           {
@@ -5611,7 +5620,12 @@ try {
             if (el.kind === 'block' && el.type && !EXTENSION_DU_BLOC.has(el.type)) EXTENSION_DU_BLOC.set(el.type, nom);
             if (el.contents) parcourir(el.contents, nom);
         });
-        TOOLBOX_ORIGINAL.filter(c => EXTENSIONS.some(e => e.nom === c.name)).forEach(c => parcourir(c.contents, c.name));
+        // Les extensions peuvent etre rangees dans une categorie parente (« Kitronik ») : on les cherche partout.
+        const visiter = cats => (cats || []).forEach(c => {
+            if (c.kind !== 'category') return;
+            if (EXTENSIONS.some(e => e.nom === c.name)) parcourir(c.contents, c.name); else visiter(c.contents);
+        });
+        visiter(TOOLBOX_ORIGINAL);
     })();
     // Programme qui utilise une extension retiree : on la remet (apres le chargement, en une seule mise a jour).
     let reactivationPrevue = false;
@@ -5625,6 +5639,8 @@ try {
         });
         if (change) { memoriserExtensions(); appliquerToolbox(); majFenetreExtensions(); }
     }
+    // Pour exercices.js : un niveau d'exercices lie a une extension n'est propose que si elle est ajoutee.
+    window.extensionActive = nom => !extensionsRetirees.has(nom);
     window.workspace.addChangeListener(e => {
         if (e.type !== Blockly.Events.BLOCK_CREATE || !extensionsRetirees.size || reactivationPrevue) return;
         reactivationPrevue = true;
@@ -5711,15 +5727,23 @@ try {
         const resultat = [];
         // Categorie absente : masquee par l'administrateur, ou extension retiree par l'utilisateur (fenetre « Extensions »).
         const cachee = nom => configAdmin.categories.hidden.includes(nom) || extensionsRetirees.has(nom);
+        // Categorie parente d'extensions (« Kitronik ») : seuls les tiroirs des extensions ajoutees ; aucune => absente.
+        const sansRetirees = cat => {
+            if (!(cat.contents || []).some(s => s.kind === 'category' && EXTENSIONS.some(e => e.nom === s.name))) return cat;
+            const contents = cat.contents.filter(s => !(s.kind === 'category' && extensionsRetirees.has(s.name)));
+            return contents.some(s => s.kind === 'category') ? Object.assign({}, cat, { contents }) : null;
+        };
+        const ajouter = (nom, cat) => {
+            const c = cachee(nom) ? null : sansRetirees(cat);
+            if (c) resultat.push(construireCategorie(c));
+        };
         for (const nom of ordre) {
             if (!dispo.has(nom)) continue;
             const cat = dispo.get(nom);
             dispo.delete(nom);
-            if (!cachee(nom)) resultat.push(construireCategorie(cat));
+            ajouter(nom, cat);
         }
-        for (const [nom, cat] of dispo) {
-            if (!cachee(nom)) resultat.push(construireCategorie(cat));
-        }
+        for (const [nom, cat] of dispo) ajouter(nom, cat);
         return resultat;
     }
 

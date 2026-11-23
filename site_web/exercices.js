@@ -37,24 +37,35 @@ function profil(nom = donnees.profil) {
 
 // ---------------------------------------------------------------- exercices
 let defs = null;          // contenu de exercices.json
-let plat = [];            // tous les exercices, dans l'ordre, avec leur niveau
+let plat = [];            // exercices des niveaux proposes, dans l'ordre, avec leur niveau
+// Niveau lie a des extensions (« extensions » : ["STOP:bit", ...], nov. 2026) : propose seulement si elles sont toutes
+// ajoutees (Fichier > Extensions, voir window.extensionActive dans un.js). Les autres niveaux le sont toujours.
+const niveauPropose = n => !n.extensions || typeof window.extensionActive !== 'function' ||
+    [].concat(n.extensions).every(nom => window.extensionActive(nom));
+const niveauxProposes = () => (defs && defs.niveaux || []).filter(niveauPropose);
+function majPlat() {   // a chaque ouverture : les extensions ont pu changer
+    plat = [];
+    for (const n of niveauxProposes()) for (const e of n.exercices || []) plat.push(Object.assign({ niveau: n, points: 1 }, e));
+}
 async function chargerExercices() {
-    if (defs) return defs;
-    try {
-        const reponse = await fetch('exercices.json', { cache: 'no-store' });
-        if (!reponse.ok) throw new Error('HTTP ' + reponse.status);
-        defs = await reponse.json();
-        plat = [];
-        for (const n of defs.niveaux || []) for (const e of n.exercices || []) plat.push(Object.assign({ niveau: n, points: 1 }, e));
-    } catch (erreur) {
-        defs = null;
-        alert('Les exercices n\'ont pas pu être chargés (fichier exercices.json introuvable ou invalide).\n' + erreur.message);
+    if (!defs) {
+        try {
+            const reponse = await fetch('exercices.json', { cache: 'no-store' });
+            if (!reponse.ok) throw new Error('HTTP ' + reponse.status);
+            defs = await reponse.json();
+        } catch (erreur) {
+            defs = null;
+            alert('Les exercices n\'ont pas pu être chargés (fichier exercices.json introuvable ou invalide).\n' + erreur.message);
+        }
     }
+    if (defs) majPlat();
     return defs;
 }
 const exo = id => plat.find(e => e.id === id);
 const fait = id => profil().faits[id];
-const accessible = i => donnees.libre || i === 0 || !!fait(plat[i - 1].id);
+// « independant » (niveaux Kitronik) : le premier exercice du niveau est ouvert sans avoir fini les niveaux d'avant.
+const accessible = i => donnees.libre || i === 0 || !!fait(plat[i - 1].id) ||
+    (!!plat[i].niveau.independant && plat[i].niveau.exercices[0].id === plat[i].id);
 
 // ---------------------------------------------------------------- lecture des blocs (validation)
 const blocs = () => (ws() ? ws().getAllBlocks(false) : []);
@@ -461,12 +472,11 @@ async function ouvrirFenetre(onglet = 'exercices') {
 
 function htmlExercices() {
     let h = '';
-    let i = 0;
-    for (const n of defs.niveaux) {
+    for (const n of niveauxProposes()) {
         const faitsNiveau = n.exercices.filter(e => fait(e.id) && !fait(e.id).passe).length;
         h += '<h3>' + esc(n.titre) + ' <small>' + faitsNiveau + '/' + n.exercices.length + ' · ' + esc(n.notion || '') + '</small></h3><div class="ex-cartes">';
         for (const e of n.exercices) {
-            const idx = i++;
+            const idx = plat.findIndex(p => p.id === e.id);
             const f = fait(e.id), ouvert = accessible(idx);
             const marque = f ? (f.passe ? '↷ passé' : etoiles(f.etoiles)) : ouvert ? '▶ à faire' : '<span class="ex-verrou" role="img" aria-label="verrouillé" title="verrouillé">' + window.icone('cadenas') + '</span>';
             h += '<button class="ex-carte' + (f && !f.passe ? ' fait' : '') + '" data-exo="' + esc(e.id) + '"' + (ouvert ? '' : ' disabled') + '>' +
@@ -481,7 +491,7 @@ function htmlEvaluation() {
         'Un exercice réussi du premier coup rapporte tous ses points, du deuxième 75 %, du troisième 50 %. ' +
         'Le résultat (note sur 20, temps, essais) est enregistré et un rapport imprimable est proposé à la fin.</p>' +
         '<div class="ex-eval-form"><label>Exercices <select id="ex-eval-niveau"><option value="tous">Tous les niveaux (' + plat.length + ' exercices)</option>' +
-        defs.niveaux.map(n => '<option value="' + esc(n.id) + '">' + esc(n.titre) + ' (' + n.exercices.length + ')</option>').join('') + '</select></label>' +
+        niveauxProposes().map(n => '<option value="' + esc(n.id) + '">' + esc(n.titre) + ' (' + n.exercices.length + ')</option>').join('') + '</select></label>' +
         '<label>Durée maximale (minutes, 0 = illimitée) <input id="ex-eval-min" type="number" min="0" max="180" value="0"></label>' +
         '<button class="ex-primaire" data-a="eval">Démarrer l\'évaluation de « ' + esc(donnees.profil) + ' »</button></div>' +
         '<p class="ex-note">Le programme en cours sera remplacé par un espace vierge. L\'évaluation ne se quitte qu\'avec « Arrêter ».</p>';

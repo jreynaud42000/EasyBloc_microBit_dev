@@ -152,7 +152,7 @@ const ETAPES_GENERAL = [
         titre: '9. Les extensions',
         texte: 'Le menu « Fichier » > « Extensions… » ajoute des catégories de blocs pour d\'autres cartes : le feu ' +
             'tricolore STOP:bit, le lampadaire LAMP:bit, la barrière ACCESS:bit. Cliquez sur une carte pour l\'ajouter ' +
-            'à la colonne des catégories, ou pour la retirer.',
+            'ou la retirer : les cartes ajoutées se rangent dans la catégorie « Kitronik », avec leurs exercices pas à pas.',
         cible: '#menu-fichier-btn',
     },
     {

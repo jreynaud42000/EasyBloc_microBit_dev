@@ -1818,3 +1818,26 @@ est permise. Fichiers : index.html (couleurs, decors, menu), bandeau.js (decors,
 Verifie (1280 x 720) : les sept themes, les sept ambiances meteo, la fenetre d'accord, un vrai releve Open-Meteo
 (position de test), "Selon la date" le 22 novembre (automne), retour a "Aucune" en choisissant le theme clair, aucune
 erreur JavaScript. Pas verifie : la demande de position du navigateur (refusee dans l'apercu), l'exe.
+
+57. CATEGORIE "KITRONIK" ET EXERCICES PAS A PAS KITRONIK (nov. 2026, variante A choisie par l'utilisateur)
+Colonne des categories : STOP:bit, LAMP:bit et ACCESS:bit sont rangees dans une categorie "Kitronik" (un tiroir par
+carte, comme "Cartes d'extension" et "Grove"). La categorie n'apparait que si au moins une carte est ajoutee
+(Fichier > Extensions) et ne montre que les cartes ajoutees. La fenetre Extensions ne change pas ; un programme qui
+utilise un bloc Kitronik reactive toujours sa carte (recherche des blocs d'extension dans les sous-categories).
+un.js : categorie "Kitronik" dans la boite a outils, ORDRE_CATEGORIES, PALETTE_CATEGORIES, construireToolbox
+(sansRetirees), indexerBlocs, window.extensionActive(nom).
+Exercices pas a pas (exercices.json, 12 exercices) : quatre niveaux apres le niveau 8, avec indices, solution et
+validation automatique comme les autres :
+- "Kitronik — STOP:bit" : K1.1 Le feu au rouge, K1.2 Le cycle du feu, K1.3 Le bouton pieton, K1.4 Le feu orange
+  clignotant ;
+- "Kitronik — LAMP:bit" : K2.1 Allumer le lampadaire, K2.2 Mesurer la lumiere, K2.3 Le lampadaire automatique ;
+- "Kitronik — ACCESS:bit" : K3.1 Lever la barriere, K3.2 Lever et baisser, K3.3 Attention, la barriere descend,
+  K3.4 L'entree du parking ;
+- "Kitronik — Projet" : K4.1 Le passage a niveau (STOP:bit et ACCESS:bit).
+Nouvelles cles de niveau : "extensions" (le niveau n'est propose que si ces extensions sont toutes ajoutees : liste,
+resultats, evaluation, exercice suivant) et "independant" (premier exercice ouvert sans avoir fini les niveaux
+precedents). exercices.js : niveauxProposes, majPlat (a chaque ouverture), accessible. Visite generale, etape
+"9. Les extensions" : cite la categorie "Kitronik" et ses exercices. Textes traduits en anglais.
+Verifie : categorie absente sans carte, une ou deux cartes selon les ajouts, reactivation par un bloc pose ; niveaux
+affiches selon les cartes ajoutees, premiers exercices ouverts ; les 12 solutions validees, un espace vierge refuse ;
+aucune erreur JavaScript. Pas verifie : un eleve qui fait les exercices de bout en bout dans le simulateur.
