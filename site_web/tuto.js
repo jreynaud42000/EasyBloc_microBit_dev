@@ -201,7 +201,8 @@ const ETAPES_GENERAL = [
 
 // ---------- visite « Transferer sur la carte » (menu Aide, nov. 2026) ----------
 // Du programme a la vraie carte : preparer et essayer le programme, brancher la carte, « Televerser » (fenetre
-// d'envoi : generation, lecteur MICROBIT, ecriture), redemarrage de la carte, methode du fichier .hex, problemes
+// d'envoi : generation, connexion par USB, ecriture ; autorisation de la carte la premiere fois, nov. 2026), redemarrage
+// de la carte, methode du fichier .hex, problemes
 // courants. L'etape « Televerser » attend un vrai clic (l'envoi demarre vraiment) ; « Suivant » reste possible sans carte.
 const envoiOuvert = () => { const f = $('#fenetre-envoi'); return !!f && f.getBoundingClientRect().width > 0; };
 const ETAPES_TRANSFERT = [
@@ -229,36 +230,34 @@ const ETAPES_TRANSFERT = [
     },
     {
         titre: '3. Brancher la carte',
-        texte: 'Reliez la micro:bit à l\'ordinateur avec le câble USB. La petite LED jaune au dos s\'allume, et un ' +
-            'lecteur MICROBIT apparaît dans l\'explorateur de fichiers, comme une clé USB. Rien ne se passe ? Essayez un ' +
-            'autre câble : certains ne font que charger et ne transportent pas les données.',
+        texte: 'Reliez la micro:bit à l\'ordinateur avec le câble USB. La petite LED jaune au dos s\'allume. Rien ne se passe ? ' +
+            'Essayez un autre câble : certains ne font que charger et ne transportent pas les données.',
     },
     {
         titre: '4. Téléverser',
-        texte: 'Le bouton « Téléverser » prépare le programme pour la carte (fichier .hex) et l\'écrit directement sur le ' +
-            'lecteur MICROBIT.',
+        texte: 'Le bouton « Téléverser » prépare le programme pour la carte et l\'envoie directement par le câble USB.',
         cible: '#btn-envoyer',
         consigne: 'Carte branchée ? Cliquez sur « Téléverser ».',
         attendreClic: '#btn-envoyer',
     },
     {
-        titre: '5. Choisir le lecteur MICROBIT',
-        texte: 'La première fois, le navigateur demande où écrire : choisissez le lecteur MICROBIT lui-même (pas un ' +
-            'dossier à l\'intérieur), puis acceptez de le modifier. Ce choix est retenu : les envois suivants se font ' +
-            'd\'un seul clic.',
+        titre: '5. Autoriser la carte',
+        texte: 'La première fois, le navigateur demande d\'autoriser la carte : choisissez « BBC micro:bit CMSIS-DAP », puis « ' +
+            'Connexion ». Ce choix est retenu : les envois suivants se font d\'un seul clic. Le menu à gauche de « ' +
+            'Téléverser » montre les cartes autorisées ; « Ajouter une carte… » en autorise une autre.',
         cible: () => (envoiOuvert() ? $('#fenetre-envoi') : $('#btn-envoyer')),
     },
     {
         titre: '6. Suivre l\'envoi',
-        texte: 'Cette fenêtre montre les trois étapes : génération du programme, lecteur MICROBIT, écriture sur la carte, ' +
-            'avec le pourcentage. « Annuler le téléversement » arrête l\'envoi en cours.',
+        texte: 'Cette fenêtre montre les trois étapes : génération du programme, connexion à la carte, écriture, avec le ' +
+            'pourcentage. Seules les parties du programme qui ont changé sont envoyées : c\'est rapide.',
         cible: () => (envoiOuvert() ? $('#fenetre-envoi') : $('#btn-envoyer')),
     },
     {
         titre: '7. La carte redémarre',
-        texte: 'Pendant l\'écriture, la LED jaune clignote : ne débranchez pas la carte. Le lecteur MICROBIT disparaît ' +
-            'puis revient, c\'est normal. La carte redémarre et votre programme commence tout seul ; il y reste même ' +
-            'débranchée, jusqu\'au prochain transfert.',
+        texte: 'Pendant l\'écriture, la LED jaune clignote : ne débranchez pas la carte. La carte redémarre et votre programme ' +
+            'commence tout seul ; il y reste même débranchée, jusqu\'au prochain transfert. La console reste connectée et ' +
+            'montre ce que la carte écrit.',
     },
     {
         titre: '8. Autre méthode : le fichier .hex',
@@ -268,10 +267,11 @@ const ETAPES_TRANSFERT = [
     },
     {
         titre: 'En cas de problème',
-        texte: 'Bouton « Téléverser » grisé : le navigateur ne permet pas l\'envoi direct, utilisez le fichier .hex. ' +
-            '« Ce dossier ne ressemble pas au lecteur MICROBIT » : choisissez le lecteur lui-même. La carte affiche un ' +
-            'message ou un numéro qui défile : le programme a une erreur ; la console (bouton « Connecter ») la montre. ' +
-            'Cette visite se relance par le menu « Aide » > « Visite guidée Transférer sur la carte ».',
+        texte: 'Bouton « Téléverser » grisé : le navigateur ne permet pas l\'envoi direct, utilisez le fichier .hex. « La carte ' +
+            'est déjà utilisée » : fermez l\'autre onglet ou logiciel qui l\'utilise (un autre éditeur micro:bit, par ' +
+            'exemple). La carte affiche un message ou un numéro qui défile : le programme a une erreur ; la console (bouton ' +
+            '« Connecter ») la montre. Cette visite se relance par le menu « Aide » > « Visite guidée Transférer sur la ' +
+            'carte ».',
     },
 ];
 
@@ -529,9 +529,10 @@ const ETAPES_CONSOLE = [
     },
     {
         titre: '9. Lire la vraie carte',
-        texte: '1) Branchez la micro:bit en USB. 2) Cliquez « Connecter » et choisissez la carte dans la liste (Chrome ou Edge ' +
-            'seulement). 3) Téléversez le programme : la carte redémarre et la console se reconnecte toute seule. ' +
-            'Ses messages s\'affichent en vert. Si la connexion échoue, un autre onglet ou logiciel utilise déjà la carte : fermez-le.',
+        texte: '1) Branchez la micro:bit en USB. 2) Cliquez « Connecter » : la première fois, autorisez « BBC micro:bit ' +
+            'CMSIS-DAP » (Chrome ou Edge seulement). 3) Téléversez le programme : il part par le même câble, la carte ' +
+            'redémarre et la console reste connectée. Ses messages s\'affichent en vert. Si la connexion échoue, un autre ' +
+            'onglet ou logiciel utilise déjà la carte : fermez-le.',
         cible: '#btn-console-carte',
         avant: ouvrirConsole,
     },

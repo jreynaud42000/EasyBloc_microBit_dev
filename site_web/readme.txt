@@ -1928,3 +1928,28 @@ l'instant" par le violet du bandeau (#6a2c91).
 - Concernes : titres "Simulateur visuel" et "Code", onglet actif de la console, trait sous l'en-tete de la console,
   titre "Aucune mesure pour l'instant". Boutons orange pleins (Lancer la simulation...) inchanges.
 Verifie : couleurs calculees dans les trois modes (sombre, clair, contraste eleve).
+
+65. TELEVERSER ET CONSOLE PAR WEBUSB, SANS CHOIX DE DOSSIER (nov. 2026, demande et etude validees par l'utilisateur)
+Demande : « Connecter » puis « Televerser » (choix de la carte, autorisation du navigateur, envoi), sans la fenetre
+« Selectionnez ou ce site peut enregistrer des modifications » (choix du lecteur MICROBIT).
+- lib/microbit/microbit-connection.js : @microbit/microbit-connection 1.0.3 (Fondation micro:bit, MIT, bibliotheque
+  de python.microbit.org) + @microbit/microbit-universal-hex 0.3.1 (MIT) + nrf-intel-hex 1.4.0 (BSD), paquet unique
+  (esbuild, IIFE, global window.MicrobitConnexion), licences en tete du fichier. Charge par index.html avant un.js.
+- un.js, « Vraie carte par WebUSB » : une seule connexion USB (appareil « BBC micro:bit CMSIS-DAP ») pour la console
+  (lecture : serialdata ; ecriture : serialWrite, console et panneau IA) ET le televersement (flash partiel : seules
+  les pages changees ; barre de progression 25 a 99 %). Autorisation demandee la premiere fois seulement
+  (UseAnyAllowed). « Televerser » se connecte tout seul si besoin ; la console reste connectee apres l'envoi.
+  Fenetre d'envoi : etape du milieu « Connexion » (au lieu de « Lecteur MICROBIT ») ; « Annuler » grise pendant
+  l'ecriture (non interruptible). Erreurs traduites en messages clairs (carte occupee, logiciel USB trop ancien,
+  pas de reponse...).
+- Sans WebUSB (ou sans la bibliotheque) : ancienne voie inchangee (Web Serial pour la console, lecteur MICROBIT).
+- bandeau.js : le menu des cartes liste les micro:bit autorisees (navigator.usb.getDevices) et finit par
+  « + Ajouter une carte… » (requestDevice), comme ⟳. Limite : avec plusieurs cartes autorisees branchees, la
+  bibliotheque prend la premiere disponible.
+- Aide de la console, visite « Transferer sur la carte » (etapes 3 a 7 et problemes ; etape 5 « Autoriser la
+  carte »), visite Console (etape 9), bulles et messages : textes mis a jour, traduits en anglais.
+- Campus : si l'editeur est dans un cadre (iframe), le cadre doit autoriser l'USB : allow="usb" (en plus de serial).
+Verifie dans l'editeur, sans carte : bibliotheque chargee, menu « micro:bit / + Ajouter une carte… », etape
+« Connexion » ; televersement avec fenetre d'autorisation fermee -> « Envoi annule » ; carte qui refuse la connexion
+-> message d'erreur ; jamais de fenetre de choix de dossier ; aucune erreur JavaScript.
+PAS verifie : l'envoi et la console sur une VRAIE carte (a essayer avant diffusion).

@@ -7655,10 +7655,65 @@ try {
     let connexionVoulue = false;
     const pause = ms => new Promise(r => setTimeout(r, ms));
 
+    // ---- Vraie carte par WebUSB (nov. 2026, demande de l'utilisateur : « Connecter » puis « Televerser », sans
+    // fenetre de choix de dossier) ----
+    // Une seule autorisation du navigateur (appareil USB « BBC micro:bit CMSIS-DAP ») sert a tout : televerser le
+    // programme (envoi partiel : seules les parties changees) ET lire / ecrire la console. Bibliotheque
+    // lib/microbit/microbit-connection.js (Fondation micro:bit, MIT, celle de python.microbit.org), globale
+    // window.MicrobitConnexion. Sans WebUSB (ou sans la bibliotheque), l'ancienne voie reste : Web Serial pour la
+    // console, lecteur MICROBIT (choix de dossier) pour televerser.
+    const MC = window.MicrobitConnexion;
+    const USB_DISPO = !!MC && 'usb' in navigator;
+    let carteUSB = null;         // connexion microbit-connection, creee au premier besoin
+    let usbConnecte = false;
+    const MESSAGES_USB = {
+        'no-device-selected': 'Aucune carte choisie.',
+        'device-in-use': 'La carte est déjà utilisée par un autre onglet ou un autre logiciel : fermez-le puis réessayez.',
+        'firmware-update-required': 'Le logiciel USB de cette carte est trop ancien : mettez-le à jour (microbit.org, ' +
+            '« Mettre à jour le firmware »).',
+        'timeout': 'La carte ne répond pas : débranchez-la puis rebranchez-la, et réessayez.',
+        'connection-error': 'Connexion impossible : débranchez la carte puis rebranchez-la, et réessayez.',
+        'device-disconnected': 'La carte a été débranchée.',
+        'unsupported': 'Ce navigateur ne permet pas la connexion USB : utilisez Chrome ou Edge.',
+    };
+    const messageUSB = erreur => window.tr(MESSAGES_USB[erreur && erreur.code] ||
+        ('Connexion impossible : ' + ((erreur && erreur.message) || erreur)));
+    async function connexionUSB() {
+        if (carteUSB) return carteUSB;
+        const c = MC.createUSBConnection({ deviceSelectionMode: MC.DeviceSelectionMode.UseAnyAllowed, pauseOnHidden: false });
+        c.addEventListener('status', e => {
+            const connecte = e.status === MC.ConnectionStatus.Connected;
+            if (connecte === usbConnecte) return;
+            usbConnecte = connecte;
+            majBoutonsConsole();
+            if (connecte) {
+                etatConsole(window.tr('Carte connectée par USB. Sa sortie s\'affiche en vert.'));
+                ecrireConsole('— ' + window.tr('carte connectée') + ' —\n', 'info');
+            } else {
+                etatConsole(window.tr('Carte déconnectée.'));
+                ecrireConsole('— ' + window.tr('carte déconnectée') + ' —\n', 'info');
+            }
+            window.dispatchEvent(new CustomEvent('easybloc-carte', { detail: { connecte } }));
+        });
+        c.addEventListener('serialdata', d => ecrireConsole(d.data, 'carte'));
+        // Nouveau programme sur la carte (apres un televersement) : la ligne en cours ne continue pas.
+        c.addEventListener('serialreset', () => { ligneConsoleCourante.carte = null; });
+        await c.initialize();
+        carteUSB = c;
+        return c;
+    }
+    async function connecterUSB() {
+        const c = await connexionUSB();
+        if (!usbConnecte) await c.connect();
+        return c;
+    }
+    window.carteUSB = { dispo: USB_DISPO, connecte: () => usbConnecte, connecter: connecterUSB,
+                        deconnecter: async () => { if (carteUSB) await carteUSB.disconnect(); } };
+
     function etatConsole(texte) { if (consoleEtat) consoleEtat.textContent = texte; }
 
     function majBoutonsConsole() {
-        const connecte = !!portSerie;
+        const connecte = !!portSerie || usbConnecte;
         if (btnConsoleCarte) {
             btnConsoleCarte.innerHTML = window.icone('prise') + (connecte ? 'Déconnecter' : 'Connecter');
             btnConsoleCarte.classList.toggle('connecte', connecte);
@@ -7715,6 +7770,16 @@ try {
 
     if (btnConsoleCarte) {
         btnConsoleCarte.addEventListener('click', async () => {
+            if (USB_DISPO) {
+                try {
+                    if (usbConnecte) { await carteUSB.disconnect(); return; }
+                    etatConsole(window.tr('Connexion à la carte…'));
+                    await connecterUSB();
+                } catch (erreur) {
+                    etatConsole(messageUSB(erreur));
+                }
+                return;
+            }
             if (portSerie) { await fermerPortSerie(true, 'Carte déconnectée.'); return; }
             if (!('serial' in navigator)) {
                 etatConsole('La console de la carte demande Chrome ou Edge (Web Serial).');
@@ -7751,6 +7816,15 @@ try {
     if (formConsole) {
         formConsole.addEventListener('submit', async evenement => {
             evenement.preventDefault();
+            if (usbConnecte) {
+                const texte = champConsole.value;
+                champConsole.value = '';
+                try {
+                    await carteUSB.serialWrite(texte + '\r\n');
+                    ecrireConsole('> ' + texte + '\n', 'info');
+                } catch (erreur) { etatConsole('Envoi impossible : ' + (erreur.message || erreur)); }
+                return;
+            }
             if (!portSerie || !portSerie.writable) return;
             const texte = champConsole.value;
             champConsole.value = '';
@@ -7771,6 +7845,10 @@ try {
     // Renvoie false si aucune carte n'est connectee.
     let fileEcritureSerie = Promise.resolve();
     window.ecrireSerie = function (texte) {
+        if (usbConnecte) {
+            fileEcritureSerie = fileEcritureSerie.then(() => carteUSB.serialWrite(texte).then(() => true, () => false));
+            return fileEcritureSerie;
+        }
         if (!portSerie || !portSerie.writable) return Promise.resolve(false);
         const port = portSerie;
         fileEcritureSerie = fileEcritureSerie.then(async () => {
@@ -7787,7 +7865,7 @@ try {
         });
         return fileEcritureSerie;
     };
-    window.carteConnectee = () => !!portSerie;
+    window.carteConnectee = () => !!portSerie || usbConnecte;
 
     // ---- Panneau IA (bouton 🧠) : le moteur est dans ia.js ----
     const iaPanneau = document.getElementById('ia-panneau');
@@ -8725,11 +8803,12 @@ try {
         "Seules les 1000 dernières lignes sont conservées.\n\n" +
         "AVEC LA VRAIE CARTE (Chrome ou Edge uniquement)\n" +
         "1. Branchez la carte micro:bit en USB.\n" +
-        "2. Cliquez « Connecter » et choisissez la carte micro:bit dans la liste.\n" +
-        "3. Envoyez le programme avec « Envoyer sur la carte » : la carte redémarre et la console se reconnecte " +
-        "toute seule. Les lignes envoyées par la carte s'affichent en vert.\n" +
-        "4. « Déconnecter » coupe la liaison (la console ne se reconnecte alors plus toute seule).\n" +
-        "• Si la connexion échoue, un autre onglet ou programme utilise déjà la carte : fermez-le puis réessayez.\n\n" +
+        "2. Cliquez « Connecter » : la première fois, le navigateur demande d'autoriser « BBC micro:bit CMSIS-DAP » ; " +
+        "choisissez-la, puis « Connexion ». L'autorisation est retenue.\n" +
+        "3. Envoyez le programme avec « Téléverser » : il part directement par le câble, la carte redémarre et la " +
+        "console continue d'afficher ses lignes, en vert.\n" +
+        "4. « Déconnecter » coupe la liaison.\n" +
+        "• Si la connexion échoue, un autre onglet ou logiciel utilise déjà la carte : fermez-le puis réessayez.\n\n" +
         "ENVOYER DU TEXTE À LA CARTE\n" +
         "• Écrivez dans le champ du bas puis appuyez sur Entrée (ou « Envoyer »). Le texte envoyé s'affiche en gris, " +
         "précédé de « > ».\n" +
@@ -9020,6 +9099,35 @@ try {
             etape = 'lecteur';
             fenetreEnvoi.etapeActive('lecteur');
             fenetreEnvoi.progression(15);
+            if (USB_DISPO) {
+                // Par USB : connexion (la fenetre d'autorisation du navigateur ne s'ouvre que la premiere fois), puis
+                // envoi direct. L'envoi ne peut pas etre interrompu : « Annuler » est grise pendant l'ecriture.
+                afficherEtat(window.tr('Connexion à la carte…'), false);
+                fenetreEnvoi.etape(window.tr('Connexion à la carte…'));
+                let c;
+                try { c = await connecterUSB(); } catch (erreur) {
+                    if (erreur && erreur.code === 'no-device-selected') throw ANNULE;
+                    throw new Error(messageUSB(erreur));
+                }
+                verifierAnnulation();
+                etape = 'ecriture';
+                afficherEtat(window.tr('Envoi du programme à la carte…'), false);
+                fenetreEnvoi.etapeActive('ecriture');
+                fenetreEnvoi.etape(window.tr('Envoi du programme à la carte…'));
+                if (fenetreEnvoi.boutonAnnuler) fenetreEnvoi.boutonAnnuler.disabled = true;
+                fenetreEnvoi.progression(25);
+                try {
+                    await c.flash(MC.createUniversalHexFlashDataSource(contenuHex), {
+                        partial: true,
+                        progress: (stade, avancement) => {
+                            if (typeof avancement === 'number') fenetreEnvoi.progression(25 + avancement * 74);
+                        },
+                    });
+                } catch (erreur) { throw new Error(messageUSB(erreur)); }
+                fenetreEnvoi.finir('ok', window.tr('Programme envoyé. La carte redémarre.'));
+                afficherEtat(window.tr('Programme envoyé. La carte redémarre.'), false);
+                return;
+            }
             if (!dossierCarte) {
                 afficherEtat('Choisissez le lecteur MICROBIT…', false);
                 fenetreEnvoi.etape('Choisissez le lecteur MICROBIT…');
@@ -9069,11 +9177,16 @@ try {
                 fenetreEnvoi.finir('erreur', erreur.message);
                 afficherEtat(erreur.message, true);
             } else {
-                // Apres un transfert, le lecteur se demonte et se remonte : la
-                // reference gardee ne vaut plus rien, il faut le redesigner.
-                dossierCarte = null;
-                fenetreEnvoi.finir('erreur', erreur.message + ' — recliquez pour redésigner le lecteur.');
-                afficherEtat(erreur.message + ' — recliquez pour redésigner le lecteur.', true);
+                if (USB_DISPO) {
+                    fenetreEnvoi.finir('erreur', erreur.message);
+                    afficherEtat(erreur.message, true);
+                } else {
+                    // Apres un transfert, le lecteur se demonte et se remonte : la
+                    // reference gardee ne vaut plus rien, il faut le redesigner.
+                    dossierCarte = null;
+                    fenetreEnvoi.finir('erreur', erreur.message + ' — recliquez pour redésigner le lecteur.');
+                    afficherEtat(erreur.message + ' — recliquez pour redésigner le lecteur.', true);
+                }
             }
         } finally {
             fenetreEnvoi.surAnnulation = null;
@@ -9081,8 +9194,17 @@ try {
         }
     }
 
+    // Par USB : l'etape du milieu de la fenetre d'envoi devient « Connexion » (au lieu de « Lecteur MICROBIT »).
+    if (USB_DISPO) {
+        const etapeLecteur = document.querySelector('#fenetre-envoi .etapes span[data-etape="lecteur"]');
+        if (etapeLecteur) etapeLecteur.textContent = window.tr('Connexion');
+        if (boutonEnvoyer) boutonEnvoyer.title = window.tr('Téléverser : envoyer le programme sur la carte micro:bit branchée en USB (Chrome ou Edge)');
+        if (btnConsoleCarte) btnConsoleCarte.title = window.tr('Connecter la carte micro:bit branchée en USB : lire sa console et lui envoyer les programmes (Chrome ou Edge)');
+    }
     if (boutonEnvoyer) {
-        if (typeof window.showDirectoryPicker !== 'function') {
+        if (USB_DISPO) {
+            boutonEnvoyer.addEventListener('click', envoyerSurLaCarte);
+        } else if (typeof window.showDirectoryPicker !== 'function') {
             boutonEnvoyer.disabled = true;
             boutonEnvoyer.title = "Cette fonction demande Chrome ou Edge : Firefox et Safari " +
                                   "n'ont pas l'API d'accès aux fichiers. Utilisez le bouton .hex.";

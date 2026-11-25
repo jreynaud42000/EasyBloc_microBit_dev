@@ -450,6 +450,7 @@ if (lancer) {
 // relais ne s'applique pas, la fenetre de choix habituelle s'ouvre (comportement d'origine).
 // Le choix ne concerne que la connexion serie : « Televerser » garde son propre choix de lecteur MICROBIT.
 const VENDEUR_MICROBIT = 0x0D28;
+const USB_BANDEAU_ACTIF = () => 'usb' in navigator && !!window.MicrobitConnexion;
 const choix = $('port-select'), rechercher = $('port-refresh');
 let serialActif = null;           // objet navigator.serial utilise (parametrable pour les tests)
 let cartes = [];                  // ports connus (SerialPort), dans l'ordre du menu
@@ -513,7 +514,7 @@ function demarrerCartes(serial) {
 
 if (rechercher) {
     rechercher.addEventListener('click', async () => {
-        if (!serialActif || rechercher.classList.contains('occupe')) return;
+        if (USB_BANDEAU_ACTIF() || !serialActif || rechercher.classList.contains('occupe')) return;
         rechercher.classList.add('occupe');
         appelInterne = true;
         try {
@@ -527,8 +528,50 @@ if (rechercher) {
         }
     });
 }
-demarrerCartes('serial' in navigator ? navigator.serial : null);
-window.bandeauTest = { demarrerCartes, chargerCartes, cartes: () => cartes };
+// Par WebUSB (nov. 2026, voir un.js « Vraie carte par WebUSB ») : le menu liste les micro:bit deja autorisees
+// (navigator.usb.getDevices) et se termine par « + Ajouter une carte… », qui ouvre la fenetre d'autorisation du
+// navigateur (requestDevice), comme ⟳. La connexion (« Connecter » ou « Televerser ») prend une carte autorisee
+// branchee : avec plusieurs cartes autorisees branchees en meme temps, mieux vaut n'en brancher qu'une.
+const USB_BANDEAU = 'usb' in navigator && !!window.MicrobitConnexion;
+let cartesUSB = [];
+async function chargerCartesUSB() {
+    if (!choix) return;
+    try { cartesUSB = (await navigator.usb.getDevices()).filter(d => d.vendorId === VENDEUR_MICROBIT); } catch (e) { cartesUSB = []; }
+    choix.textContent = '';
+    const option = (valeur, texte) => { const o = document.createElement('option'); o.value = valeur; o.textContent = texte; choix.appendChild(o); };
+    if (!cartesUSB.length) option('', 'micro:bit');
+    cartesUSB.forEach((d, i) => option(String(i), cartesUSB.length > 1 ? 'micro:bit ' + (i + 1) : 'micro:bit'));
+    option('ajouter', '＋ ' + (window.tr ? window.tr('Ajouter une carte…') : 'Ajouter une carte…'));
+    choix.value = cartesUSB.length ? '0' : '';
+    choix.title = cartesUSB.length
+        ? (window.tr ? window.tr('Carte micro:bit autorisée ({n}) : « Connecter » ou « Téléverser » l\'utilise', { n: cartesUSB.length })
+                     : 'Carte micro:bit autorisée')
+        : (window.tr ? window.tr('Aucune carte autorisée : choisissez « Ajouter une carte… »') : 'Aucune carte autorisée');
+}
+async function ajouterCarteUSB() {
+    try { await navigator.usb.requestDevice({ filters: [{ vendorId: VENDEUR_MICROBIT }] }); } catch (e) { /* fenetre fermee sans choix */ }
+    await chargerCartesUSB();
+}
+if (USB_BANDEAU) {
+    if (choix) {
+        choix.disabled = false;
+        choix.addEventListener('change', () => { if (choix.value === 'ajouter') ajouterCarteUSB(); });
+    }
+    if (rechercher) {
+        rechercher.disabled = false;
+        rechercher.title = window.tr ? window.tr('Ajouter une carte : autoriser une nouvelle micro:bit branchée en USB') : 'Ajouter une carte';
+        rechercher.addEventListener('click', ajouterCarteUSB);
+    }
+    const groupe = $('port-group');
+    if (groupe) groupe.title = window.tr ? window.tr('Carte micro:bit utilisée par « Connecter » et « Téléverser » (Chrome ou Edge)') : '';
+    navigator.usb.addEventListener('connect', () => chargerCartesUSB());
+    navigator.usb.addEventListener('disconnect', () => chargerCartesUSB());
+    window.addEventListener('easybloc-carte', () => chargerCartesUSB());
+    chargerCartesUSB();
+} else {
+    demarrerCartes('serial' in navigator ? navigator.serial : null);
+}
+window.bandeauTest = { demarrerCartes, chargerCartes, cartes: () => cartes, chargerCartesUSB, cartesUSB: () => cartesUSB };
 
 // ---------- Puces rondes de la colonne de categories ----------
 // Blockly colore chaque categorie par la bordure gauche de sa ligne (rectangle). On recopie cette couleur dans
