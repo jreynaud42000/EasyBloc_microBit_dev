@@ -1918,3 +1918,13 @@ Demande : selon le zoom, les icones Console, Simulation et Code doivent etre acc
   Capture reste en icone seule. Pastille claire du panneau ouvert inchangee (elle s'elargit au nom).
 Verifie (largeur du bandeau) : 1440 px et plus, et 1366 px (palier 1) : noms affiches ; 1280 px (zoom 150 % sur un
 ecran de 1920 px) et moins : icones seules ; jamais de debordement.
+
+64. TITRES DES PANNEAUX ET CONSOLE EN VIOLET (nov. 2026, variante B choisie par l'utilisateur)
+Demande : remplacer l'orange de "Simulateur visuel", des onglets CONSOLE / GRAPHIQUE et de "Aucune mesure pour
+l'instant" par le violet du bandeau (#6a2c91).
+- index.html : variables --violet-trait (#6a2c91, traits), --violet-onglet (#8e44c0, soulignement de l'onglet actif),
+  --violet-texte (#c08ae6 sur fond sombre : contraste 6,4:1, le violet exact n'y fait que 1,9:1). Theme clair : texte
+  et soulignement en #6a2c91. Contraste eleve : blanc.
+- Concernes : titres "Simulateur visuel" et "Code", onglet actif de la console, trait sous l'en-tete de la console,
+  titre "Aucune mesure pour l'instant". Boutons orange pleins (Lancer la simulation...) inchanges.
+Verifie : couleurs calculees dans les trois modes (sombre, clair, contraste eleve).

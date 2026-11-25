@@ -684,7 +684,7 @@
     #proposition-radio .proposition-radio-primaire { background: #1864ab; border-color: #1864ab; color: #fff; font-weight: 700; }
 
     #code-container { flex: 0 0 24%; min-width: 240px; min-height: 0; height: 100%; background: var(--fond-code); color: var(--texte-code); padding: 15px; box-sizing: border-box; overflow-y: auto; border-left: 2px solid var(--fond-chrome); display: flex; flex-direction: column;}
-    #code-container h3 { margin-top: 0; color: #ff7a33; font-size: 14px; text-transform: uppercase; }
+    #code-container h3 { margin-top: 0; color: var(--violet-texte); font-size: 14px; text-transform: uppercase; }
     .code-entete { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .code-entete h3 { margin: 0; }
     #btn-editer-code { font-size: 12px; padding: 5px 10px; margin: 0; background: #4a4a4a; flex: 0 0 auto; }
@@ -702,7 +702,7 @@
     :root[data-contrast="high"] #console-panneau { border-top-width: 2px; border-top-color: #ffffff; }
     /* En-tete et barres harmonises avec l'editeur Arduino R4 (nov. 2026) */
     #console-entete { display: flex; align-items: center; gap: 12px; margin: -8px -12px 0; padding: 0 12px;
-        border-bottom: 2px solid var(--accent-console, #ff7a33); }
+        border-bottom: 2px solid var(--violet-trait); }
     .console-barre { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; font-size: 12px; }
     .console-barre button { font-size: 12px; padding: 4px 10px; margin: 0; background: #4a4a4a; }
     .console-barre button:hover { background: #5e5e5e; }
@@ -716,7 +716,7 @@
         max-width: 560px; margin: auto; padding: 10px 18px; box-sizing: border-box; overflow: auto; font-size: 12.5px; line-height: 1.55;
         color: var(--texte-saisie); }
     #graph-vide.replie { display: none; }
-    #graph-vide .graph-vide-titre { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--accent-console, #ff7a33); }
+    #graph-vide .graph-vide-titre { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--violet-texte); }
     #graph-vide ol { margin: 0; padding-left: 20px; }
     #graph-vide .graph-vide-note { margin: 6px 0 0; font-size: 11.5px; opacity: 0.85; }
     /* Bord haut de la console : barre a glisser (souris ou doigt) pour regler la hauteur (un.js, « redimensionnement
@@ -748,10 +748,14 @@
         border: none; border-bottom: 3px solid transparent; border-radius: 0; color: #b8b8b8; font-size: 12.5px; letter-spacing: 0.04em;
         text-transform: uppercase; cursor: pointer; }
     .console-onglet:hover { color: var(--texte-code, #fff); background: none; }
-    .console-onglet.actif { color: var(--accent-console, #ff7a33); border-bottom-color: var(--accent-console, #ff7a33); font-weight: 600; }
-    .console-onglet:focus-visible { outline: 2px solid var(--accent-console, #ff7a33); outline-offset: -2px; }
-    :root[data-theme="light"]:not([data-contrast="high"]) #console-panneau { --accent-console: #b33a00; }
-    :root[data-contrast="high"] #console-panneau { --accent-console: #ffffff; }
+    .console-onglet.actif { color: var(--violet-texte); border-bottom-color: var(--violet-onglet); font-weight: 600; }
+    .console-onglet:focus-visible { outline: 2px solid var(--violet-onglet); outline-offset: -2px; }
+    /* Titres des panneaux et accents de la console : violet du bandeau (variante B choisie par l'utilisateur, nov. 2026) ;
+       traits en violet exact, mots en violet eclairci sur fond sombre (contraste 6,4:1 ; le violet exact n'y fait que
+       1,9:1), violet exact sur fond clair, blanc en contraste eleve. */
+    :root { --violet-trait: #6a2c91; --violet-onglet: #8e44c0; --violet-texte: #c08ae6; }
+    :root[data-theme="light"]:not([data-contrast="high"]) { --violet-onglet: #6a2c91; --violet-texte: #6a2c91; }
+    :root[data-contrast="high"] { --violet-trait: #ffffff; --violet-onglet: #ffffff; --violet-texte: #ffffff; }
     :root[data-theme="light"]:not([data-contrast="high"]) .console-onglet:not(.actif),
     :root[data-theme="light"]:not([data-contrast="high"]) .console-barre-titre,
     :root[data-theme="light"]:not([data-contrast="high"]) #graph-etat,
@@ -976,7 +980,7 @@
        (#simulateur-redimensionneur) fixe ensuite une largeur en pixels, qui l'emporte. */
     #code-container.replie ~ #simulator-container { flex-basis: 37%; }
     #simulator-container { flex: 0 0 24%; min-width: 250px; min-height: 0; height: 100%; background: var(--fond-chrome); display: flex; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; border-left: 2px solid var(--fond-chrome-profond); overflow-y: auto; scrollbar-gutter: stable;}
-    #simulator-container h3 { margin-top: 0; color: #ff7a33; font-size: 14px; text-transform: uppercase; width: 100%; text-align: left;}
+    #simulator-container h3 { margin-top: 0; color: var(--violet-texte); font-size: 14px; text-transform: uppercase; width: 100%; text-align: left;}
 
     /* Repositionnement automatique selon la place disponible (demande de
        l'utilisateur, dans le prolongement de la mise a l'echelle fixe de la
