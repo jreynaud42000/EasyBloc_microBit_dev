@@ -1910,3 +1910,11 @@ une rubrique, et sur un ecran trop petit.
   taille ; plus de reduction une fois une rubrique depliee.
 Verifie (fenetre de 1024 x 768) : 206 fiches sur 210 tiennent sans ascenseur ; les 4 autres (logic_boolean et les
 3 blocs de cablage Kitronik, dont l'exemple est tres long) gardent l'ascenseur ; en 1080 px de haut, les 210.
+
+63. BANDEAU : NOMS DE CONSOLE, SIMULATION ET CODE SELON LA PLACE (nov. 2026, maquette validee par l'utilisateur)
+Demande : selon le zoom, les icones Console, Simulation et Code doivent etre accompagnees de leur nom.
+- index.html : ces trois boutons montrent icone ET nom tant que le bandeau a la place ; des le palier de compactage 2
+  (bandeau.js, deja utilise pour les autres boutons), ils repassent en icones seules (34 px), nom dans la bulle.
+  Capture reste en icone seule. Pastille claire du panneau ouvert inchangee (elle s'elargit au nom).
+Verifie (largeur du bandeau) : 1440 px et plus, et 1366 px (palier 1) : noms affiches ; 1280 px (zoom 150 % sur un
+ecran de 1920 px) et moins : icones seules ; jamais de debordement.

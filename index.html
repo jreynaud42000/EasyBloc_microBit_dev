@@ -206,11 +206,15 @@
     .tb-btn:disabled, .tb-btn:disabled:hover { opacity: 0.45; cursor: not-allowed; background: transparent; }
     /* Fonction activee (console, simulation, code, IA affiches : classe .inactif absente) : liseré blanc sous le bouton. */
     #btn-vue-ia:not(.inactif) { box-shadow: inset 0 -3px 0 #fff; border-radius: 4px 4px 0 0; }
-    /* Capture, Console, Simulation, Code : icones seules, plus grandes (variante B choisie par l'utilisateur, nov. 2026). Le
-       nom reste dans la bulle (title) et pour les lecteurs d'ecran (aria-label) ; panneau ouvert = pastille claire. */
+    /* Capture, Console, Simulation, Code : icones plus grandes (variante B choisie par l'utilisateur, nov. 2026) ; panneau
+       ouvert = pastille claire. Capture : icone seule. Console, Simulation, Code : icone ET nom tant que la place suffit,
+       icone seule des le palier 2 (zoom fort ou fenetre etroite, demande de l'utilisateur, nov. 2026). Le nom reste dans la
+       bulle (title) et pour les lecteurs d'ecran (aria-label). */
     #capture-ecran-btn, #btn-vue-console, #btn-vue-simu, #btn-vue-code {
-      width: 38px; height: 36px; padding: 0; justify-content: center; border-radius: 6px; }
-    #capture-ecran-btn .tb-libelle, #btn-vue-console .tb-libelle, #btn-vue-simu .tb-libelle, #btn-vue-code .tb-libelle { display: none; }
+      height: 36px; justify-content: center; border-radius: 6px; }
+    #capture-ecran-btn { width: 38px; padding: 0; }
+    #btn-vue-console, #btn-vue-simu, #btn-vue-code { padding: 0 10px; gap: 6px; }
+    #capture-ecran-btn .tb-libelle { display: none; }
     #capture-ecran-btn svg, #btn-vue-console svg, #btn-vue-simu svg, #btn-vue-code svg { width: 20px; height: 20px; }
     #btn-vue-console:not(.inactif), #btn-vue-simu:not(.inactif), #btn-vue-code:not(.inactif) { background: rgba(255,255,255,0.22); }
     #btn-vue-console:not(.inactif):hover, #btn-vue-simu:not(.inactif):hover, #btn-vue-code:not(.inactif):hover { background: rgba(255,255,255,0.3); }
@@ -226,8 +230,9 @@
        bulle donne le nom) ; 3 = IA et Radio en icones, selecteur de carte plus etroit ; 4 = Fichier et Aide reduits a leur
        icone, logo masque ; 5 = Televerser et Lancer la simulation en icones (dernier recours, tres petit ecran). */
     #toolbar.compact-1 .tb-btn { padding: 5px 4px; }
-    #toolbar.compact-1 #capture-ecran-btn, #toolbar.compact-1 #btn-vue-console, #toolbar.compact-1 #btn-vue-simu,
-    #toolbar.compact-1 #btn-vue-code { padding: 0; width: 34px; }
+    #toolbar.compact-1 #capture-ecran-btn { padding: 0; width: 34px; }
+    #toolbar.compact-1 #btn-vue-console, #toolbar.compact-1 #btn-vue-simu, #toolbar.compact-1 #btn-vue-code { padding: 0 6px; }
+    #toolbar.compact-2 #btn-vue-console, #toolbar.compact-2 #btn-vue-simu, #toolbar.compact-2 #btn-vue-code { padding: 0; width: 34px; }
     #toolbar.compact-1 .tb-sep { margin: 0 1px; }
     #toolbar.compact-1 #tb-nomfichier { max-width: 170px; }
     #toolbar.compact-2 .tb-libelle { display: none; }
