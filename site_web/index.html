@@ -649,6 +649,13 @@
        le canevas Blockly se retrouvait haut de 4754 px, et sa corbeille tres
        loin sous la ligne de flottaison. */
     #main-container { display: flex; flex-grow: 1; width: 100%; min-width: 0; min-height: 0; }
+    /* Ordre d'affichage (demande de l'utilisateur, nov. 2026) : blocs | poignee | simulation | code. Le code s'ouvre tout a
+       droite, apres la simulation (ordre du HTML inchange : blocs, code, poignee, simulation). La poignee reste a gauche
+       de la simulation et regle sa largeur comme avant. */
+    #main-container > #blockly-wrapper { order: 1; }
+    #main-container > #simulateur-redimensionneur { order: 2; }
+    #main-container > #simulator-container { order: 3; }
+    #main-container > #code-container { order: 4; }
     /* La zone de blocs prend tout ce que les deux panneaux laissent, au lieu
        d'une part fixe de 50 % : en zoomant, ou en repliant un panneau, elle
        s'elargit au lieu d'etre etranglee par le tiroir de la boite a outils. */

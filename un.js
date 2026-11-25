@@ -6355,15 +6355,13 @@ try {
     const conteneurSimulateur = document.getElementById('simulator-container');
 
     /**
-     * La poignee de redimensionnement du simulateur n'a de sens que quand la
-     * transcription est masquee : c'est le seul cas ou sa bordure gauche
-     * touche directement la zone de blocs plutot que le panneau de code.
+     * Poignee de redimensionnement du simulateur, sur son bord gauche. Depuis que le code s'ouvre tout a droite (nov. 2026,
+     * voir l'ordre des panneaux dans index.html), ce bord touche toujours la zone de blocs : la poignee est la des que la
+     * simulation est affichee, code ouvert ou non.
      */
     function synchroniserResizerSimulateur() {
         if (!resizerSimulateur) return;
-        resizerSimulateur.classList.toggle('visible',
-            conteneurCode.classList.contains('replie') &&
-            !conteneurSimulateur.classList.contains('replie'));
+        resizerSimulateur.classList.toggle('visible', !conteneurSimulateur.classList.contains('replie'));
     }
 
     function basculerPanneau(bouton, panneau) {
@@ -6487,7 +6485,9 @@ try {
             // (260px) : #blockly-wrapper a flex-shrink actif mais pas
             // #simulator-container une fois sa largeur fixee en pixels, donc
             // rien d'autre ne l'empecherait de deborder.
-            const largeurMax = document.getElementById('main-container').clientWidth - 260 - 6;
+            // Code ouvert (tout a droite depuis nov. 2026) : sa largeur est aussi retiree.
+            const largeurCode = conteneurCode.classList.contains('replie') ? 0 : conteneurCode.getBoundingClientRect().width;
+            const largeurMax = document.getElementById('main-container').clientWidth - 260 - 6 - largeurCode;
             const nouvelleLargeur = Math.max(250, Math.min(largeurMax, largeurBrute));
             conteneurSimulateur.style.flex = `0 0 ${nouvelleLargeur}px`;
             Blockly.svgResize(window.workspace);
@@ -6502,7 +6502,6 @@ try {
         }
 
         resizerSimulateur.addEventListener('mousedown', (evenement) => {
-            if (!conteneurCode.classList.contains('replie')) return;
             xDepart = evenement.clientX;
             largeurDepart = conteneurSimulateur.getBoundingClientRect().width;
             resizerSimulateur.classList.add('actif');

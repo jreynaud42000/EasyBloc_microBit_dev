@@ -1953,3 +1953,12 @@ Verifie dans l'editeur, sans carte : bibliotheque chargee, menu « micro:bit / +
 « Connexion » ; televersement avec fenetre d'autorisation fermee -> « Envoi annule » ; carte qui refuse la connexion
 -> message d'erreur ; jamais de fenetre de choix de dossier ; aucune erreur JavaScript.
 PAS verifie : l'envoi et la console sur une VRAIE carte (a essayer avant diffusion).
+
+66. PANNEAU DU CODE TOUT A DROITE (nov. 2026, maquette validee par l'utilisateur)
+Demande : le panneau « Transcription MicroPython » s'ouvrait entre les blocs et la simulation ; il doit s'ouvrir sur
+la partie droite.
+- index.html : ordre d'affichage par CSS (order) : blocs | poignee | simulation | code. L'ordre du HTML ne change pas.
+- un.js : la poignee de la simulation est affichee des que la simulation l'est (son bord gauche touche toujours les
+  blocs), code ouvert ou non ; sa largeur maximale retire celle du code ouvert (les blocs gardent 260 px).
+Verifie (1024 et 1600 px) : code ouvert -> a droite de la simulation ; simulation fermee -> code a droite des
+blocs ; poignee utilisable code ouvert (384 -> 484 px), largeur maximale sans debordement.
